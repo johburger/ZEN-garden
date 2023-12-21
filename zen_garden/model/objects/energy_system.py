@@ -329,8 +329,8 @@ class EnergySystem:
         constraints.add_constraint_rule(model, name="constraint_carbon_emissions_annual_limit", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_carbon_emissions_annual_limit_rule,
                                    doc="limit of total annual carbon emissions of energy system")
         # minimum CO2 stored
-        constraints.add_constraint_rule(model, name="constraint_min_co2_stored", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_min_co2_stored_rule,
-                                        doc="minimum CO2 stored")
+#        constraints.add_constraint_rule(model, name="constraint_min_co2_stored", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_min_co2_stored_rule,
+#                                        doc="minimum CO2 stored")
         # carbon emission budget limit
         constraints.add_constraint_rule(model, name="constraint_carbon_emissions_budget", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_carbon_emissions_budget_rule,
                                    doc="Budget of total carbon emissions of energy system")
