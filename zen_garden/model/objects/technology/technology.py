@@ -567,6 +567,10 @@ class Technology(Element):
         constraints.add_constraint_block(model, name="constraint_capacity_factor",
                                          constraint=rules.constraint_capacity_factor_block(),
                                          doc='limit max load by installed capacity')
+        # limit max load by installed capacity
+        constraints.add_constraint_block(model, name="n1_contingency",
+                                         constraint=rules.constraint_n1_contingency_block(),
+                                         doc='limit flow to nominal flow times factor for the n-1_contingency')
         # annual capex of having capacity
         constraints.add_constraint_block(model, name="constraint_capex_yearly",
                                          constraint=rules.constraint_capex_yearly_block(),
@@ -1645,7 +1649,7 @@ class TechnologyRules(GenericRule):
                     term_flow = -1.0 * self.variables["flow_conversion_output"].loc[tech, reference_carrier, locs, times]
             # transport technology
             elif tech in self.sets["set_transport_technologies"]:
-                term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs, times]
+                term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs,: , times]
             # storage technology
             elif tech in self.sets["set_storage_technologies"]:
                 system = self.optimization_setup.system
@@ -1661,6 +1665,50 @@ class TechnologyRules(GenericRule):
             rhs = 0
             constraints.append(lhs >= rhs)
 
+        ### return
+        return self.constraints.return_contraints(constraints,
+                                                  model=self.model,
+                                                  index_values=index.get_unique(["set_technologies"]),
+                                                  index_names=["set_technologies"])
+    def constraint_n1_contingency_block(self):
+        """ Load is limited by the installed capacity and the maximum load factor
+
+        .. math::
+            \mathrm{if\ tech\ is\ conversion\ tech}\ G_{i,n,t,y}^\mathrm{r} \\leq m_{i,n,t,y}S_{i,n,y}
+        .. math::
+            \mathrm{if\ tech\ is\ transport\ tech}\ F_{j,e,t,y}^\mathrm{r} \\leq m_{j,e,t,y}S_{j,e,y}
+        .. math::
+            \mathrm{if\ tech\ is\ storage\ tech}\ \\underline{H}_{k,n,t,y}+\\overline{H}_{k,n,t,y}\\leq m_{k,n,t,y}S_{k,n,y}
+
+        :return: linopy constraints
+        """
+
+        ### index sets
+        index_values, index_names = Element.create_custom_set(["set_technologies", "set_capacity_types", "set_location", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
+        index = ZenIndex(index_values, index_names)
+
+        ### masks
+        # not necessary
+
+        ### index loop
+        # we oop over all technologies for the conditions and vectorize over the rest
+        constraints = []
+
+        failure_states = self.variables.coords["set_failure_states"]
+        times = self.variables.coords["set_time_steps_operation"]
+
+        for state in failure_states:
+            failure_tech, failure_edge = state.values.item().split(': ')
+
+            term_n1_contingency = 0.9 * self.parameters.nominal_flow_transport.loc[failure_tech, failure_edge, times]
+
+            term_flow = self.variables["flow_transport"].loc[failure_tech, failure_edge, state, times]
+
+            ### formulate constraint
+            lhs = term_flow
+            rhs = term_n1_contingency
+            constraints.append(lhs <= rhs)
+        print(constraints)
         ### return
         return self.constraints.return_contraints(constraints,
                                                   model=self.model,

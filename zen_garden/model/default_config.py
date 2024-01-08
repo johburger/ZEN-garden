@@ -95,7 +95,8 @@ class Config(object):
                 "set_technologies": "technology",
                 "set_technologies_existing": "technology_existing",
                 "set_capacity_types": "capacity_type",
-                "set_lca_impact_categories": "impact_category"}
+                "set_lca_impact_categories": "impact_category",
+                "set_failure_states": "failure_states"}
         # time series aggregation
         self.analysis["time_series_aggregation"] = {
             "clusterMethod"         : "k_means",
@@ -162,6 +163,8 @@ class Config(object):
         # LCA flag and set of impact categories
         self.system['load_lca_factors'] = False
         self.system['set_lca_impact_categories'] = []
+        # include n-1 contingency
+        self.system['include_n1_contingency'] = True
 
         ## Solver - Items assignment
         # solver selection (find more solver options for gurobi here: https://www.gurobi.com/documentation/9.1/refman/parameters.html)

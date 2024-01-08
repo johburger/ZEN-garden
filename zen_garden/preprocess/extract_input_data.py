@@ -416,8 +416,23 @@ class DataInput:
             df_input = self.read_input_csv(f_name)
             if df_input is None:
                 return [0]
+
+            # add failure state technology and location to data set
             if self.element.name in self.system["set_transport_technologies"]:
                 location = "edge"
+
+                # Create a new array with two columns
+                failure_technology_location = np.column_stack((
+                    np.full(len(df_input[location].unique()), self.element.name),  # First column with constant value
+                    df_input[location].unique()  # Second column with unique values from 'location' column
+                ))
+
+                # Add failure_technology_location to the existing array
+                self.energy_system.set_failure_technology_location = np.vstack((
+                    self.energy_system.set_failure_technology_location,
+                    failure_technology_location
+                ))
+
             else:
                 location = "node"
             _max_node_count = df_input[location].value_counts().max()
