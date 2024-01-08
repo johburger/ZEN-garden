@@ -3,11 +3,11 @@ capture_amine,power,swiss_storage_CH,0,0.0
 capture_amine,power,swiss_storage_CH,1,0.0
 capture_amine,power,swiss_storage_CH,2,0.0
 capture_amine,power,waste_1_CH,0,13.577313284792563
-capture_amine,power,waste_1_CH,1,22.528264789892845
+capture_amine,power,waste_1_CH,1,22.52826478989284
 capture_amine,power,waste_1_CH,2,26.387583907839083
 capture_amine,power,waste_2_CH,0,0.0
 capture_amine,power,waste_2_CH,1,0.0
-capture_amine,power,waste_2_CH,2,1.5197074991051103
+capture_amine,power,waste_2_CH,2,1.5197074991051096
 compression_16_110bar,power,swiss_storage_CH,0,0.0
 compression_16_110bar,power,swiss_storage_CH,1,0.0
 compression_16_110bar,power,swiss_storage_CH,2,0.0
@@ -34,7 +34,7 @@ condition_16bar,power,waste_1_CH,1,22.44074588095711
 condition_16bar,power,waste_1_CH,2,26.285072126545554
 condition_16bar,power,waste_2_CH,0,0.0
 condition_16bar,power,waste_2_CH,1,0.0
-condition_16bar,power,waste_2_CH,2,1.5138036648123387
+condition_16bar,power,waste_2_CH,2,1.513803664812347
 decompression_110_16bar,power,swiss_storage_CH,0,0.0
 decompression_110_16bar,power,swiss_storage_CH,1,0.0
 decompression_110_16bar,power,swiss_storage_CH,2,0.0
@@ -79,10 +79,10 @@ heat_pump,power,waste_1_CH,1,18.14791404067566
 heat_pump,power,waste_1_CH,2,21.256834867966667
 heat_pump,power,waste_2_CH,0,0.0
 heat_pump,power,waste_2_CH,1,0.0
-heat_pump,power,waste_2_CH,2,1.2242186123941108
+heat_pump,power,waste_2_CH,2,1.2242186123941103
 permanent_storage,power,swiss_storage_CH,0,13.524495345519437
-permanent_storage,power,swiss_storage_CH,1,22.440626205097555
-permanent_storage,power,swiss_storage_CH,2,27.798727540743915
+permanent_storage,power,swiss_storage_CH,1,22.44062620509756
+permanent_storage,power,swiss_storage_CH,2,27.798727540743926
 permanent_storage,power,waste_1_CH,0,0.0
 permanent_storage,power,waste_1_CH,1,0.0
 permanent_storage,power,waste_1_CH,2,0.0
@@ -106,4 +106,4 @@ truck_batch,power,waste_1_CH-waste_2_CH,1,0.0
 truck_batch,power,waste_1_CH-waste_2_CH,2,0.0
 truck_batch,power,waste_2_CH-swiss_storage_CH,0,0.0
 truck_batch,power,waste_2_CH-swiss_storage_CH,1,0.0
-truck_batch,power,waste_2_CH-swiss_storage_CH,2,1.5138036648123387
+truck_batch,power,waste_2_CH-swiss_storage_CH,2,1.513803664812347
