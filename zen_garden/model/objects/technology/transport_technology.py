@@ -56,7 +56,7 @@ class TransportTechnology(Technology):
         # calculate capex of existing capacity
         self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
         # get nominal flow transport
-        if self.energy_system.system['include_n1_contingency']:
+        if self.optimization_setup.system['include_n1_contingency']:
             self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps='set_time_steps_yearly')
 
     def get_capex_transport(self):
@@ -143,7 +143,7 @@ class TransportTechnology(Technology):
         optimization_setup.parameters.add_parameter(name="transport_loss_factor", data=optimization_setup.initialize_component(cls, "transport_loss_factor", index_names=["set_transport_technologies"]),
             doc='carrier losses due to transport with transport technologies')
         # nominal flow transport
-        if optimization_setup.energy_system.system['include_n1_contingency']:
+        if optimization_setup.system['include_n1_contingency']:
             optimization_setup.parameters.add_parameter(name="nominal_flow_transport", data=optimization_setup.initialize_component(cls, "nominal_flow_transport",
                 index_names=["set_transport_technologies", "set_edges", "set_time_steps_yearly"]), doc='nominal flow from cost-optimal solution for edge and transport technologies')
 
@@ -163,7 +163,10 @@ class TransportTechnology(Technology):
             :return bounds: bounds of carrier_flow"""
 
             # get the arrays
-            tech_arr, edge_arr, failure_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
+            if optimization_setup.system['include_n1_contingency']:
+                tech_arr, edge_arr, failure_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
+            else:
+                tech_arr, edge_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
             # convert operationTimeStep to time_step_year: operationTimeStep -> base_time_step -> time_step_year
             time_step_year = xr.DataArray([optimization_setup.energy_system.time_steps.convert_time_step_operation2year(time) for time in time_arr.data])
 
@@ -172,7 +175,10 @@ class TransportTechnology(Technology):
             return np.stack([lower, upper], axis=-1)
 
         # flow of carrier on edge
-        index_values, index_names = cls.create_custom_set(["set_transport_technologies", "set_edges", "set_failure_states", "set_time_steps_operation"], optimization_setup)
+        if optimization_setup.system['include_n1_contingency']:
+            index_values, index_names = cls.create_custom_set(["set_transport_technologies", "set_edges", "set_failure_states", "set_time_steps_operation"], optimization_setup)
+        else:
+            index_values, index_names = cls.create_custom_set(["set_transport_technologies", "set_edges", "set_time_steps_operation"], optimization_setup)
         bounds = flow_transport_bounds(index_values, index_names)
         variables.add_variable(model, name="flow_transport", index_sets=(index_values, index_names),
             bounds=bounds, doc='carrier flow through transport technology on edge i and time t')
