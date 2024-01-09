@@ -568,7 +568,8 @@ class Technology(Element):
                                          constraint=rules.constraint_capacity_factor_block(),
                                          doc='limit max load by installed capacity')
         # limit max load by installed capacity
-        constraints.add_constraint_block(model, name="n1_contingency",
+        if optimization_setup.system['include_n1_contingency']:
+            constraints.add_constraint_block(model, name="n1_contingency",
                                          constraint=rules.constraint_n1_contingency_block(),
                                          doc='limit flow to nominal flow times factor for the n-1_contingency')
         # annual capex of having capacity
@@ -1649,7 +1650,11 @@ class TechnologyRules(GenericRule):
                     term_flow = -1.0 * self.variables["flow_conversion_output"].loc[tech, reference_carrier, locs, times]
             # transport technology
             elif tech in self.sets["set_transport_technologies"]:
-                term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs,: , times]
+                if self.optimization_setup.system['include_n1_contingency']:
+                    term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs,: , times]
+                else:
+                    term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs, times]
+        
             # storage technology
             elif tech in self.sets["set_storage_technologies"]:
                 system = self.optimization_setup.system

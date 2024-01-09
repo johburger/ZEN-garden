@@ -717,7 +717,7 @@ class CarrierRules(GenericRule):
                 edges_out = self.energy_system.calculate_connected_edges(node, "out")
 
                 # get the variables for the in flow
-                in_vars_plus = self.variables["flow_transport"].labels.loc[techs, edges_in,: ,:].data
+                in_vars_plus = self.variables["flow_transport"].labels.loc[techs, edges_in ,:].data
                 in_vars_plus = in_vars_plus.reshape((-1, in_vars_plus.shape[-1])).T
                 in_coefs_plus = np.ones_like(in_vars_plus)
                 in_vars_minus = self.variables["flow_transport_loss"].labels.loc[techs, edges_out, :].data
