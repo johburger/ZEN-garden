@@ -1676,14 +1676,11 @@ class TechnologyRules(GenericRule):
                                                   index_values=index.get_unique(["set_technologies"]),
                                                   index_names=["set_technologies"])
     def constraint_n1_contingency_block(self):
-        """ Load is limited by the installed capacity and the maximum load factor
+        """ For each failure state, the corresponding transport flow is constrained by the product of the nominal
+        transport flow and the probability of the connection being operational
 
         .. math::
-            \mathrm{if\ tech\ is\ conversion\ tech}\ G_{i,n,t,y}^\mathrm{r} \\leq m_{i,n,t,y}S_{i,n,y}
-        .. math::
-            \mathrm{if\ tech\ is\ transport\ tech}\ F_{j,e,t,y}^\mathrm{r} \\leq m_{j,e,t,y}S_{j,e,y}
-        .. math::
-            \mathrm{if\ tech\ is\ storage\ tech}\ \\underline{H}_{k,n,t,y}+\\overline{H}_{k,n,t,y}\\leq m_{k,n,t,y}S_{k,n,y}
+            \mathrm\ F_{j,e,f,y} \\leq (1-\sigma_{j,e}) * F_{nom \quad j,e,y}
 
         :return: linopy constraints
         """
