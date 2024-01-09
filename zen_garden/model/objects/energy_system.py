@@ -243,9 +243,10 @@ class EnergySystem:
         # failure states, only if flag to include n-1 contingency is True
         if self.system['include_n1_contingency']:
             self.optimization_setup.sets.add_set(name="set_failure_states",
-                                                 data=[f"{row[0]}: {row[1]}" for row in
-                                                       self.set_failure_technology_location],
+                                                 data=[f"{row[0]}: {row[1]}" for row in self.set_failure_technology_location],
                                                  doc="Set of failure states in n-1 contingency")
+        else:
+            self.optimization_setup.sets.add_set(name="set_failure_states", data=['no_failure'], doc="Set of failure states in n-1 contingency")
         # operational time steps
         self.optimization_setup.sets.add_set(name="set_time_steps_operation",data=self.time_steps.time_steps_operation,doc="Set of operational time steps")
         # storage time steps

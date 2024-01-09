@@ -56,7 +56,8 @@ class TransportTechnology(Technology):
         # calculate capex of existing capacity
         self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
         # get nominal flow transport
-        self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps='set_time_steps_yearly')
+        if self.energy_system.system['include_n1_contingency']:
+            self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps='set_time_steps_yearly')
 
     def get_capex_transport(self):
         """get capex of transport technology"""
@@ -142,12 +143,9 @@ class TransportTechnology(Technology):
         optimization_setup.parameters.add_parameter(name="transport_loss_factor", data=optimization_setup.initialize_component(cls, "transport_loss_factor", index_names=["set_transport_technologies"]),
             doc='carrier losses due to transport with transport technologies')
         # nominal flow transport
-        optimization_setup.parameters.add_parameter(name="nominal_flow_transport",
-                                                        data=optimization_setup.initialize_component(cls, "nominal_flow_transport",
-                                                                                                     index_names=[
-                                                                                                         "set_transport_technologies",
-                                                                                                         "set_edges", "set_time_steps_yearly"]),
-                                                        doc='nominal flow from cost-optimal solution for edge and transport technologies')
+        if optimization_setup.energy_system.system['include_n1_contingency']:
+            optimization_setup.parameters.add_parameter(name="nominal_flow_transport", data=optimization_setup.initialize_component(cls, "nominal_flow_transport",
+                index_names=["set_transport_technologies", "set_edges", "set_time_steps_yearly"]), doc='nominal flow from cost-optimal solution for edge and transport technologies')
 
     @classmethod
     def construct_vars(cls, optimization_setup):

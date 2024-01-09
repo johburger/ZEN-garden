@@ -567,10 +567,11 @@ class Technology(Element):
         constraints.add_constraint_block(model, name="constraint_capacity_factor",
                                          constraint=rules.constraint_capacity_factor_block(),
                                          doc='limit max load by installed capacity')
-        # limit max load by installed capacity
-        constraints.add_constraint_block(model, name="n1_contingency",
-                                         constraint=rules.constraint_n1_contingency_block(),
-                                         doc='limit flow to nominal flow times factor for the n-1_contingency')
+        # limit max load by installed capacity if n-1 contingency is investigated
+        if optimization_setup.system["include_n1_contingency"]:
+            constraints.add_constraint_block(model, name="n1_contingency",
+                                             constraint=rules.constraint_n1_contingency_block(),
+                                             doc='limit flow to nominal flow times factor for the n-1_contingency')
         # annual capex of having capacity
         constraints.add_constraint_block(model, name="constraint_capex_yearly",
                                          constraint=rules.constraint_capex_yearly_block(),
