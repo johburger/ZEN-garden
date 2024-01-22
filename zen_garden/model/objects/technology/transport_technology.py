@@ -57,7 +57,9 @@ class TransportTechnology(Technology):
         self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
         # get nominal flow transport
         if self.optimization_setup.system['include_n1_contingency']:
-            self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps='set_time_steps_yearly')
+            self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps"], time_steps="set_time_steps_yearly")
+            self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"])
+            self.down_time = self.data_input.extract_input_data("down_time", index_sets=["set_edges"])
 
     def get_capex_transport(self):
         """get capex of transport technology"""
@@ -67,11 +69,11 @@ class TransportTechnology(Technology):
             self.capex_specific = self.data_input.extract_input_data("capex_specific", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly")
             self.capex_per_distance_transport = self.data_input.extract_input_data("capex_per_distance_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly")
         else:  # Here only capex_specific is used, and capex_per_distance_transport is set to Zero.
-            if "capex_per_distance_transport" in self.data_input.attribute_dict:
+            if self.data_input.exists_attribute("capex_per_distance_transport"):
                 self.capex_per_distance_transport = self.data_input.extract_input_data("capex_per_distance_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly")
                 self.capex_specific = self.capex_per_distance_transport * self.distance
                 self.opex_specific_fixed = self.opex_specific_fixed * self.distance
-            elif "capex_specific" in self.data_input.attribute_dict:
+            elif self.data_input.exists_attribute("capex_specific"):
                 self.capex_specific = self.data_input.extract_input_data("capex_specific", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly")
             else:
                 raise AttributeError(f"The transport technology {self.name} has neither capex_per_distance_transport nor capex_specific attribute.")
@@ -130,22 +132,31 @@ class TransportTechnology(Technology):
 
         # distance between nodes
         optimization_setup.parameters.add_parameter(name="distance", data=optimization_setup.initialize_component(cls, "distance", index_names=["set_transport_technologies", "set_edges"]),
-            doc='distance between two nodes for transport technologies')
+                                                    doc='distance between two nodes for transport technologies')
         # capital cost per unit
         optimization_setup.parameters.add_parameter(name="capex_specific_transport",
-            data=optimization_setup.initialize_component(cls, "capex_specific", index_names=["set_transport_technologies", "set_edges", "set_time_steps_yearly"]),
-            doc='capex per unit for transport technologies')
+                                                    data=optimization_setup.initialize_component(cls, "capex_specific", index_names=["set_transport_technologies", "set_edges", "set_time_steps_yearly"]),
+                                                    doc='capex per unit for transport technologies')
         # capital cost per distance
         optimization_setup.parameters.add_parameter(name="capex_per_distance_transport",
-            data=optimization_setup.initialize_component(cls, 'capex_per_distance_transport', index_names=['set_transport_technologies', "set_edges", "set_time_steps_yearly"]),
-            doc='capex per distance for transport technologies')
+                                                    data=optimization_setup.initialize_component(cls, 'capex_per_distance_transport', index_names=['set_transport_technologies', "set_edges", "set_time_steps_yearly"]),
+                                                    doc='capex per distance for transport technologies')
         # carrier losses
         optimization_setup.parameters.add_parameter(name="transport_loss_factor", data=optimization_setup.initialize_component(cls, "transport_loss_factor", index_names=["set_transport_technologies"]),
-            doc='carrier losses due to transport with transport technologies')
+                                                    doc='carrier losses due to transport with transport technologies')
         # nominal flow transport
         if optimization_setup.system['include_n1_contingency']:
-            optimization_setup.parameters.add_parameter(name="nominal_flow_transport", data=optimization_setup.initialize_component(cls, "nominal_flow_transport",
-                index_names=["set_transport_technologies", "set_edges", "set_time_steps_yearly"]), doc='nominal flow from cost-optimal solution for edge and transport technologies')
+            optimization_setup.parameters.add_parameter(name="nominal_flow_transport",data=optimization_setup.initialize_component(cls,"nominal_flow_transport",index_names=["set_transport_technologies", "set_edges", "set_time_steps_operation"]),
+                                                        doc='nominal flow from cost-optimal solution for edge and transport technologies')
+            optimization_setup.parameters.add_parameter(name="failure_rate",
+                                                        data=optimization_setup.initialize_component(cls, "failure_rate", index_names=["set_transport_technologies", "set_edges"]),
+                                                        doc='failure rate for transport technologies')
+            optimization_setup.parameters.add_parameter(name="down_time",
+                                                        data=optimization_setup.initialize_component(cls, "down_time", index_names=["set_transport_technologies", "set_edges"]),
+                                                        doc='down time for transport technologies whe failure occurs')
+
+
+
 
     @classmethod
     def construct_vars(cls, optimization_setup):
@@ -184,7 +195,11 @@ class TransportTechnology(Technology):
             bounds=bounds, doc='carrier flow through transport technology on edge i and time t')
         # loss of carrier on edge
         variables.add_variable(model, name="flow_transport_loss", index_sets=(index_values, index_names), bounds=(0,np.inf),
-            doc='carrier flow through transport technology on edge i and time t')
+            doc='carrier flow lost due to resistances etc. by transporting carrier through transport technology on edge i and time t')
+        if optimization_setup.system['include_n1_contingency']:
+            variables.add_variable(model, name="operation_probability", index_sets=cls.create_custom_set(
+            ["set_transport_technologies", "set_edges", "set_time_steps_operation"], optimization_setup),
+                               bounds=(0, np.inf), doc="'probability of connection being operational for edge and transport technologies'")
 
     @classmethod
     def construct_constraints(cls, optimization_setup):
@@ -194,6 +209,11 @@ class TransportTechnology(Technology):
         model = optimization_setup.model
         constraints = optimization_setup.constraints
         rules = TransportTechnologyRules(optimization_setup)
+        # operation probability
+        if optimization_setup.system['include_n1_contingency']:
+            constraints.add_constraint_block(model, name="constraint_operation_probability_block",
+                                        constraint=rules.constraint_operation_probability_block(),
+                                        doc='operation probability for all transport technology that are operated.')
         # Carrier Flow Losses
         constraints.add_constraint_block(model, name="constraint_transport_technology_losses_flow",
                                          constraint=rules.constraint_transport_technology_losses_flow_block(),
@@ -267,8 +287,37 @@ class TransportTechnologyRules(GenericRule):
     # Rule-based constraints
     # ----------------------
 
-    # Block-based constraints
+        # Block-based constraints
     # -----------------------
+
+    def constraint_operation_probability_block(self):
+        """ calculation of operation probability
+
+        .. math::
+            OPEX_y = \sum_{h\in\mathcal{H}}\sum_{p\in\mathcal{P}} OPEX_{h,p,y}
+
+        :return: linopy constraint
+        """
+
+        ### index sets
+        # not necessary
+
+        ### masks
+        # not necessary
+
+        ### index loop
+        # not necessary
+
+        ### auxiliary calculations
+        term_mult_operation_probability = (1 - self.parameters.failure_rate * self.parameters.distance * self.parameters.down_time).clip(min=0)
+
+        ### formulate constraint
+        lhs = self.variables["operation_probability"]
+        rhs = term_mult_operation_probability
+        constraints = lhs == rhs
+
+        ### return
+        return self.constraints.return_contraints(constraints)
 
     def constraint_transport_technology_losses_flow_block(self):
         """compute the flow losses for a carrier through a transport technology

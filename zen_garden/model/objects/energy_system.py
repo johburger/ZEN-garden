@@ -336,8 +336,8 @@ class EnergySystem:
         constraints.add_constraint_rule(model, name="constraint_carbon_emissions_annual_limit", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_carbon_emissions_annual_limit_rule,
                                    doc="limit of total annual carbon emissions of energy system")
         # minimum CO2 stored
-#        constraints.add_constraint_rule(model, name="constraint_min_co2_stored", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_min_co2_stored_rule,
-#                                        doc="minimum CO2 stored")
+        #constraints.add_constraint_rule(model, name="constraint_min_co2_stored", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_min_co2_stored_rule,
+        #                                doc="minimum CO2 stored")
         # carbon emission budget limit
         constraints.add_constraint_rule(model, name="constraint_carbon_emissions_budget", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_carbon_emissions_budget_rule,
                                    doc="Budget of total carbon emissions of energy system")
@@ -491,8 +491,8 @@ class EnergySystemRules(GenericRule):
 
         ### formulate constraint
         assert 'co2_stored' in self.optimization_setup.sets['set_carriers'], "carrier 'co2_stored' not found in set_carriers"
-        total_co2_stored = (self.variables['flow_export'].loc['co2_stored', :, year] * self.parameters.time_steps_operation_duration.loc['co2_stored', year]).sum()
-        feasibility_tech = (self.variables['flow_conversion_output'].loc['emergency_storage', 'dummy_carrier', :, year] * self.parameters.time_steps_operation_duration.loc['emergency_storage', year]).sum()
+        total_co2_stored = (self.variables['flow_export'].loc['co2_stored', :, year] * self.parameters.time_steps_operation_duration.loc[year]).sum()
+        feasibility_tech = (self.variables['flow_conversion_output'].loc['emergency_storage', 'dummy_carrier', :, year] * self.parameters.time_steps_operation_duration.loc[year]).sum()
         lhs = total_co2_stored + feasibility_tech
         rhs = self.parameters.min_co2_stored.loc[year].item()
         constraints = lhs >= rhs
