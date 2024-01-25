@@ -381,11 +381,6 @@ class Technology(Element):
         # carbon intensity
         optimization_setup.parameters.add_parameter(name="carbon_intensity_technology", data=optimization_setup.initialize_component(cls, "carbon_intensity_technology", index_names=["set_technologies", "set_location"]),
             doc='Parameter which specifies the carbon intensity of each technology')
-        # calculate additional existing parameters
-        optimization_setup.parameters.add_parameter(name="existing_capacities", data=cls.get_existing_quantity(optimization_setup, type_existing_quantity="capacity"),
-                                                    doc="Parameter which specifies the total available capacity of existing technologies at the beginning of the optimization")
-        optimization_setup.parameters.add_parameter(name="existing_capex",data=cls.get_existing_quantity(optimization_setup,type_existing_quantity="cost_capex"),
-                                                    doc="Parameter which specifies the total capex of existing technologies at the beginning of the optimization")
         # lca parameters
         if optimization_setup.system['load_lca_factors']:
             optimization_setup.parameters.add_parameter(name='technology_lca_factors',
@@ -395,7 +390,7 @@ class Technology(Element):
         # Helper params
         t0 = time.perf_counter()
         optimization_setup.parameters.add_helper_parameter(name="existing_capacities", data=cls.get_existing_quantity(optimization_setup, type_existing_quantity="capacity"))
-        optimization_setup.parameters.add_helper_parameter(name="existing_capex", data=cls.get_existing_quantity(optimization_setup, type_existing_quantity="cost_capex", time_step_type="yearly"))
+        optimization_setup.parameters.add_helper_parameter(name="existing_capex", data=cls.get_existing_quantity(optimization_setup, type_existing_quantity="cost_capex"))
         t1 = time.perf_counter()
         logging.debug(f"Helper Params took {t1 - t0:.4f} seconds")
 
@@ -1698,7 +1693,7 @@ class TechnologyRules(GenericRule):
         index = ZenIndex(index_values, index_names)
 
         ### masks
-        # not necessary
+        #below
 
         ### index loop
         # we oop over all technologies for the conditions and vectorize over the rest
@@ -1709,14 +1704,15 @@ class TechnologyRules(GenericRule):
 
         for state in failure_states:
             failure_tech, failure_edge = state.values.item().split(': ')
+            m1 = (self.parameters.nominal_flow_transport.loc[failure_tech, failure_edge] != np.inf)
 
-            term_n1_contingency = self.variables["operation_probability"].loc[failure_tech, failure_edge, times] * self.parameters.nominal_flow_transport.loc[failure_tech, failure_edge, times]
+            term_n1_contingency = self.parameters.operation_probability.loc[failure_tech, failure_edge] * self.parameters.nominal_flow_transport.loc[failure_tech, failure_edge, times]
 
             term_flow = self.variables["flow_transport"].loc[failure_tech, failure_edge, state, times]
 
             ### formulate constraint
-            lhs = term_flow - term_n1_contingency
-            rhs = 0
+            lhs = term_flow.where(m1)
+            rhs = term_n1_contingency.where(m1)
             constraints.append(lhs <= rhs)
         ### return
         return self.constraints.return_contraints(constraints,
