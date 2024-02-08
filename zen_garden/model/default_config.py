@@ -164,7 +164,9 @@ class Config(object):
         self.system['load_lca_factors'] = False
         self.system['set_lca_impact_categories'] = []
         # include n-1 contingency
-        self.system['include_n1_contingency'] = False
+        self.system['include_n1_contingency_transport'] = False
+        self.system['include_n1_contingency_conversion'] = False
+        self.system['include_n1_contingency_import_export'] = False
 
         ## Solver - Items assignment
         # solver selection (find more solver options for gurobi here: https://www.gurobi.com/documentation/9.1/refman/parameters.html)

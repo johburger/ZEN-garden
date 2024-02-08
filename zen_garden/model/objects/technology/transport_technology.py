@@ -56,15 +56,15 @@ class TransportTechnology(Technology):
         # calculate capex of existing capacity
         self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
         # get information for N-1 contingency
-        if self.optimization_setup.system['include_n1_contingency']:
+        if self.optimization_setup.system['include_n1_contingency_transport']:
             # get nominal flow transport
             self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly")
             # get failure rate
-            self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"])
+            self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"])
             # get downtime
-            self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_edges"])
+            self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"])
             # calculate operation probability
-            self.operation_probability = self.calculate_operation_probability()
+            self.operation_probability_transport = self.calculate_operation_probability()
 
     def get_capex_transport(self):
         """get capex of transport technology"""
@@ -131,7 +131,7 @@ class TransportTechnology(Technology):
         :param downtime: downtime of transport technology
         :return: operation probabilit
         """
-        operation_probability = (1 - self.failure_rate * self.distance * self.downtime).clip(lower=0)
+        operation_probability = (1 - self.failure_rate_transport * self.distance * self.downtime_transport).clip(lower=0)
         return operation_probability
 
     @classmethod
@@ -162,21 +162,21 @@ class TransportTechnology(Technology):
         optimization_setup.parameters.add_parameter(name="transport_loss_factor", data=optimization_setup.initialize_component(cls, "transport_loss_factor", index_names=["set_transport_technologies"]),
                                                     doc='carrier losses due to transport with transport technologies')
         # additional for N-1 contingency
-        if optimization_setup.system['include_n1_contingency']:
+        if optimization_setup.system['include_n1_contingency_transport']:
             # nominal flow
             optimization_setup.parameters.add_parameter(name="nominal_flow_transport",data=optimization_setup.initialize_component(cls,"nominal_flow_transport",index_names=["set_transport_technologies", "set_edges", "set_time_steps_operation"]),
                                                         doc='nominal flow from cost-optimal solution for edge and transport technologies')
             # failure rate
-            optimization_setup.parameters.add_parameter(name="failure_rate",
-                                                        data=optimization_setup.initialize_component(cls, "failure_rate", index_names=["set_transport_technologies", "set_edges"]),
+            optimization_setup.parameters.add_parameter(name="failure_rate_transport",
+                                                        data=optimization_setup.initialize_component(cls, "failure_rate_transport", index_names=["set_transport_technologies", "set_edges"]),
                                                         doc='failure rate for transport technologies')
             # downtime
-            optimization_setup.parameters.add_parameter(name="downtime",
-                                                        data=optimization_setup.initialize_component(cls, "downtime", index_names=["set_transport_technologies", "set_edges"]),
+            optimization_setup.parameters.add_parameter(name="downtime_transport",
+                                                        data=optimization_setup.initialize_component(cls, "downtime_transport", index_names=["set_transport_technologies", "set_edges"]),
                                                         doc='downtime for transport technologies whe failure occurs')
             # operation probability
-            optimization_setup.parameters.add_parameter(name="operation_probability",
-                                                        data=optimization_setup.initialize_component(cls, "operation_probability", index_names=["set_transport_technologies", "set_edges"]),
+            optimization_setup.parameters.add_parameter(name="operation_probability_transport",
+                                                        data=optimization_setup.initialize_component(cls, "operation_probability_transport", index_names=["set_transport_technologies", "set_edges"]),
                                                         doc='probability of connection being operational for edge and transport technologies')
 
 
@@ -198,7 +198,7 @@ class TransportTechnology(Technology):
             :return bounds: bounds of carrier_flow"""
 
             # get the arrays
-            if optimization_setup.system['include_n1_contingency']:
+            if optimization_setup.system['include_n1_contingency_transport']:
                 tech_arr, edge_arr, failure_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
             else:
                 tech_arr, edge_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
@@ -210,7 +210,7 @@ class TransportTechnology(Technology):
             return np.stack([lower, upper], axis=-1)
 
         # flow of carrier on edge
-        if optimization_setup.system['include_n1_contingency']:
+        if optimization_setup.system['include_n1_contingency_transport']:
             index_values, index_names = cls.create_custom_set(["set_transport_technologies", "set_edges", "set_failure_states", "set_time_steps_operation"], optimization_setup)
         else:
             index_values, index_names = cls.create_custom_set(["set_transport_technologies", "set_edges", "set_time_steps_operation"], optimization_setup)

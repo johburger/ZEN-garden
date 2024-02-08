@@ -464,7 +464,7 @@ class Technology(Element):
         variables.add_variable(model, name="cost_capex_total", index_sets=sets["set_time_steps_yearly"],
             bounds=(0,np.inf), doc='total capex for installing all technologies in all locations at all times')
         # opex
-        if optimization_setup.system['include_n1_contingency']:
+        if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
             variables.add_variable(model, name="cost_opex", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_failure_states", "set_time_steps_operation"], optimization_setup),
                 bounds=(0,np.inf), doc="opex for operating technology at location l and time t")
         else:
@@ -478,7 +478,7 @@ class Technology(Element):
         variables.add_variable(model, name="opex_yearly", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_yearly"], optimization_setup),
             bounds=(0,np.inf), doc="yearly opex for operating technology at location l and year y")
         # carbon emissions
-        if optimization_setup.system['include_n1_contingency']:
+        if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
             variables.add_variable(model, name="carbon_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_failure_states", "set_time_steps_operation"], optimization_setup),
                 doc="carbon emissions for operating technology at location l and time t")
         else:
@@ -554,11 +554,16 @@ class Technology(Element):
         constraints.add_constraint_block(model, name="constraint_capacity_factor",
                                          constraint=rules.constraint_capacity_factor_block(),
                                          doc='limit max load by installed capacity')
-        # limit max load by installed capacity
-        if optimization_setup.system['include_n1_contingency']:
-            constraints.add_constraint_block(model, name="n1_contingency",
-                                         constraint=rules.constraint_n1_contingency_block(),
-                                         doc='limit flow to nominal flow times factor for the n-1_contingency')
+        # n-1 cintingency for transport technologies
+        if optimization_setup.system['include_n1_contingency_transport']:
+            constraints.add_constraint_block(model, name="n1_contingency_transport",
+                                         constraint=rules.constraint_n1_contingency_transport_block(),
+                                         doc='limit transport flow to nominal flow times factor for the n-1_contingency')
+        # n-1 cintingency for transport technologies
+        if optimization_setup.system['include_n1_contingency_conversion']:
+            constraints.add_constraint_block(model, name="n1_contingency_conversion",
+                                         constraint=rules.constraint_n1_contingency_conversion_block(),
+                                         doc='limit conversion input flow to nominal flow times factor for the n-1_contingency')
         # annual capex of having capacity
         constraints.add_constraint_block(model, name="constraint_capex_yearly",
                                          constraint=rules.constraint_capex_yearly_block(),
@@ -1364,7 +1369,7 @@ class TechnologyRules(GenericRule):
         """
 
         ### index sets
-        if self.system['include_n1_contingency']:
+        if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
             index_values, index_names = Element.create_custom_set(["set_technologies", "set_location", "set_failure_states", "set_time_steps_yearly"], self.optimization_setup)
         else:
             index_values, index_names = Element.create_custom_set(["set_technologies", "set_location", "set_time_steps_yearly"], self.optimization_setup)
@@ -1382,7 +1387,7 @@ class TechnologyRules(GenericRule):
             ### auxiliary calculations
             times = self.time_steps.get_time_steps_year2operation(year)
 
-            if self.system['include_n1_contingency']:
+            if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
                 term_neg_summed_cost_opex = - (self.variables["cost_opex"].loc[tech, :, :, times].sum(["set_failure_states"])/len(index.get_unique(["set_failure_states"])) * self.parameters.time_steps_operation_duration.loc[times]).sum(["set_time_steps_operation"])
             else:
                 term_neg_summed_cost_opex = - (self.variables["cost_opex"].loc[tech, :, times] * self.parameters.time_steps_operation_duration.loc[times]).sum(["set_time_steps_operation"])
@@ -1476,7 +1481,7 @@ class TechnologyRules(GenericRule):
         ### index sets
         years = self.sets["set_time_steps_yearly"]
         # this index is just for the sums in the auxiliary calculations
-        if self.system['include_n1_contingency']:
+        if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
             index_values, index_names = Element.create_custom_set(["set_technologies", "set_location", "set_failure_states"], self.optimization_setup)
         else:
             index_values, index_names = Element.create_custom_set(["set_technologies", "set_location"], self.optimization_setup)
@@ -1496,7 +1501,7 @@ class TechnologyRules(GenericRule):
             for tech in index.get_unique(["set_technologies"]):
                 locs = index.get_values([tech], "set_location", unique=True)
                 times = self.time_steps.get_time_steps_year2operation(year)
-                if self.system['include_n1_contingency']:
+                if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
                     term_summed_carbon_emissions_technology.append((self.variables["carbon_emissions_technology"].loc[tech, locs, :, times].sum(["set_failure_states"])/len(index.get_unique(["set_failure_states"])) * self.parameters.time_steps_operation_duration.loc[times]).sum())
                 else:
                     term_summed_carbon_emissions_technology.append((self.variables["carbon_emissions_technology"].loc[tech, locs, times] * self.parameters.time_steps_operation_duration.loc[times]).sum())
@@ -1647,13 +1652,20 @@ class TechnologyRules(GenericRule):
 
             # conversion technology
             if tech in self.sets["set_conversion_technologies"]:
-                if reference_carrier in self.sets["set_input_carriers"][tech]:
-                    term_flow = -1.0 * self.variables["flow_conversion_input"].loc[tech, reference_carrier, locs, times]
+                if self.optimization_setup.system['include_n1_contingency_conversion']:
+                    if reference_carrier in self.sets["set_input_carriers"][tech]:
+                        term_flow = -1.0 * self.variables["flow_conversion_input"].loc[tech, reference_carrier, locs, :, times]
+                    else:
+                        term_flow = -1.0 * self.variables["flow_conversion_output"].loc[tech, reference_carrier, locs, :, times]
+
                 else:
-                    term_flow = -1.0 * self.variables["flow_conversion_output"].loc[tech, reference_carrier, locs, times]
+                    if reference_carrier in self.sets["set_input_carriers"][tech]:
+                        term_flow = -1.0 * self.variables["flow_conversion_input"].loc[tech, reference_carrier, locs, times]
+                    else:
+                        term_flow = -1.0 * self.variables["flow_conversion_output"].loc[tech, reference_carrier, locs, times]
             # transport technology
             elif tech in self.sets["set_transport_technologies"]:
-                if self.optimization_setup.system['include_n1_contingency']:
+                if self.optimization_setup.system['include_n1_contingency_transport']:
                     term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs,: , times]
                 else:
                     term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs, times]
@@ -1678,7 +1690,7 @@ class TechnologyRules(GenericRule):
                                                   model=self.model,
                                                   index_values=index.get_unique(["set_technologies"]),
                                                   index_names=["set_technologies"])
-    def constraint_n1_contingency_block(self):
+    def constraint_n1_contingency_transport_block(self):
         """ For each failure state, the corresponding transport flow is constrained by the product of the nominal
         transport flow and the probability of the connection being operational
 
@@ -1698,24 +1710,72 @@ class TechnologyRules(GenericRule):
         ### index loop
         # we oop over all technologies for the conditions and vectorize over the rest
         constraints = []
+        constraints_conversion = []
 
         failure_states = self.variables.coords["set_failure_states"]
         times = self.variables.coords["set_time_steps_operation"]
 
         for state in failure_states:
-            failure_tech, failure_edge = state.values.item().split(': ')
-            m1 = (self.parameters.nominal_flow_transport.loc[failure_tech, failure_edge] != np.inf)
+            failure_tech, failure_location = state.values.item().split(': ')
+            if failure_tech in self.sets["set_transport_technologies"]:
+                m1 = (self.parameters.nominal_flow_transport.loc[failure_tech, failure_location] != np.inf)
 
-            term_n1_contingency = self.parameters.operation_probability.loc[failure_tech, failure_edge] * self.parameters.nominal_flow_transport.loc[failure_tech, failure_edge, times]
+                term_n1_contingency = self.parameters.operation_probability_transport.loc[failure_tech, failure_location] * self.parameters.nominal_flow_transport.loc[failure_tech, failure_location, times]
 
-            term_flow = self.variables["flow_transport"].loc[failure_tech, failure_edge, state, times]
+                term_flow = self.variables["flow_transport"].loc[failure_tech, failure_location, state, times]
 
-            ### formulate constraint
-            lhs = term_flow.where(m1)
-            rhs = term_n1_contingency.where(m1)
-            constraints.append(lhs <= rhs)
+                ### formulate constraint
+                lhs = term_flow.where(m1)
+                rhs = term_n1_contingency.where(m1)
+                constraints.append(lhs <= rhs)
+
         ### return
         return self.constraints.return_contraints(constraints,
                                                   model=self.model,
                                                   index_values=index.get_unique(["set_failure_states"]),
                                                   index_names=["set_failure_states"])
+
+    def constraint_n1_contingency_conversion_block(self):
+        """ For each failure state, the corresponding transport flow is constrained by the product of the nominal
+        transport flow and the probability of the connection being operational
+
+        .. math::
+            \mathrm\ F_{j,e,f,y} \\leq (1-\sigma_{j,e}) * F_{nom \quad j,e,y}
+
+        :return: linopy constraints
+        """
+
+        ### index sets
+        index_values, index_names = Element.create_custom_set(["set_technologies", "set_capacity_types", "set_carriers", "set_location", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
+        index = ZenIndex(index_values, index_names)
+
+        ### masks
+        #below
+
+        ### index loop
+        # we oop over all technologies for the conditions and vectorize over the rest
+        constraints_transport = []
+        constraints = []
+
+        failure_states = self.variables.coords["set_failure_states"]
+        times = self.variables.coords["set_time_steps_operation"]
+
+        for state in failure_states:
+            failure_tech, failure_location = state.values.item().split(': ')
+            if failure_tech in self.sets["set_conversion_technologies"]:
+                for carriers in self.variables.coords["set_input_carriers"]:
+                    m1 = (self.parameters.nominal_flow_conversion_input.loc[failure_tech, carriers, failure_location] != np.inf)
+
+                    term_n1_contingency = self.parameters.operation_probability_conversion.loc[failure_tech, failure_location] * self.parameters.nominal_flow_conversion_input.loc[failure_tech, carriers, failure_location, times]
+
+                    term_flow = self.variables["flow_conversion_input"].loc[failure_tech, carriers, failure_location, state, times]
+
+                    ### formulate constraint
+                    lhs = term_flow.where(m1)
+                    rhs = term_n1_contingency.where(m1)
+                    constraints.append(lhs <= rhs)
+        ### return
+        return self.constraints.return_contraints(constraints,
+                                                  model=self.model,
+                                                  index_values=index.get_unique(["set_failure_states", "set_carriers"]),
+                                                  index_names=["set_failure_states", "set_carriers"])

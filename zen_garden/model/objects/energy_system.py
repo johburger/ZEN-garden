@@ -241,7 +241,7 @@ class EnergySystem:
             self.optimization_setup.sets.add_set(name='set_lca_impact_categories', data=self.set_lca_impact_categories,
                                                  doc='Set of the LCIA impact categories to be investigated')
         # failure states, only if flag to include n-1 contingency is True
-        if self.system['include_n1_contingency']:
+        if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
             self.optimization_setup.sets.add_set(name="set_failure_states",
                                                  data=[f"{row[0]}: {row[1]}" for row in self.set_failure_technology_location],
                                                  doc="Set of failure states in n-1 contingency")
