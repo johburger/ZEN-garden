@@ -554,12 +554,12 @@ class Technology(Element):
         constraints.add_constraint_block(model, name="constraint_capacity_factor",
                                          constraint=rules.constraint_capacity_factor_block(),
                                          doc='limit max load by installed capacity')
-        # n-1 cintingency for transport technologies
+        # n-1 contingency for transport technologies
         if optimization_setup.system['include_n1_contingency_transport']:
             constraints.add_constraint_block(model, name="n1_contingency_transport",
                                          constraint=rules.constraint_n1_contingency_transport_block(),
                                          doc='limit transport flow to nominal flow times factor for the n-1_contingency')
-        # n-1 cintingency for transport technologies
+        # n-1 contingency for conversion technologies
         if optimization_setup.system['include_n1_contingency_conversion']:
             constraints.add_constraint_block(model, name="n1_contingency_conversion",
                                          constraint=rules.constraint_n1_contingency_conversion_block(),
@@ -1666,7 +1666,7 @@ class TechnologyRules(GenericRule):
             # transport technology
             elif tech in self.sets["set_transport_technologies"]:
                 if self.optimization_setup.system['include_n1_contingency_transport']:
-                    term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs,: , times]
+                    term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs, :, times]
                 else:
                     term_flow = -1.0 * self.variables["flow_transport"].loc[tech, locs, times]
 
@@ -1710,7 +1710,6 @@ class TechnologyRules(GenericRule):
         ### index loop
         # we oop over all technologies for the conditions and vectorize over the rest
         constraints = []
-        constraints_conversion = []
 
         failure_states = self.variables.coords["set_failure_states"]
         times = self.variables.coords["set_time_steps_operation"]
@@ -1754,7 +1753,6 @@ class TechnologyRules(GenericRule):
 
         ### index loop
         # we oop over all technologies for the conditions and vectorize over the rest
-        constraints_transport = []
         constraints = []
 
         failure_states = self.variables.coords["set_failure_states"]
