@@ -104,6 +104,11 @@ class EnergySystem:
         self.carbon_emissions_annual_limit = self.data_input.extract_input_data("carbon_emissions_annual_limit", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly")
         _fraction_year = self.system["unaggregated_time_steps_per_year"] / self.system["total_hours_per_year"]
         self.carbon_emissions_annual_limit = self.carbon_emissions_annual_limit * _fraction_year  # reduce to fraction of year
+        if self.system["include_carbon_emissions_annual_limit_adjustment"]:
+            self.carbon_emissions_annual_limit_adjustment = self.data_input.extract_input_data("carbon_emissions_annual_limit_adjustment", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly")
+            _fraction_year = self.system["unaggregated_time_steps_per_year"] / self.system["total_hours_per_year"]
+            self.carbon_emissions_annual_limit_adjustment = self.carbon_emissions_annual_limit_adjustment * _fraction_year  # reduce to fraction of year
+            self.carbon_emissions_annual_limit_adjustment_factor = self.data_input.extract_input_data("carbon_emissions_annual_limit_adjustment_factor", index_sets=[])
         self.carbon_emissions_budget = self.data_input.extract_input_data("carbon_emissions_budget", index_sets=[])
         self.min_co2_stored = self.data_input.extract_input_data("min_co2_stored", index_sets=['set_time_steps_yearly'], time_steps='set_time_steps_yearly')
         self.carbon_emissions_cumulative_existing = self.data_input.extract_input_data("carbon_emissions_cumulative_existing", index_sets=[])
@@ -119,7 +124,11 @@ class EnergySystem:
         self.set_lca_impact_categories = self.system['set_lca_impact_categories']
         # failure state: technology and location
         self.set_failure_technology_location = np.empty((0, 2))
-
+        # Add a placeholder for no failure case
+        no_failure_entry = np.array([["no_failure_technology", "no_failure_location"]])
+        # Append this entry to your existing array
+        self.set_failure_technology_location = np.vstack((self.set_failure_technology_location, no_failure_entry))
+        print()
     def calculate_edges_from_nodes(self):
         """ calculates set_nodes_on_edges from set_nodes
 
@@ -270,6 +279,13 @@ class EnergySystem:
         # carbon emissions limit
         parameters.add_parameter(name="carbon_emissions_annual_limit", data=self.optimization_setup.initialize_component(cls, "carbon_emissions_annual_limit", set_time_steps="set_time_steps_yearly"),
             doc='Parameter which specifies the total limit on carbon emissions')
+        # carbon emissions limit adjustment
+        if self.system["include_carbon_emissions_annual_limit_adjustment"]:
+            parameters.add_parameter(name="carbon_emissions_annual_limit_adjustment", data=self.optimization_setup.initialize_component(cls, "carbon_emissions_annual_limit_adjustment", set_time_steps="set_time_steps_yearly"),
+                doc='Parameter which adjusts the annual limit on carbon emissions')
+            parameters.add_parameter(name="carbon_emissions_annual_limit_adjustment_factor",
+                                     data=self.optimization_setup.initialize_component(cls, "carbon_emissions_annual_limit_adjustment_factor"),
+                                     doc='Parameter which specifies the adjustment factor of the annual limit on carbon emissions')
         # minimum CO2 stored
         parameters.add_parameter(name="min_co2_stored", data=self.optimization_setup.initialize_component(cls, "min_co2_stored", set_time_steps="set_time_steps_yearly"),
             doc='Parameter which specifies the minimum amount of CO2 stored')
@@ -467,7 +483,11 @@ class EnergySystemRules(GenericRule):
 
         ### formulate constraint
         lhs = self.variables["carbon_emissions_annual"][year] - self.variables["carbon_emissions_annual_overshoot"][year]
-        rhs = self.parameters.carbon_emissions_annual_limit.loc[year].item()
+        if self.system["include_carbon_emissions_annual_limit_adjustment"]:
+            rhs = self.parameters.carbon_emissions_annual_limit.loc[year].item() + self.parameters.carbon_emissions_annual_limit_adjustment_factor.item() * self.parameters.carbon_emissions_annual_limit_adjustment.loc[year].item()
+        else:
+            rhs = self.parameters.carbon_emissions_annual_limit.loc[year].item()
+
         constraints = lhs <= rhs
 
         ### return

@@ -578,10 +578,16 @@ class CarrierRules(GenericRule):
         # not necessary
 
         ### formulate constraint
-        lhs = (self.variables["cost_carrier"]
+        if self.system['include_n1_contingency_import_export']:
+            lhs = (self.variables["cost_carrier"]
                # these terms are only necessary if import or export is available
-               - self.parameters.price_import.where(mask) * (self.variables["flow_import"].where(mask).sum(["set_failure_states"]) / len(self.sets.sets["set_failure_states"]))
-               + self.parameters.price_export.where(mask) * (self.variables["flow_export"].where(mask)).sum(["set_failure_states"]) / len(self.sets.sets["set_failure_states"]))
+               - self.parameters.price_import.where(mask) * (self.variables["flow_import"].sum(["set_failure_states"]) - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_import"].loc[:,:,"no_failure_technology: no_failure_location",:]).where(mask)
+               + self.parameters.price_export.where(mask) * (self.variables["flow_export"].sum(["set_failure_states"]) - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_export"].loc[:,:,"no_failure_technology: no_failure_location",:]).where(mask))
+        else:
+            lhs = (self.variables["cost_carrier"]
+               # these terms are only necessary if import or export is available
+               - self.parameters.price_import.where(mask) * self.variables["flow_import"].where(mask)
+               + self.parameters.price_export.where(mask) * self.variables["flow_export"].where(mask))
         rhs = 0
         constraints = lhs == rhs
 
@@ -689,7 +695,9 @@ class CarrierRules(GenericRule):
             fac = np.where(mask, self.parameters.carbon_intensity_carrier.loc[carrier, :, yearly_time_steps], 0)
             fac = xr.DataArray(fac, coords=[self.variables.coords["set_nodes"], self.variables.coords["set_time_steps_operation"]])
             if self.system['include_n1_contingency_import_export']:
-                term_flow_import_export = fac * (self.variables["flow_import"].loc[carrier, :].sum(["set_failure_states"]) - self.variables["flow_export"].loc[carrier, :].sum(["set_failure_states"])) / len(index.get_unique(["set_failure_states"]))
+                term_flow_import_export = fac * (self.variables["flow_import"].loc[carrier, :].sum(["set_failure_states"]) - self.variables["flow_export"].loc[carrier, :].sum(["set_failure_states"])
+                                                 - (len(self.sets.sets["set_failure_states"])-1) * (self.variables["flow_import"].loc[carrier,:,"no_failure_technology: no_failure_location",:] - self.variables["flow_export"].loc[carrier,:,"no_failure_technology: no_failure_location",:])).where(mask)
+
             else:
                 term_flow_import_export = fac * (self.variables["flow_import"].loc[carrier, :] - self.variables["flow_export"].loc[carrier, :])
 
