@@ -19,20 +19,26 @@ from zen_garden.postprocess.results import Results
 import numpy as np
 
 # insert results path here:
-results = Results('../../data/outputs/03_example_CCTS_N-1_03_CT_flowline_add_0')
+results = Results('../../data/outputs/04_CCTS_WTE_Cement_01_optimal_design')
 
 # define plot parameters
-# time step
-time_step = 4
+
 # should capacity be plotted, if false flows are plotted
-capacity = False
+capacity = True
+
+# which scenario
+scenario = None
+#scenario = results.scenarios[6]
 
 #Are there failure states and which one should be plotted
-failure = True
-failure_number = 3
+failure = False
+failure_number = 4
 
-# should coversione technologies be plotted and which should be ignored.
-plot_conversion_technologies = True
+# time step
+time_step = 8
+
+# should coversion technologies be plotted and which should be ignored.
+plot_conversion_technologies = False
 conversion_technologies_ignore =['heat_pump', 'emitter_wte']
 # adjust square width
 square_width = 0.63
@@ -43,8 +49,9 @@ line_spacing = 0.03
 # plot parameters
 resize = True
 legend= True
-flow_annotations = True
-fontsize = 8
+title = True
+flow_annotations = False
+fontsize = 6
 
 
 def create_directed_graph(ax, edges, nodes):
@@ -72,6 +79,8 @@ def create_directed_graph(ax, edges, nodes):
             color = 'olive'
         elif tech == 'truck_batch':
             color = 'blue'
+        elif tech == 'train_batch':
+            color = 'purple'
         else:
             color = 'black'
 
@@ -144,8 +153,8 @@ def draw_square_with_text(ax, x, y, width, height, node, technologies, flows, li
 
 
 # get nodes information
-nodes = pd.read_csv(f"{results.get_analysis()['dataset']}/energy_system/set_nodes.csv")
-nodes = nodes[nodes['node'].isin(results.get_system()['set_nodes'])]
+nodes = pd.read_csv(f"{results.get_analysis(scenario=scenario)['dataset']}/energy_system/set_nodes.csv")
+nodes = nodes[nodes['node'].isin(results.get_system(scenario=scenario)['set_nodes'])]
 nodes['utm_all'] = nodes.apply(lambda x: list(utm.from_latlon(x['lat'], x['lon'], 32, 'N')[0:2]), axis=1)
 nodes['utm_lon'] = nodes['utm_all'].apply(lambda x: x[0])
 nodes['utm_lat'] = nodes['utm_all'].apply(lambda x: x[1])
@@ -164,14 +173,14 @@ CH_shapefile.plot(ax=ax, facecolor='linen', edgecolor='lightgrey', alpha=0.6, li
 
 #import capacites of lows
 if capacity:
-    input_edges = results.get_total('capacity')
-    input_nodes = results.get_total('capacity')
+    input_edges = results.get_total('capacity', scenario=scenario)
+    input_nodes = results.get_total('capacity', scenario=scenario)
 else:
-    input_edges = results.get_total('flow_transport')
-    input_nodes = results.get_total('flow_conversion_output')
+    input_edges = results.get_total('flow_transport', scenario=scenario)
+    input_nodes = results.get_total('flow_conversion_output', scenario=scenario)
 
 years = input_edges.columns
-years = [i - results.get_system()['reference_year'] for i in years] if years[0] > 100 else years
+years = [i - results.get_system(scenario=scenario)['reference_year'] for i in years] if years[0] > 100 else years
 edges = input_edges[input_edges.sum(axis=1) >= 0.1]  # flow cut-off at 1 tons/year
 nodes_info = input_nodes[input_nodes.sum(axis=1) >= 0.1]  # flow cut-off at 1 tons/year
 
@@ -187,8 +196,8 @@ if failure:
     n = n[n["failure_states"] == failure_state].drop(columns="failure_states").drop(columns="carrier")
 if capacity:
     e = e.drop(columns="capacity_type")
-    e = e[e.technology.isin(results.get_system()['set_transport_technologies'])]
-    n = n[n.technology.isin(results.get_system()['set_conversion_technologies'])].drop(columns="capacity_type")
+    e = e[e.technology.isin(results.get_system(scenario=scenario)['set_transport_technologies'])]
+    n = n[n.technology.isin(results.get_system(scenario=scenario)['set_conversion_technologies'])].drop(columns="capacity_type")
     n =n.rename(columns={'location': 'node'})
 for tech in conversion_technologies_ignore:
     n = n.drop(n[n['technology'] == tech].index)
@@ -312,14 +321,15 @@ if plot_conversion_technologies:
 if legend:
     # Define the legend handles
     truck_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='blue')
+    train_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='purple')
     flowline_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='olive')
     flowline_failure_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='olive', linestyle=':')
     node_handle = Line2D([0], [0], marker='o', color='w', label='Node', markerfacecolor='orange', markeredgecolor='orange')
 
     # Create the legend
     # Initialize the legend handles list with the handles that are always present
-    legend_handles = [truck_handle, flowline_handle]
-    legend_labels = ['Truck', 'Flowline']
+    legend_handles = [flowline_handle, train_handle, truck_handle]
+    legend_labels = ['Flowline', 'Train', 'Truck']
 
     # Add the flowline failure handle only if 'failed' is True
     if failure:
@@ -332,5 +342,21 @@ if legend:
 
     # Plot the legend
     ax.legend(handles=legend_handles, labels=legend_labels, loc='best', fontsize=fontsize)
+
+if title:
+    # Build the title string
+    title_str = f"{results.name}"  # Assuming 'name' is an attribute or method returning '03_example_CCTS_N-1_03_CT_infisbal_adjusted'
+    if capacity:
+        title_str += " | Capacity\n"
+    else:
+        title_str += " | Flow\n"
+
+    if failure:
+        title_str += f" Failure State: {failure_state} | "
+
+    title_str += f"Year: {year + results.get_system(scenario=scenario)['reference_year']}"  # Adjust the year based on the reference year of the system
+
+    # Set the plot title
+    plt.title(title_str, fontsize=fontsize)
 
 plt.show()
