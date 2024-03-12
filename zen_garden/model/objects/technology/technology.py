@@ -558,22 +558,22 @@ class Technology(Element):
         if optimization_setup.system['include_n1_contingency_transport']:
             constraints.add_constraint_block(model, name="n1_contingency_transport",
                                          constraint=rules.constraint_n1_contingency_transport_block(),
-                                         doc='limit transport flow to nominal flow times factor for the n-1_contingency')
+                                         doc='limit transport flow to nominal flow times operation probability factor for the n-1_contingency')
         # n-1 contingency for conversion technologies
         if optimization_setup.system['include_n1_contingency_conversion']:
             constraints.add_constraint_block(model, name="n1_contingency_conversion",
                                          constraint=rules.constraint_n1_contingency_conversion_block(),
-                                         doc='limit conversion input flow to nominal flow times factor for the n-1_contingency')
+                                         doc='limit conversion input flow to nominal flow times operation probability factor factor for the n-1_contingency')
         # n-1 contingency for no failure
         if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
             constraints.add_constraint_block(model, name="n1_contingency_no_failure_transport",
                                              constraint=rules.constraint_n1_contingency_no_failure_transport(),
-                                             doc='equals transport flow of no failure state flow to nominal flow')
+                                             doc='equals transport flow of "no failure state" to nominal flow')
         # n-1 contingency for no failure
         if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
             constraints.add_constraint_block(model, name="n1_contingency_no_failure_conversion",
                                              constraint=rules.constraint_n1_contingency_no_failure_conversion(),
-                                             doc='equals conversion input flow of no failure state flow to nominal flow')
+                                             doc='equals conversion input flow of "no failure state" to nominal flow')
         # annual capex of having capacity
         constraints.add_constraint_block(model, name="constraint_capex_yearly",
                                          constraint=rules.constraint_capex_yearly_block(),
@@ -1373,7 +1373,11 @@ class TechnologyRules(GenericRule):
         .. math::
             OPEX_{h,p,y} = \sum_{t\in\mathcal{T}}\tau_t OPEX_{h,p,t}^\mathrm{cost}
             + \gamma_{h,y} S_{h,p,y}
-            #TODO complete constraint (second summation symbol)
+        .. math::
+            \mathrm{if\ n-1\ contingency}\ OPEX_{h,p,y} = \sum_{t\in\mathcal{T}}\tau_t OPEX_{h,p,f0,t}^\mathrm{cost} + \sum_{f\in F} OPEX_{h,p,f,t}^\mathrm{cost} - OPEX_{h,p,f0,t}^\mathrm{cost}
+            + \gamma_{h,y} S_{h,p,y}
+
+        #TODO complete constraint (second summation symbol)
 
         :return: linopy constraints
         """
@@ -1484,6 +1488,8 @@ class TechnologyRules(GenericRule):
 
         .. math::
             E_y^{\mathcal{H}} = \sum_{t\in\mathcal{T}}\sum_{h\in\mathcal{H}} E_{h,p,t} \\tau_{t}
+        .. math::
+            \mathrm{if\ n-1\ contingency}\ E_y^{\mathcal{H}} = \sum_{t\in\mathcal{T}}\sum_{h\in\mathcal{H}} E_{h,p,f0,t} \\tau_{t} + \sum_{f\in F} E_{h,p,f,t} - E_{h,p,f0,t}
 
         :return: linopy constraints
         """
@@ -1707,6 +1713,8 @@ class TechnologyRules(GenericRule):
         .. math::
             \mathrm\ F_{j,e,f,y} \\leq (1-\sigma_{j,e}) * F_{nom \quad j,e,y}
 
+        TODO fix index for the return of the constraint
+
         :return: linopy constraints
         """
 
@@ -1751,7 +1759,9 @@ class TechnologyRules(GenericRule):
         transport flow and the probability of the connection being operational
 
         .. math::
-            \mathrm\ F_{j,e,f,y} \\leq (1-\sigma_{j,e}) * F_{nom \quad j,e,y}
+            \mathrm\ F_{i,n,f,y} \\leq (1-\sigma_{i,n}) * F_{nom \quad i,n,y}
+
+        TODO fix index for the return of the constraint
 
         :return: linopy constraints
         """
@@ -1798,11 +1808,12 @@ class TechnologyRules(GenericRule):
 
 
     def constraint_n1_contingency_no_failure_conversion(self):
-        """ For each failure state, the corresponding transport flow is constrained by the product of the nominal
-        transport flow and the probability of the connection being operational
+        """ For failure state "no_failure_technology: no_failure_location", all corresponding conversion flows are equal to the nominal conversion flow
 
         .. math::
-            \mathrm\ F_{j,e,f,y} \\leq (1-\sigma_{j,e}) * F_{nom \quad j,e,y}
+            \mathrm\ F_{i,n,f0,y} = F_{nom \quad i,n,y}
+
+        TODO fix index for the return of the constraint
 
         :return: linopy constraints
         """
@@ -1846,11 +1857,12 @@ class TechnologyRules(GenericRule):
 
 
     def constraint_n1_contingency_no_failure_transport(self):
-        """ For each failure state, the corresponding transport flow is constrained by the product of the nominal
-        transport flow and the probability of the connection being operational
+        """ For failure state "no_failure_technology: no_failure_location", all corresponding transport flows are equal to the nominal transport flow
 
         .. math::
-            \mathrm\ F_{j,e,f,y} \\leq (1-\sigma_{j,e}) * F_{nom \quad j,e,y}
+            \mathrm\ F_{j,e,f0,y} = F_{nom \quad j,e,y}
+
+        TODO fix index for the return of the constraint
 
         :return: linopy constraints
         """

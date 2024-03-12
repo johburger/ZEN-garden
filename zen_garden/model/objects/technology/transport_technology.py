@@ -58,6 +58,7 @@ class TransportTechnology(Technology):
         # get information for N-1 contingency
         if self.optimization_setup.system['include_n1_contingency_transport']:
             # get nominal flow transport
+            # TODO change timestep from yearly to operation
             self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly")
             # get failure rate
             self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"])

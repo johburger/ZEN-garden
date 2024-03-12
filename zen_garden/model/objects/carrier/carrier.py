@@ -221,7 +221,7 @@ class Carrier(Element):
         if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
             constraints.add_constraint_block(model, name="constraint_nodal_energy_balance_failure_states",
                                             constraint=rules.constraint_nodal_energy_balance_block_failure_states(),
-                                            doc='node- and time-dependent energy balance for each carrier for n-1 contigency with transport and conversion technologies')
+                                            doc='node- and time-dependent energy balance for each carrier for n-1 contigency')
 
 
         else:
@@ -496,6 +496,9 @@ class CarrierRules(GenericRule):
         .. math::
            a_{c,n,y}^\mathrm{export} \geq \\sum_{t\\in\mathcal{T}}\\tau_t V_{c,n,t}
 
+        .. math::
+           \mathrm{if\ n-1\ contingency}\ a_{c,n,y}^\mathrm{export} \geq \\sum_{t\\in\mathcal{T}}\\tau_t V_{c,n,f,t}
+
         :return: #TODO describe parameter/return
         """
 
@@ -559,6 +562,9 @@ class CarrierRules(GenericRule):
 
         .. math::
            C_{c,n,t} = u_{c,n,t} U_{c,n,t} - v_{c,n,t} V_{c,n,t}
+
+        .. math::
+            \mathrm{if\ n-1\ contingency}\ C_{c,n,t} = u_{c,n,t} (U_{c,n,f0,t} + \sum_{f\in F} U_{c,n,f,t} - U_{c,n,f0,t}) - v_{c,n,t} (V_{c,n,f0,t} + \sum_{f\in F} V_{c,n,f,t} - V_{c,n,f0,t})
 
         :return: #TODO describe parameter/return
         """
@@ -668,6 +674,9 @@ class CarrierRules(GenericRule):
 
         .. math::
            E_{c,n,t} = \\epsilon_c (U_{c,n,t} - V_{c,n,t})
+
+        .. math::
+            \mathrm{if\ n-1\ contingency}\ E_{c,n,t} = \\epsilon_c ((U_{c,n,f0,t} + \sum_{f\in F} U_{c,n,f,t} - U_{c,n,f0,t}) - (V_{c,n,f0,t} + \sum_{f\in F} V_{c,n,f,t} - V_{c,n,f0,t}))
 
         :return: #TODO describe parameter/return
         """
@@ -917,10 +926,10 @@ class CarrierRules(GenericRule):
 
         .. math::
             0 = -(d_{c,n,t}-D_{c,n,t})
-            + \\sum_{i\\in\mathcal{I}}(\\overline{G}_{c,i,n,t}-\\underline{G}_{c,i,n,t})
-            + \\sum_{j\\in\mathcal{J}}\\sum_{e\\in\\underline{\mathcal{E}}}F_{j,e,t}-F^\mathrm{l}_{j,e,t})-\\sum_{e'\\in\\overline{\mathcal{E}}}F_{j,e',t})
+            + \\sum_{i\\in\mathcal{I}}(\\overline{G}_{c,i,n,f,t}-\\underline{G}_{c,i,n,f,t})
+            + \\sum_{j\\in\mathcal{J}}\\sum_{e\\in\\underline{\mathcal{E}}}F_{j,e,f,t}-F^\mathrm{l}_{j,e,f,t})-\\sum_{e'\\in\\overline{\mathcal{E}}}F_{j,e',f,t})
             + \\sum_{k\\in\mathcal{K}}(\\overline{H}_{k,n,t}-\\underline{H}_{k,n,t})
-            + U_{c,n,t} - V_{c,n,t}
+            + U_{c,n,f,t} - V_{c,n,f,t}
 
         :return: #TODO describe parameter/return
         """

@@ -65,6 +65,7 @@ class ConversionTechnology(Technology):
         # get information for N-1 contingency
         if self.optimization_setup.system['include_n1_contingency_conversion']:
             # get nominal flow conversion inpt
+            # TODO change timestep from yearly to operation
             self.nominal_flow_conversion_input = self.get_nominal_flow_conversion_input()
             # get failure rate
             self.failure_rate_conversion = self.data_input.extract_input_data("failure_rate", index_sets=["set_nodes"])
