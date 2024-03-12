@@ -185,3 +185,12 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 notebooks/postprocess_results_tutorial.ipynb
+notebooks/04_CCTS_WTE_Cement_max_emissions: carbon_emissions_annual.csv
+*.csv
+notebooks/capacity_addition.csv
+notebooks/capacity_addition.csv
+notebooks/flow_conversion_input.csv
+notebooks/capacity_addition.csv
+notebooks/flow_conversion_input.csv
+notebooks/capacity_addition.csv
+notebooks/flow_conversion_input.csv
