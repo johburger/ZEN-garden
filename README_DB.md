@@ -103,7 +103,7 @@ Copy `data_cost_optimal` to `data_n1` and ensure the following attributes are co
 #### Transport Technologies Attributes
 - nominal_flow_transport: allways inf
 - failure_rate: the rate of failure for a technology per hour and km
-- downtime: downtime whe failure occurs
+- downtime: downtime when failure occurs
 ```json
 {
   "nominal_flow_transport": {
@@ -123,38 +123,28 @@ Copy `data_cost_optimal` to `data_n1` and ensure the following attributes are co
 
 #### Conversion Technologies Attributes
 - nominal_flow_conversion input: allways inf needs to be specified for every input
-- failure_rate: the rate of failure for a technology per hour the rate of failure for a technology per hour and km (set to 0 if technology should not be included in failure analysis, this can also be done for specified edges threw the csv)
-- downtime: downtime whe failure occurs
+- failure_rate: the rate of failure for a technology per hour the rate of failure for a technology per hour and km (set to 0 if technology should not be included in failure analysis, this can also be done for specified edges through the csv)
+- downtime: downtime when failure occurs
 ```json
   {
-    "nominal_flow_conversion_input": [
-      {
+    "nominal_flow_conversion_input": {
         "flue_gas": {
           "default_value": "inf",
           "unit": "tons/tons"
-        }
-      },
-      {
+        },
         "heat": {
           "default_value": "inf",
           "unit": "tons/hour"
-        }
-      },
-      {
+        },
         "electricity": {
           "default_value": "inf",
           "unit": "tons/hour"
         }
-      }
-    ]
-  },
-  {
+    },
     "failure_rate": {
       "default_value": 0,
       "unit": "1/year"
-    }
-  },
-  {
+    },
     "downtime": {
       "default_value": 0,
       "unit": "hour"
@@ -193,7 +183,7 @@ It is advisable to enable all three options (`True`) to maximize the assessment 
 
 ## How to Use Adjustment of `carbon_emissions_annual_limit_adjustment`
 
-To analyze how the system behaves when the annual carbon budget is adjusted between 0 and 1000% of the expected carbon not stored, follow these steps:
+To analyze how the system behaves when the annual carbon budget is adjusted between 0 and 100% of the expected carbon not stored, follow these steps:
 
 ### Data Preparation
 Copy `data_n1` to `data_n1_add_0` and set the `capacity_addition_max` for all technologies to 0, particularly for those that might be used to surpass failure thresholds, reducing the chance of system infeasibility.
