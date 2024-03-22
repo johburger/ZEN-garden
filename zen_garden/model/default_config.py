@@ -167,7 +167,11 @@ class Config(object):
         self.system['include_n1_contingency_transport'] = False
         self.system['include_n1_contingency_conversion'] = False
         self.system['include_n1_contingency_import_export'] = False
+        # include that capture technologies minimum flow is equal to nominal Flow
+        self.system['include_capture_minimum_equals_nominal_input_flow'] = False
+        # include carbon annual limit adjustment
         self.system['include_carbon_emissions_annual_limit_adjustment'] = False
+
 
         ## Solver - Items assignment
         # solver selection (find more solver options for gurobi here: https://www.gurobi.com/documentation/9.1/refman/parameters.html)

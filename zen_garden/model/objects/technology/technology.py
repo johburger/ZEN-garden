@@ -574,6 +574,10 @@ class Technology(Element):
             constraints.add_constraint_block(model, name="n1_contingency_no_failure_conversion",
                                              constraint=rules.constraint_n1_contingency_no_failure_conversion(),
                                              doc='equals conversion input flow of "no failure state" to nominal flow')
+        if optimization_setup.system['include_capture_minimum_equals_nominal_input_flow']:
+            constraints.add_constraint_block(model, name="constraint_capture_minimum_equals_nominal_input_flow",
+                                             constraint=rules.constraint_capture_minimum_equals_nominal_input_flow(),
+                                             doc='minimum of conversion input flow of capture equals to nominal flow')
         # annual capex of having capacity
         constraints.add_constraint_block(model, name="constraint_capex_yearly",
                                          constraint=rules.constraint_capex_yearly_block(),
@@ -1719,7 +1723,8 @@ class TechnologyRules(GenericRule):
         """
 
         ### index sets
-        index_state = []
+        index_values, index_names = Element.create_custom_set(["set_transport_technologies", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
+        index = ZenIndex(index_values, index_names)
 
         ### masks
         #below
@@ -1728,13 +1733,12 @@ class TechnologyRules(GenericRule):
         # we oop over all technologies for the conditions and vectorize over the rest
         constraints = []
 
-        failure_states = self.variables.coords["set_failure_states"]
-        times = self.variables.coords["set_time_steps_operation"]
+        failure_states = index.get_unique(["set_failure_states"])
+        times = index.get_unique(["set_time_steps_operation"])
 
         for state in failure_states:
-            failure_tech, failure_location = state.values.item().split(': ')
+            failure_tech, failure_location = state.split(': ')
             if failure_tech in self.sets["set_transport_technologies"]:
-                index_state.append(state.values)
                 m1 = (self.parameters.nominal_flow_transport.loc[failure_tech, failure_location] != np.inf)
 
                 term_n1_contingency = self.parameters.operation_probability_transport.loc[failure_tech, failure_location] * self.parameters.nominal_flow_transport.loc[failure_tech, failure_location, times]
@@ -1751,7 +1755,7 @@ class TechnologyRules(GenericRule):
         ### return
         return self.constraints.return_contraints(constraints,
                                                   model=self.model,
-                                                  index_values=index_state,
+                                                  index_values=index.get_unique(["set_failure_states"]),
                                                   index_names=["set_failure_states"])
 
     def constraint_n1_contingency_conversion_block(self):
@@ -1767,12 +1771,8 @@ class TechnologyRules(GenericRule):
         """
 
         ### index sets
-        index_values, index_names = Element.create_custom_set(["set_technologies", "set_carriers", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
+        index_values, index_names = Element.create_custom_set(["set_conversion_technologies", "set_carriers", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
         index = ZenIndex(index_values, index_names)
-        index_state = []
-        index_carriers = []
-        for carriers in self.variables.coords["set_input_carriers"]:
-            index_carriers.append(carriers.values)
 
         ### masks
         #below
@@ -1781,13 +1781,12 @@ class TechnologyRules(GenericRule):
         # we oop over all technologies for the conditions and vectorize over the rest
         constraints = []
 
-        failure_states = self.variables.coords["set_failure_states"]
-        times = self.variables.coords["set_time_steps_operation"]
+        failure_states = index.get_unique(["set_failure_states"])
+        times = index.get_unique(["set_time_steps_operation"])
 
         for state in failure_states:
-            failure_tech, failure_location = state.values.item().split(': ')
+            failure_tech, failure_location = state.split(': ')
             if failure_tech in self.sets["set_conversion_technologies"]:
-                index_state.append(state.values)
                 for carriers in self.variables.coords["set_input_carriers"]:
                     m1 = (self.parameters.nominal_flow_conversion_input.loc[failure_tech, carriers, failure_location] != np.inf)
 
@@ -1803,8 +1802,8 @@ class TechnologyRules(GenericRule):
         ### return
         return self.constraints.return_contraints(constraints,
                                                   model=self.model,
-                                                  index_values=index.get_unique(["set_failure_states", "set_carriers"]),
-                                                  index_names=["set_failure_states", "set_carriers"])
+                                                  index_values=index.get_unique(["set_failure_states", "set_conversion_technologies", "set_carriers"]),
+                                                  index_names=["set_failure_states", "set_conversion_technologies", "set_carriers"])
 
 
     def constraint_n1_contingency_no_failure_conversion(self):
@@ -1820,7 +1819,7 @@ class TechnologyRules(GenericRule):
 
         ### index sets
         index_values, index_names = Element.create_custom_set(
-            ["set_conversion_technologies", "set_capacity_types", "set_carriers", "set_location", "set_failure_states",
+            ["set_conversion_technologies", "set_capacity_types", "set_carriers", "set_nodes", "set_failure_states",
              "set_time_steps_operation"], self.optimization_setup)
         index = ZenIndex(index_values, index_names)
 
@@ -1831,8 +1830,8 @@ class TechnologyRules(GenericRule):
         # we oop over all technologies for the conditions and vectorize over the rest
         constraints = []
 
-        failure_states = self.variables.coords["set_failure_states"]
-        times = self.variables.coords["set_time_steps_operation"]
+        failure_states = index.get_unique(["set_failure_states"])
+        times = index.get_unique(["set_time_steps_operation"])
 
         for state in failure_states:
             if state == "no_failure_technology: no_failure_location":
@@ -1869,8 +1868,7 @@ class TechnologyRules(GenericRule):
 
         ### index sets
         index_values, index_names = Element.create_custom_set(
-            ["set_technologies", "set_capacity_types", "set_carriers", "set_location", "set_failure_states",
-             "set_time_steps_operation"], self.optimization_setup)
+            ["set_transport_technologies", "set_edges", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
         index = ZenIndex(index_values, index_names)
 
         ### masks
@@ -1880,8 +1878,8 @@ class TechnologyRules(GenericRule):
         # we oop over all technologies for the conditions and vectorize over the rest
         constraints = []
 
-        failure_states = self.variables.coords["set_failure_states"]
-        times = self.variables.coords["set_time_steps_operation"]
+        failure_states = index.get_unique(["set_failure_states"])
+        times = index.get_unique(["set_time_steps_operation"])
 
         for state in failure_states:
             if state == "no_failure_technology: no_failure_location":
@@ -1902,3 +1900,55 @@ class TechnologyRules(GenericRule):
         return self.constraints.return_contraints(constraints,
                                                   model=self.model, stack_dim_name="diffusion_limit_dim")
 
+
+    def constraint_capture_minimum_equals_nominal_input_flow(self):
+        """ Minimum of conversion input flow of capture equals to nominal flow
+
+        .. math::
+            \mathrm\ F_{i\in capture,n,f,y} \\geq F_{nom \quad i,n,y}
+
+        TODO fix index for the return of the constraint
+
+        :return: linopy constraints
+        """
+
+        ### index sets
+        index_values, index_names = Element.create_custom_set(
+            ["set_conversion_technologies", "set_capacity_types", "set_carriers", "set_nodes", "set_failure_states",
+             "set_time_steps_operation"], self.optimization_setup)
+        index = ZenIndex(index_values, index_names)
+
+        ### masks
+        # below
+
+        ### index loop
+        # we oop over all technologies for the conditions and vectorize over the rest
+        constraints = []
+
+        failure_states = index.get_unique(["set_failure_states"])
+        times = index.get_unique(["set_time_steps_operation"])
+
+        for state in failure_states:
+            failure_tech, failure_location = state.split(': ')
+            tech = "capture_amine"
+            for carriers in self.variables.coords["set_input_carriers"]:
+                m1 = (self.parameters.nominal_flow_conversion_input.loc[tech, carriers, :, times] != np.inf)
+
+                term_no_failure = self.parameters.nominal_flow_conversion_input.loc[tech, carriers, :, times]
+
+                if state == "no_failure_technology: no_failure_location":
+                    term_no_failure[:] = 0
+                elif tech == failure_tech:
+                    term_no_failure.loc[failure_location, :] = 0
+
+                term_flow = self.variables["flow_conversion_input"].loc[tech, carriers, :, state, times]
+
+                ### formulate constraint
+                lhs = term_flow.where(m1)
+                rhs = term_no_failure.where(m1)
+                constraints.append(lhs >= rhs)
+        ### return
+        return self.constraints.return_contraints(constraints,
+                                                  model=self.model,
+                                                  index_values=index.get_unique(["set_failure_states", "set_carriers"]),
+                                                  index_names=["set_failure_states", "set_carriers"])

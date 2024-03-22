@@ -106,9 +106,9 @@ class EnergySystem:
         self.carbon_emissions_annual_limit = self.carbon_emissions_annual_limit * _fraction_year  # reduce to fraction of year
         if self.system["include_carbon_emissions_annual_limit_adjustment"]:
             self.carbon_emissions_annual_limit_adjustment = self.data_input.extract_input_data("carbon_emissions_annual_limit_adjustment", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly")
-            _fraction_year = self.system["unaggregated_time_steps_per_year"] / self.system["total_hours_per_year"]
             self.carbon_emissions_annual_limit_adjustment = self.carbon_emissions_annual_limit_adjustment * _fraction_year  # reduce to fraction of year
             self.carbon_emissions_annual_limit_adjustment_factor = self.data_input.extract_input_data("carbon_emissions_annual_limit_adjustment_factor", index_sets=[])
+
         self.carbon_emissions_budget = self.data_input.extract_input_data("carbon_emissions_budget", index_sets=[])
         self.min_co2_stored = self.data_input.extract_input_data("min_co2_stored", index_sets=['set_time_steps_yearly'], time_steps='set_time_steps_yearly')
         self.carbon_emissions_cumulative_existing = self.data_input.extract_input_data("carbon_emissions_cumulative_existing", index_sets=[])
