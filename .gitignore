@@ -194,3 +194,4 @@ notebooks/capacity_addition.csv
 notebooks/flow_conversion_input.csv
 notebooks/capacity_addition.csv
 notebooks/flow_conversion_input.csv
+*.pdf
