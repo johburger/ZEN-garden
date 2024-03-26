@@ -1,7 +1,7 @@
 """=====================================================================================================================
 Title:        Unimportant notes
 Created:      January-2024
-Authors:      Johannes Burger (jburger@ethz.ch)
+Authors:      Johannes Burger (jburger@ethz.ch), updated by David Bertschinger (bertdavi@ethz.ch)
 Organization: Laboratory of Reliability and Risk Engineering, ETH Zurich
 
 Description:  Space for looking at data temporarily or just writing something down that can be deleted immediately
@@ -14,32 +14,38 @@ import utm
 import networkx as nx
 from matplotlib.lines import Line2D
 import matplotlib.patches as mpatches
+from matplotlib.patches import Rectangle
+import re
+
+
 import os
 from zen_garden.postprocess.results import Results
 import numpy as np
 
 # insert results path here:
-results = Results('../../data/outputs/04_CCTS_WTE_Cement_01_optimal_design')
+results = Results('../../data/outputs/04_CCTS_WTE_Cement_04_n1_adjusted_scenario_failure_rate_1_0_capture')
+
+
+# which scenario
+#scenario = None
+scenario = results.scenarios[11]
 
 # define plot parameters
-
 # should capacity be plotted, if false flows are plotted
 capacity = True
 
-# which scenario
-scenario = None
-#scenario = results.scenarios[6]
-
-#Are there failure states and which one should be plotted
+# are there failure states and which one should be plotted as flows
 failure = False
-failure_number = 4
+failure_number = 5
 
 # time step
-time_step = 8
+time_step = 0
 
-# should coversion technologies be plotted and which should be ignored.
+# should conversion technologies be plotted and which should be ignored.
 plot_conversion_technologies = False
-conversion_technologies_ignore =['heat_pump', 'emitter_wte']
+nodes_show_all = False
+nodes_show = ['waste_19_CH', 'waste_9_CH', 'waste_6_CH', 'swiss_storage_CH']
+conversion_technologies_ignore =['heat_pump', 'emitter_wte', 'emitter_cement']
 # adjust square width
 square_width = 0.63
 # adjust line height
@@ -47,11 +53,25 @@ line_spacing = 0.03
 
 
 # plot parameters
-resize = True
+resize_auto = True
+
+resize_manual = False
+resize_xmin = 7.5
+resize_xmax = 9.3
+resize_ymin = 46.975
+resize_ymax = 47.68
+
+# should a red rectangle be added to indicated zoomed area
+additional_rectangle = False
+
+# other propeties
 legend= True
-title = True
+title = False
 flow_annotations = False
 fontsize = 6
+remove_ticks = False
+add_node_label = False
+savefig = True
 
 
 def create_directed_graph(ax, edges, nodes):
@@ -71,7 +91,7 @@ def create_directed_graph(ax, edges, nodes):
             posDict[node_to] = position
             G.add_node(node_to, pos=position)
         # adjust weight
-        weight = 1.4* flow/max_flow
+        weight = 2.8* flow/max_flow
 
         # change color for technologies
         linestyle = "solid"
@@ -89,6 +109,15 @@ def create_directed_graph(ax, edges, nodes):
             failure_tech, failure_edge = failure_state.split(': ')
             if tech == failure_tech and edge == failure_edge:
                 linestyle = ':'
+
+                if tech == 'flowline':
+                    color = 'mediumseagreen'
+                elif tech == 'truck_batch':
+                    color = 'lightsteelblue'
+                elif tech == 'train_batch':
+                    color = 'orchid'
+                else:
+                    color = 'black'
 
         # add edges
         G.add_edge(node_from, node_to, technology=tech, color=color, label=tech.split('_')[0], weight=weight, linestyle=linestyle, flow=flow)
@@ -152,6 +181,33 @@ def draw_square_with_text(ax, x, y, width, height, node, technologies, flows, li
         ax.text(x + .95 * width, current_y, f"{flow} kt/year", ha='right', va='center', fontsize=fontsize-2 , color=color)
 
 
+def add_rectangle(ax, xmin, xmax, ymin, ymax, edgecolor='red', facecolor='none', fill=False, linewidth=2):
+    """
+    Add a rectangle to an axes.
+
+    Parameters:
+    - ax: The axes object to add the rectangle to.
+    - xmin: The minimum x-coordinate of the rectangle.
+    - xmax: The maximum x-coordinate of the rectangle.
+    - ymin: The minimum y-coordinate of the rectangle.
+    - ymax: The maximum y-coordinate of the rectangle.
+    - edgecolor: Color of the edge of the rectangle.
+    - facecolor: Fill color of the rectangle; used only if fill is True.
+    - fill: Whether to fill the rectangle with color.
+    - linewidth: The width of the edge line.
+    """
+    # Calculate width and height of the rectangle
+    width = xmax - xmin
+    height = ymax - ymin
+
+    # Create the rectangle
+    rectangle = Rectangle((xmin, ymin), width, height, fill=fill, edgecolor=edgecolor, facecolor=facecolor, lw=linewidth)
+
+    # Add the rectangle to the plot
+    ax.add_patch(rectangle)
+    return rectangle
+
+
 # get nodes information
 nodes = pd.read_csv(f"{results.get_analysis(scenario=scenario)['dataset']}/energy_system/set_nodes.csv")
 nodes = nodes[nodes['node'].isin(results.get_system(scenario=scenario)['set_nodes'])]
@@ -164,14 +220,13 @@ nodes['lon'] = geodata['geometry'].apply(lambda k: k.x)
 nodes['lat'] = geodata['geometry'].apply(lambda k: k.y)
 
 # get swiss map
-CH_json_url = 'https://labs.karavia.ch/swiss-boundaries-geojson/geojson/2020/swissBOUNDARIES3D_1_3_TLM_KANTONSGEBIET.geojson'
-CH_shapefile = gpd.read_file(CH_json_url)
+CH_shapefile = gpd.read_file('switzerland_with_cantons.geojson')
 
 # initiate plot
-fig, ax = plt.subplots(figsize=(6, 4), dpi=300, layout="constrained")
+fig, ax = plt.subplots(figsize=(6, 3.6), dpi=300, layout="constrained")
 CH_shapefile.plot(ax=ax, facecolor='linen', edgecolor='lightgrey', alpha=0.6, linewidth=0.5)
 
-#import capacites of lows
+#import capacites of flows
 if capacity:
     input_edges = results.get_total('capacity', scenario=scenario)
     input_nodes = results.get_total('capacity', scenario=scenario)
@@ -181,8 +236,8 @@ else:
 
 years = input_edges.columns
 years = [i - results.get_system(scenario=scenario)['reference_year'] for i in years] if years[0] > 100 else years
-edges = input_edges[input_edges.sum(axis=1) >= 0.1]  # flow cut-off at 1 tons/year
-nodes_info = input_nodes[input_nodes.sum(axis=1) >= 0.1]  # flow cut-off at 1 tons/year
+edges = input_edges  # flow cut-off at 1 tons/year
+nodes_info = input_nodes  # flow cut-off at 1 tons/year
 
 
 year = years[time_step]
@@ -220,16 +275,16 @@ for edge in list(G_with_capture.edges):
 
     # Apply offset if there are multiple technologies for the same edge and shorten arrow
     offset_value = 0.0
-    shorten_value = 0.03
+    shorten_value = 0.021
     tech = e['technology'].unique()
 
     if len(tech) > 1:
         position_tech = np.where(tech == technologies[edge])[0][0]
-        offset_value = 0.015 * np.linspace(-1, 1, len(tech))[position_tech]
+        offset_value = 0.028 * np.linspace(-1, 1, len(tech))[position_tech]
 
     posA, posB = offset_position(posA, posB, offset_value, shorten_value)
 
-    style_kwds = {'arrowstyle': mpatches.ArrowStyle.Simple(head_width=max(5 * weights[edge],3), head_length=10, tail_width=weights[edge])}
+    style_kwds = {'arrowstyle': mpatches.ArrowStyle.Simple(head_width=max(3.2 * weights[edge],3), head_length=5, tail_width=weights[edge])}
     arrow = mpatches.FancyArrowPatch(posA=posA, posB=posB, color=edge_colors[edge], label=labels[edge], **style_kwds, linestyle=linestyles[edge])
     ax.add_patch(arrow)
 
@@ -261,24 +316,41 @@ for edge in list(G_with_capture.edges):
 #add nodes
 node_patches = {}
 for j, node in nodes.iterrows():
+    if node.node == 'cement_2_CH':
+        node['lat'] = node['lat'] - 0.05
     pos = (node['lon'], node['lat'])
     size = 0.03
-    circle = mpatches.Circle(xy=pos, radius=size, facecolor='orange', edgecolor='black',
+    circle = mpatches.Circle(xy=pos, radius=size, facecolor='orange' if not node.node == 'swiss_storage_CH' else "orangered", edgecolor='black',
                              linewidth=0.2)  # , label=sector)
-    ax.add_patch(circle)
-    ax.annotate(' '.join(node['node'].split('_')[:-1]), pos, fontsize=fontsize, ha='center', va='center', weight='bold')
+
+    ax.add_patch(circle) if not node.node == 'cement_2_CH' else "continue"
+    if add_node_label:
+        ax.annotate(' '.join(node['node'].split('_')[:-1]), pos, fontsize=fontsize, ha='center', va='center', weight='bold')
 
 # resize
-if resize:
-    padding = 0.5  # This adds some space around the items of interest
+if resize_auto:
+    padding = 0.15  # This adds some space around the items of interest
     x_min = min(nodes['lon']) - padding
     x_max = max(nodes['lon']) + padding
-    y_min = min(nodes['lat']) - padding/2
-    y_max = max(nodes['lat']) + padding/2
+    y_min = min(nodes['lat']) - padding/1.8
+    y_max = max(nodes['lat']) + padding/1.8
 
     # Set the plot limits
     plt.xlim(x_min, x_max)
     plt.ylim(y_min, y_max)
+
+if resize_manual:
+    padding = 0.5  # This adds some space around the items of interest
+    x_min = resize_xmin
+    x_max = resize_xmax
+    y_min = resize_ymin
+    y_max = resize_ymax
+
+    # Set the plot limits
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+    for spine in ax.spines.values():
+        spine.set_edgecolor('red')
 
 # add conversion technology information
 if plot_conversion_technologies:
@@ -294,6 +366,9 @@ if plot_conversion_technologies:
     # Draw squares and annotate with values from n
     # Iterate through nodes and their technologies
     for idx, node in enumerate(n['node'].unique()):
+        if nodes_show_all == False:
+            if node not in nodes_show:
+                continue
         node_data = n[n['node'] == node]
 
         # Get the list of technologies and their flows for the current node
@@ -323,8 +398,12 @@ if legend:
     truck_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='blue')
     train_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='purple')
     flowline_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='olive')
-    flowline_failure_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='olive', linestyle=':')
+    truck_failure_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='lightsteelblue', linestyle=':')
+    train_failure_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='orchid', linestyle=':')
+    flowline_failure_handle = mpatches.FancyArrowPatch((0, 0), (0, 0), color='mediumseagreen', linestyle=':')
     node_handle = Line2D([0], [0], marker='o', color='w', label='Node', markerfacecolor='orange', markeredgecolor='orange')
+    storage_handle = Line2D([0], [0], marker='o', color='w', label='Node', markerfacecolor='orangered', markeredgecolor='orangered')
+
 
     # Create the legend
     # Initialize the legend handles list with the handles that are always present
@@ -333,15 +412,15 @@ if legend:
 
     # Add the flowline failure handle only if 'failed' is True
     if failure:
-        legend_handles.append(flowline_failure_handle)
-        legend_labels.append('Flowline with failure')
+        legend_handles.extend([flowline_failure_handle, train_failure_handle, truck_failure_handle])
+        legend_labels.extend(['Flowline with failure', 'Train with failure', 'Truck with failure'])
 
     # Always add the node handle
-    legend_handles.append(node_handle)
-    legend_labels.append('Node')
+    legend_handles.extend([node_handle, storage_handle])
+    legend_labels.extend(['Node', 'Storage'])
 
     # Plot the legend
-    ax.legend(handles=legend_handles, labels=legend_labels, loc='best', fontsize=fontsize)
+    ax.legend(handles=legend_handles, labels=legend_labels, loc='lower center', fontsize=fontsize, ncol=2)
 
 if title:
     # Build the title string
@@ -354,9 +433,48 @@ if title:
     if failure:
         title_str += f" Failure State: {failure_state} | "
 
-    title_str += f"Year: {year + results.get_system(scenario=scenario)['reference_year']}"  # Adjust the year based on the reference year of the system
+    title_str += f"{scenario}"
 
+    title_str += f"Year: {year + results.get_system(scenario=scenario)['reference_year']}"  # Adjust the year based on the reference year of the system
     # Set the plot title
     plt.title(title_str, fontsize=fontsize)
 
+# For the main plot's x-axis tick marks
+ax.tick_params(axis='x', which='both', labelsize=fontsize)
+# For the main plot's y-axis tick marks
+ax.tick_params(axis='y', which='both', labelsize=fontsize)
+
+if remove_ticks:
+    plt.xticks([])
+    plt.yticks([])
+
+
+if additional_rectangle:
+    add_rectangle(ax, resize_xmin, resize_xmax, resize_ymin, resize_ymax)
+
+fig1 = plt.gcf()
 plt.show()
+
+if savefig:
+    numbers = re.findall(r'\d+', results.name)  # Finds all the numeric parts in the string
+    combined_numbers = '_'.join(numbers[:2])
+    plt_str = f"../../plots/{int(combined_numbers)}"  # Assuming 'name' is an attribute or method returning '03_example_CCTS_N-1_03_CT_infisbal_adjusted'
+    if 'capture' in results.name:
+        plt_str += "_Capture"
+    if capacity:
+        plt_str += "_Capacity"
+    else:
+        plt_str += "_Flow"
+
+    if failure:
+        plt_str += f"_Failure_state_{failure_number}_"
+
+    if not scenario == None:
+        adjustment_factor_str = scenario.split('_adjustment_factor_')[1]
+        adjustment_factor = float(adjustment_factor_str.split('_p00_000')[0])
+        plt_str += f"_{adjustment_factor}"
+
+    if resize_manual:
+        plt_str += f"_zoom"
+
+    fig1.savefig(fname=f"{plt_str}.pdf", format='pdf')
