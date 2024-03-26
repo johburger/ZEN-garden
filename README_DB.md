@@ -25,6 +25,8 @@ This branch includes additional code elements to facilitate in resilience analys
   - `failure_rate_conversion`: Extracts failure rate conversion from input data.
   - `downtime_conversion`: Extracts downtime conversion from input data.
   - `operation_probability_conversion`: Calculates operation probability for conversion technologies from the `calculate_operation_probability()` function.
+  - `constraint_capture_minimum_equals_nominal_input_flow`: Minimum of conversion input flow of capture equals to nominal flow
+
 - **Updated variable:**
   - `flow_conversion_input`: Includes the "set_failure_states" index.
   - `flow_conversion_output`: Includes the "set_failure_states" index.
@@ -35,6 +37,7 @@ This branch includes additional code elements to facilitate in resilience analys
   - `n1_contingency_conversion`: Limits conversion input flow to nominal flow times operation probability for N-1 contingency.
   - `n1_contingency_no_failure_transport`: Sets transport flow in "no failure state" to nominal flow.
   - `n1_contingency_no_failure_conversion`: Sets conversion input flow in "no failure state" to nominal flow.
+  - `constraint_capture_minimum_equals_nominal_input_flow`: Minimum of conversion input flow of capture equals to nominal flow
 - **Updated constraints:**
   - `constraint_opex_yearly_block`
   - `constraint_carbon_emissions_technology_total_block`
@@ -54,7 +57,10 @@ This branch includes additional code elements to facilitate in resilience analys
 - `01_get_existing_capacity.ipynb`: Retrieves the existing capacities of all technologies.
 - `02_get_nominal_flow_transport.ipynb`: Retrieves the nominal flow of transport for all technologies.
 - `03_get_nominal_flow_conversion.ipynb`: Retrieves the nominal flow for all conversion technologies.
-- `04_get_carbon_emissions_annual_limit_adjustment.ipynb`: Retrieves the expected carbon noz stored for the adjustment of the annual carbon emissions limit.
+- `04_get_difference_carbon_emissions.ipynb`: Retrieves the expected carbon difference in carbon emissions stored for the adjustment of the annual carbon emissions limit.
+- `05_plot_pareto_fronts.ipynb`: Plot different results (pareto fronts)
+- `06_capacity_table.ipynb`: Create Table with information regarding capacity transport technologies
+
 
 ## For Analysis
 
@@ -130,15 +136,28 @@ Copy `data_cost_optimal` to `data_n1` and ensure the following attributes are co
     "nominal_flow_conversion_input": {
         "flue_gas": {
           "default_value": "inf",
+<<<<<<< HEAD
           "unit": "tons/tons"
         },
         "heat": {
           "default_value": "inf",
           "unit": "tons/hour"
         },
+=======
+          "unit": "tons/hour"
+        }
+      },
+      {
+        "heat": {
+          "default_value": "inf",
+          "unit": "MWh/hour"
+        }
+      },
+      {
+>>>>>>> parent of 1977c271 (Revert "Update README_DB.md")
         "electricity": {
           "default_value": "inf",
-          "unit": "tons/hour"
+          "unit": "MWh/hour"
         }
     },
     "failure_rate": {
@@ -198,92 +217,11 @@ Copy `data_n1` to `data_n1_add_0` and set the `capacity_addition_max` for all te
    ```
 
 This configuration ensures that carbon emissions resulting from failures cannot be stored, enabling us to measure the impacts of such failures and calculate expected carbon non-resilience metrics. 
-To prevent system infeasibility, include emergency storages that maintain the carbon budget without actual carbon storage, albeit at a significantly higher cost. 
-This approach should be applied to every type of CO2 carrier, ensuring the system's ability to manage carbon budgets effectively under various failure scenarios.
+To avoid system infeasibility, it's crucial that CO2 carriers are always exportable. This strategy must be implemented across all types of CO2 carriers to ensure the system's competence in handling carbon budgets efficiently across different failure conditions.
+If system runs into infeasibilities consider increasing the emission budget.
 
 ```json
 [
-  {
-    "capacity_addition_min": {
-      "default_value": 0,
-      "unit": "tons/hour"
-    }
-  },
-  {
-    "capacity_addition_max": {
-      "default_value": "inf",
-      "unit": "tons/hour"
-    }
-  },
-  {
-    "capacity_existing": {
-      "default_value": 0,
-      "unit": "tons/hour"
-    }
-  },
-  {
-    "capacity_limit": {
-      "default_value": "inf",
-      "unit": "tons/hour"
-    }
-  },
-  {
-    "capacity_limit_country": {
-      "default_value": "inf",
-      "unit": "GW"
-    }
-  },
-  {
-    "capacity_limit_super": {
-      "default_value": "inf",
-      "unit": "GW"
-    }
-  },
-  {
-    "capacity_addition_unbounded": {
-      "default_value": 0,
-      "unit": "tons/hour"
-    }
-  },
-  {
-    "min_load": {
-      "default_value": 0,
-      "unit": "1"
-    }
-  },
-  {
-    "max_load": {
-      "default_value": 1,
-      "unit": "1"
-    }
-  },
-  {
-    "lifetime": {
-      "default_value": 50,
-      "unit": "1"
-    }
-  },
-  {
-    "opex_specific_variable": {
-      "default_value": 3000,
-      "unit": "Euro/tons"
-    }
-  },
-  {
-    "reference_carrier": {
-      "default_value": ["dummy_carrier"]
-    }
-  },
-  {
-    "input_carrier": {
-      "default_value": ["co2_liquid_16bar"]
-    }
-  },
-  {
-    "output_carrier": {
-      "default_value": ["dummy_carrier"]
-    }
-  },
   {
     "carbon_intensity": {
       "default_value": -1,
@@ -291,68 +229,55 @@ This approach should be applied to every type of CO2 carrier, ensuring the syste
     }
   },
   {
-    "construction_time": {
+    "demand": {
       "default_value": 0,
-      "unit": "1"
+      "unit": "tons/h"
     }
   },
   {
-    "capacity_investment_existing": {
+    "availability_import": {
       "default_value": 0,
-      "unit": "tons/hour"
+      "unit": "tons"
     }
   },
   {
-    "opex_specific_fixed": {
-      "default_value": 0,
-      "unit": "Euro/tons/hour"
-    }
-  },
-  {
-    "max_diffusion_rate": {
+    "availability_export": {
       "default_value": "inf",
-      "unit": "1"
+      "unit": "tons"
     }
   },
   {
-    "conversion_factor": [
-      {
-        "co2_liquid_16bar": {
-          "default_value": 1,
-          "unit": "tons/tons"
-        }
-      }
-    ]
-  },
-  {
-    "capex_specific": {
+    "availability_import_yearly": {
       "default_value": 0,
-      "unit": "Euro/tons/hour"
+      "unit": "tons"
     }
   },
   {
-    "nominal_flow_conversion_input": [
-      {
-        "co2_liquid_16bar": {
-          "default_value": "inf",
-          "unit": "tons/hour"
-        }
-      }
-    ]
+    "availability_export_yearly": {
+      "default_value": "inf",
+      "unit": "tons"
+    }
   },
   {
-    "failure_rate": {
+    "price_export": {
       "default_value": 0,
-      "unit": "1/year"
+      "unit": "kiloEuro/tons"
     }
   },
   {
-    "downtime": {
-      "default_value": 48,
-      "unit": "hour"
+    "price_import": {
+      "default_value": 23.58,
+      "unit": "kiloEuro/tons"
+    }
+  },
+  {
+    "price_shed_demand": {
+      "default_value": "inf",
+      "unit": "kiloEuro/tons"
     }
   }
 ]
+
 ```
 `Run optimization of data_n1_add_0`
 
@@ -382,7 +307,7 @@ Copy `data_cost_optimal` to `data_n1_adjusted` and ensure the following attribut
 
 Utilize the following Jupyter notebook to automatically create csv with needed input data.
 
-- `04_get_carbon_emissions_annual_limit_adjustment.ipynb`: Retrieves the expected carbon noz stored for the adjustment of the annual carbon emissions limit.
+- `04_get_difference_carbon_emissions.ipynb`: Retrieves the expected change in carbon emissions for the adjustment of the annual carbon emissions limit.
 Configure the data paths in the notebooks as follows:
 
 - Input path: `output/data_n1_addition_0`
@@ -404,9 +329,9 @@ In the future, the following points should be addressed to improve the system:
 
 ### `technology.py`
 - **n1_contingency_transport**: Fix the index for the return of the constraint.
-- **n1_contingency_conversion**: Fix the index for the return of the constraint.
+- **n1_contingency_conversion**: Fix the index for the return of the constraint and limit constraint to reference carrier.
 - **n1_contingency_no_failure_transport**: Fix the index for the return of the constraint.
-- **n1_contingency_no_failure_conversion**: Fix the index for the return of the constraint.
+- **n1_contingency_no_failure_conversion**: Fix the index for the return of the constraint and limit constraint to reference carrier.
 
 ### `transport_technology.py`
 - **nominal_flow_transport**: Change the timestep from yearly to operational.
