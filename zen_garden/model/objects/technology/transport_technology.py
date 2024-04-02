@@ -185,17 +185,26 @@ class TransportTechnology(Technology):
         # additional for N-1 contingency
         if optimization_setup.system['include_n1_contingency_transport']:
             # nominal flow
-            optimization_setup.parameters.add_parameter(name="nominal_flow_transport", index_names=["set_transport_technologies", "set_edges", "set_time_steps_operation"],
-                                                        doc='nominal flow from cost-optimal solution for edge and transport technologies', calling_class=cls)
+            optimization_setup.parameters.add_parameter(name="nominal_flow_transport",
+                                                        index_names=["set_transport_technologies", "set_edges",
+                                                                     "set_time_steps_operation"],
+                                                        doc='nominal flow from cost-optimal solution for edge and transport technologies',
+                                                        calling_class=cls)
             # failure rate
-            optimization_setup.parameters.add_parameter(name="failure_rate_transport", index_names=["set_transport_technologies", "set_edges"],
-                                                        doc='failure rate for transport technologies', calling_class=cls)
+            optimization_setup.parameters.add_parameter(name="failure_rate_transport",
+                                                        index_names=["set_transport_technologies", "set_edges"],
+                                                        doc='failure rate for transport technologies',
+                                                        calling_class=cls)
             # downtime
-            optimization_setup.parameters.add_parameter(name="downtime_transport", index_names=["set_transport_technologies", "set_edges"],
-                                                        doc='downtime for transport technologies whe failure occurs', calling_class=cls)
+            optimization_setup.parameters.add_parameter(name="downtime_transport",
+                                                        index_names=["set_transport_technologies", "set_edges"],
+                                                        doc='downtime for transport technologies whe failure occurs',
+                                                        calling_class=cls)
             # operation probability
-            optimization_setup.parameters.add_parameter(name="operation_probability_transport", index_names=["set_transport_technologies", "set_edges"],
-                                                        doc='probability of connection being operational for edge and transport technologies', calling_class=cls)
+            optimization_setup.parameters.add_parameter(name="operation_probability_transport",
+                                                        index_names=["set_transport_technologies", "set_edges"],
+                                                        doc='probability of connection being operational for edge and transport technologies',
+                                                        calling_class=cls)
 
     @classmethod
     def construct_vars(cls, optimization_setup):

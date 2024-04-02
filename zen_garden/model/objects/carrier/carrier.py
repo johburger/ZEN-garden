@@ -461,8 +461,10 @@ class CarrierRules(GenericRule):
             ### return
             return self.constraints.return_contraints(constraints,
                                                       model=self.model,
-                                                      index_values=index.get_unique(levels=["set_carriers", "set_failure_states", "set_time_steps_yearly"]),
-                                                      index_names=["set_carriers",  "set_failure_states", "set_time_steps_yearly"])
+                                                      index_values=index.get_unique(
+                                                          levels=["set_carriers", "set_failure_states",
+                                                                  "set_time_steps_yearly"]),
+                                                      index_names=["set_carriers", "set_failure_states", "set_time_steps_yearly"])
         else:
             for carrier, year in index.get_unique(levels=["set_carriers", "set_time_steps_yearly"]):
                 ### masks
