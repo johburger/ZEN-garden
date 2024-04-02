@@ -63,6 +63,33 @@ class ConversionTechnology(Technology):
         self.get_conversion_factor()
         self.opex_specific_fixed = self.data_input.extract_input_data("opex_specific_fixed", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "time": 1})
         self.convert_to_fraction_of_capex()
+        # get information for N-1 contingency
+        if self.optimization_setup.system['include_n1_contingency_conversion']:
+            # get nominal flow conversion inpt
+            # TODO change timestep from yearly to operation
+            self.nominal_flow_conversion_input = self.get_nominal_flow_conversion_input()
+            # get failure rate
+            self.failure_rate_conversion = self.data_input.extract_input_data("failure_rate", index_sets=["set_nodes"])
+            # get downtime
+            self.downtime_conversion = self.data_input.extract_input_data("downtime", index_sets=["set_nodes"])
+            # calculate operation probability
+            self.operation_probability_conversion = self.calculate_operation_probability()
+
+    def get_nominal_flow_conversion_input(self):
+        """retrieves and stores nominal flow_conversion input """
+
+        index_sets = ["set_nodes", "set_time_steps_yearly"]
+        time_steps = "set_time_steps_yearly"
+        nominal_flow_conversion_input = []
+        cf_dict = {}
+        for carrier in self.input_carrier:
+            cf_dict[carrier] = self.data_input.extract_input_data("nominal_flow_conversion_input", index_sets=index_sets,time_steps=time_steps, subelement=carrier)
+        cf_dict = pd.DataFrame.from_dict(cf_dict)
+        cf_dict.columns.name = "carrier"
+        cf_dict = cf_dict.stack()
+        conversion_factor_levels = [cf_dict.index.names[-1]] + cf_dict.index.names[:-1]
+        cf_dict = cf_dict.reorder_levels(conversion_factor_levels)
+        return cf_dict
 
     def get_conversion_factor(self):
         """retrieves and stores conversion_factor """
@@ -149,6 +176,14 @@ class ConversionTechnology(Technology):
             dict_of_attributes = optimization_setup.check_for_subindex(dict_of_attributes, custom_set)
             return dict_of_attributes, index_names, dict_of_units
 
+    def calculate_operation_probability(self):
+        """calculate operation probability
+
+        :return: operation probabilit
+        """
+        operation_probability = (1 - self.failure_rate_conversion * self.downtime_conversion).clip(lower=0)
+        return operation_probability
+
     ### --- classmethods to construct sets, parameters, variables, and constraints, that correspond to ConversionTechnology --- ###
     @classmethod
     def construct_sets(cls, optimization_setup):
@@ -193,6 +228,20 @@ class ConversionTechnology(Technology):
         # slope of linearly modeled conversion efficiencies
         optimization_setup.parameters.add_parameter(name="conversion_factor", index_names=["set_conversion_technologies", "set_dependent_carriers", "set_nodes", "set_time_steps_operation"],
             doc="Parameter which specifies the conversion factor", calling_class=cls)
+        # additional for N-1 contingency
+        if optimization_setup.system['include_n1_contingency_conversion']:
+            # nominal flow
+            optimization_setup.parameters.add_parameter(name="nominal_flow_conversion_input", index_names=["set_conversion_technologies", "set_input_carriers", "set_nodes", "set_time_steps_operation"],
+                                                        doc='nominal flow from cost-optimal solution for node and conversion technologies', calling_class=cls)
+            # failure rate
+            optimization_setup.parameters.add_parameter(name="failure_rate_conversion", index_names=["set_conversion_technologies", "set_nodes"],
+                                                        doc='failure rate for conversion technologies', calling_class=cls)
+            # downtime
+            optimization_setup.parameters.add_parameter(name="downtime_conversion", index_names=["set_conversion_technologies", "set_nodes"],
+                                                        doc='downtime for conversion technologies whe failure occurs', calling_class=cls)
+            # operation probability
+            optimization_setup.parameters.add_parameter(name="operation_probability_conversion", index_names=["set_conversion_technologies", "set_nodes"],
+                                                        doc='probability of connection being operational for node and conversion technologies', calling_class=cls)
 
         # add params of the child classes
         for subclass in cls.__subclasses__():
@@ -223,34 +272,57 @@ class ConversionTechnology(Technology):
             upper = xr.DataArray(np.inf, coords=coords)
 
             # get the sets
-            technology_set, carrier_set, node_set, timestep_set = [sets[name] for name in index_names]
+            if optimization_setup.system['include_n1_contingency_conversion']:
+                technology_set, carrier_set, node_set, failure_set, timestep_set = [sets[name] for name in index_names]
 
-            for tech in technology_set:
-                for carrier in carrier_set[tech]:
-                    time_step_year = [energy_system.time_steps.convert_time_step_operation2year(t) for t in timestep_set]
-                    if carrier == sets["set_reference_carriers"][tech][0]:
-                        conversion_factor_lower = 1
-                        conversion_factor_upper = 1
-                    else:
-                        conversion_factor_lower = params.conversion_factor.loc[tech, carrier, node_set].min().data
-                        conversion_factor_upper = params.conversion_factor.loc[tech, carrier, node_set].max().data
-                        if 0 in conversion_factor_upper:
-                            _rounding_ts = optimization_setup.solver.rounding_decimal_points_ts
-                            raise ValueError(f"Maximum conversion factor of {tech} for carrier {carrier} is 0.\nOne reason might be that the conversion factor is too small (1e-{_rounding_ts}), so that it is rounded to 0 after the time series aggregation.")
+                for tech in technology_set:
+                    for state in failure_set:
+                        for carrier in carrier_set[tech]:
+                            time_step_year = [energy_system.time_steps.convert_time_step_operation2year(t) for t in timestep_set]
+                            if carrier == sets["set_reference_carriers"][tech][0]:
+                                conversion_factor_lower = 1
+                                conversion_factor_upper = 1
+                            else:
+                                conversion_factor_lower = params.conversion_factor.loc[tech, carrier, node_set].min().data
+                                conversion_factor_upper = params.conversion_factor.loc[tech, carrier, node_set].max().data
+                            lower.loc[tech, carrier, :, state, :] = model.variables["capacity"].lower.loc[tech, "power", node_set, time_step_year].data * conversion_factor_lower
+                            upper.loc[tech, carrier, :, state, :] = model.variables["capacity"].upper.loc[tech, "power", node_set, time_step_year].data * conversion_factor_upper
 
-                    lower.loc[tech, carrier, ...] = model.variables["capacity"].lower.loc[tech, "power", node_set, time_step_year].data * conversion_factor_lower
-                    upper.loc[tech, carrier, ...] = model.variables["capacity"].upper.loc[tech, "power", node_set, time_step_year].data * conversion_factor_upper
+            else:
+                technology_set, carrier_set, node_set, timestep_set = [sets[name] for name in index_names]
+
+                for tech in technology_set:
+                    for carrier in carrier_set[tech]:
+                        time_step_year = [energy_system.time_steps.convert_time_step_operation2year(t) for t in timestep_set]
+                        if carrier == sets["set_reference_carriers"][tech][0]:
+                            conversion_factor_lower = 1
+                            conversion_factor_upper = 1
+                        else:
+                            conversion_factor_lower = params.conversion_factor.loc[tech, carrier, node_set].min().data
+                            conversion_factor_upper = params.conversion_factor.loc[tech, carrier, node_set].max().data
+                            if 0 in conversion_factor_upper:
+                                _rounding_ts = optimization_setup.solver.rounding_decimal_points_ts
+                                raise ValueError(f"Maximum conversion factor of {tech} for carrier {carrier} is 0.\nOne reason might be that the conversion factor is too small (1e-{_rounding_ts}), so that it is rounded to 0 after the time series aggregation.")
+
+                        lower.loc[tech, carrier, ...] = model.variables["capacity"].lower.loc[tech, "power", node_set, time_step_year].data * conversion_factor_lower
+                        upper.loc[tech, carrier, ...] = model.variables["capacity"].upper.loc[tech, "power", node_set, time_step_year].data * conversion_factor_upper
 
             # make sure lower is never below 0
             return (lower, upper)
 
         ## Flow variables
         # input flow of carrier into technology
-        index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_input_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup)
+        if optimization_setup.system['include_n1_contingency_conversion']:
+            index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_input_carriers", "set_nodes", "set_failure_states", "set_time_steps_operation"], optimization_setup)
+        else:
+            index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_input_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup)
         variables.add_variable(model, name="flow_conversion_input", index_sets=(index_values, index_names),
             bounds=flow_conversion_bounds(index_values, index_names), doc='Carrier input of conversion technologies', unit_category={"energy_quantity": 1, "time": -1})
         # output flow of carrier into technology
-        index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_output_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup)
+        if optimization_setup.system['include_n1_contingency_conversion']:
+            index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_output_carriers", "set_nodes", "set_failure_states", "set_time_steps_operation"], optimization_setup)
+        else:
+            index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_output_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup)
         variables.add_variable(model, name="flow_conversion_output", index_sets=(index_values, index_names),
             bounds=flow_conversion_bounds(index_values, index_names), doc='Carrier output of conversion technologies', unit_category={"energy_quantity": 1, "time": -1})
         ## pwa Variables - Capex

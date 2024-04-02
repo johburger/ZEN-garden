@@ -429,8 +429,47 @@ class DataInput:
             df_input = self.read_input_csv(f_name)
             if df_input is None:
                 return [0]
+
+            # add failure state technology and location to data set
             if self.element.name in self.system["set_transport_technologies"]:
                 location = "edge"
+                if self.system['include_n1_contingency_transport']:
+                    # extract failure rates from input data and create mask
+                    get_failure_rates = self.extract_input_data("failure_rate", index_sets=["set_edges"])
+                    m1 = (get_failure_rates!= 0)
+                    # filter df_input based on the boolean mask m1
+                    df_filter = df_input[m1.loc[df_input[location]].values]
+
+                    # create a new array with two columns
+                    failure_technology_location = np.column_stack((
+                        np.full(len(df_filter[location].unique()), self.element.name),  # First column with constant value
+                        df_filter[location].unique()))  # Second column with unique values from 'location' column
+
+                    #add failure_technology_location to the existing array
+                    self.energy_system.set_failure_technology_location = np.vstack((
+                        self.energy_system.set_failure_technology_location,
+                        failure_technology_location))
+
+            elif self.element.name in self.system["set_conversion_technologies"]:
+                location = "node"
+
+                if self.system['include_n1_contingency_conversion']:
+                    # extract failure rates from input data and create mask
+                    get_failure_rates = self.extract_input_data("failure_rate", index_sets=["set_nodes"])
+                    m1 = (get_failure_rates!= 0)
+                    # filter df_input based on the boolean mask m1
+                    df_filter = df_input[m1.loc[df_input[location]].values]
+
+                    # create a new array with two columns
+                    failure_technology_location = np.column_stack((
+                        np.full(len(df_filter[location].unique()), self.element.name),  # First column with constant value
+                        df_filter[location].unique()))  # Second column with unique values from 'location' column
+
+                    # add failure_technology_location to the existing array
+                    self.energy_system.set_failure_technology_location = np.vstack((
+                        self.energy_system.set_failure_technology_location,
+                        failure_technology_location))
+
             else:
                 location = "node"
             _max_node_count = df_input[location].value_counts().max()

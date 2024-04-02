@@ -105,6 +105,10 @@ class EnergySystem:
         self.carbon_emissions_annual_limit = self.data_input.extract_input_data("carbon_emissions_annual_limit", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"emissions": 1})
         _fraction_year = self.system["unaggregated_time_steps_per_year"] / self.system["total_hours_per_year"]
         self.carbon_emissions_annual_limit = self.carbon_emissions_annual_limit * _fraction_year  # reduce to fraction of year
+        if self.system["include_carbon_emissions_annual_limit_adjustment"]:
+            self.carbon_emissions_annual_limit_adjustment = self.data_input.extract_input_data("carbon_emissions_annual_limit_adjustment", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={'emissions': 1})
+            self.carbon_emissions_annual_limit_adjustment = self.carbon_emissions_annual_limit_adjustment * _fraction_year  # reduce to fraction of year
+            self.carbon_emissions_annual_limit_adjustment_factor = self.data_input.extract_input_data("carbon_emissions_annual_limit_adjustment_factor", index_sets=[], unit_category={})
         self.carbon_emissions_budget = self.data_input.extract_input_data("carbon_emissions_budget", index_sets=[], unit_category={"emissions": 1})
         self.min_co2_stored = self.data_input.extract_input_data("min_co2_stored", index_sets=['set_time_steps_yearly'], time_steps='set_time_steps_yearly', unit_category={"emissions": 1})
         self.carbon_emissions_cumulative_existing = self.data_input.extract_input_data("carbon_emissions_cumulative_existing", index_sets=[], unit_category={"emissions": 1})
@@ -118,6 +122,12 @@ class EnergySystem:
         self.knowledge_spillover_rate = self.data_input.extract_input_data("knowledge_spillover_rate", index_sets=[], unit_category={})
         # LCA impact categories
         self.set_lca_impact_categories = self.system['set_lca_impact_categories']
+        # failure state: technology and location
+        self.set_failure_technology_location = np.empty((0, 2))
+        # Add a placeholder for no failure case
+        no_failure_entry = np.array([["no_failure_technology", "no_failure_location"]])
+        # Append this entry to your existing array
+        self.set_failure_technology_location = np.vstack((self.set_failure_technology_location, no_failure_entry))
 
     def calculate_edges_from_nodes(self):
         """ calculates set_nodes_on_edges from set_nodes
@@ -239,6 +249,11 @@ class EnergySystem:
         self.optimization_setup.sets.add_set(name="set_time_steps_operation",data=self.time_steps.time_steps_operation,doc="Set of operational time steps")
         # storage time steps
         self.optimization_setup.sets.add_set(name="set_time_steps_storage",data=self.time_steps.time_steps_storage,doc="Set of storage level time steps")
+        # failure states, only if flag to include n-1 contingency is True
+        if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
+            self.optimization_setup.sets.add_set(name="set_failure_states",
+                                                 data=[f"{row[0]}: {row[1]}" for row in self.set_failure_technology_location],
+                                                 doc="Set of failure states in n-1 contingency")
         ## impact categories for LCA, only if flag to include LCA categories is True
         if self.system['load_lca_factors']:
             self.optimization_setup.sets.add_set(name='set_lca_impact_categories', data=self.set_lca_impact_categories,
@@ -257,6 +272,10 @@ class EnergySystem:
         parameters.add_parameter(name="discount_rate", doc='Parameter which specifies the discount rate of the energy system', calling_class=cls)
         # carbon emissions limit
         parameters.add_parameter(name="carbon_emissions_annual_limit", set_time_steps="set_time_steps_yearly", doc='Parameter which specifies the total limit on carbon emissions', calling_class=cls)
+        # carbon emissions limit adjustment
+        if self.system["include_carbon_emissions_annual_limit_adjustment"]:
+            parameters.add_parameter(name="carbon_emissions_annual_limit_adjustment", set_time_steps="set_time_steps_yearly", doc='Parameter which adjusts the annual limit on carbon emissions', calling_class=cls)
+            parameters.add_parameter(name="carbon_emissions_annual_limit_adjustment_factor", doc='Parameter which specifies the adjustment factor of the annual limit on carbon emissions', calling_class=cls)
         # minimum CO2 stored
         parameters.add_parameter(name="min_co2_stored", doc="Parameter which specifies the minimum amount of CO2 to be stored through carrier 'co2_stored'.", set_time_steps="set_time_steps_yearly", calling_class=cls)
         # carbon emissions budget
@@ -447,7 +466,11 @@ class EnergySystemRules(GenericRule):
 
         ### formulate constraint
         lhs = self.variables["carbon_emissions_annual"][year] - self.variables["carbon_emissions_annual_overshoot"][year]
-        rhs = self.parameters.carbon_emissions_annual_limit.loc[year].item()
+        if self.system["include_carbon_emissions_annual_limit_adjustment"]:
+            rhs = self.parameters.carbon_emissions_annual_limit.loc[year].item() + self.parameters.carbon_emissions_annual_limit_adjustment_factor.item() * self.parameters.carbon_emissions_annual_limit_adjustment.loc[year].item()
+        else:
+            rhs = self.parameters.carbon_emissions_annual_limit.loc[year].item()
+
         constraints = lhs <= rhs
 
         ### return
