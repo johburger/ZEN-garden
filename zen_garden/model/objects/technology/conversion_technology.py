@@ -69,9 +69,9 @@ class ConversionTechnology(Technology):
             # TODO change timestep from yearly to operation
             self.nominal_flow_conversion_input = self.get_nominal_flow_conversion_input()
             # get failure rate
-            self.failure_rate_conversion = self.data_input.extract_input_data("failure_rate", index_sets=["set_nodes"])
+            self.failure_rate_conversion = self.data_input.extract_input_data("failure_rate", index_sets=["set_nodes"], unit_category={'time': -1})
             # get downtime
-            self.downtime_conversion = self.data_input.extract_input_data("downtime", index_sets=["set_nodes"])
+            self.downtime_conversion = self.data_input.extract_input_data("downtime", index_sets=["set_nodes"], unit_category={'time': 1})
             # calculate operation probability
             self.operation_probability_conversion = self.calculate_operation_probability()
 
@@ -83,7 +83,7 @@ class ConversionTechnology(Technology):
         nominal_flow_conversion_input = []
         cf_dict = {}
         for carrier in self.input_carrier:
-            cf_dict[carrier] = self.data_input.extract_input_data("nominal_flow_conversion_input", index_sets=index_sets,time_steps=time_steps, subelement=carrier)
+            cf_dict[carrier] = self.data_input.extract_input_data("nominal_flow_conversion_input", index_sets=index_sets,time_steps=time_steps, subelement=carrier, unit_category={'energy_quantity': 1, 'time': -1})
         cf_dict = pd.DataFrame.from_dict(cf_dict)
         cf_dict.columns.name = "carrier"
         cf_dict = cf_dict.stack()

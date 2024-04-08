@@ -16,6 +16,7 @@ import numpy as np
 from zen_garden.model.objects.element import GenericRule,Element
 from zen_garden.preprocess.extract_input_data import DataInput
 from zen_garden.preprocess.unit_handling import UnitHandling
+from zen_garden.model.objects.component import ZenIndex
 from .time_steps import TimeStepsDicts
 from pathlib import Path
 
@@ -338,8 +339,12 @@ class EnergySystem:
         constraints.add_constraint_rule(model, name="constraint_carbon_emissions_annual_limit", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_carbon_emissions_annual_limit_rule,
                                    doc="limit of total annual carbon emissions of energy system")
         # minimum CO2 stored
-        constraints.add_constraint_rule(model, name="constraint_min_co2_stored", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_min_co2_stored_rule,
+        if not self.system["include_n1_contingency_import_export"]:
+            constraints.add_constraint_rule(model, name="constraint_min_co2_stored", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_min_co2_stored_rule,
                                         doc="minimum CO2 stored")
+        else:  # todo clean this up and merge both constraints into one.
+            constraints.add_constraint_block(model, name="constraint_min_co2_stored", constraint=self.rules.constraint_min_co2_stored_block(),
+                                             doc="minimum CO2 stored")
         # carbon emission budget limit
         constraints.add_constraint_rule(model, name="constraint_carbon_emissions_budget", index_sets=sets["set_time_steps_yearly"], rule=self.rules.constraint_carbon_emissions_budget_rule,
                                    doc="Budget of total carbon emissions of energy system")
@@ -587,6 +592,43 @@ class EnergySystemRules(GenericRule):
 
     # Block-based constraints
     # -----------------------
+
+    def constraint_min_co2_stored_block(self):
+        """ semi-hardcoded minimum boundary on CO2 stored in the system.
+                The emergency_storage technology is used as option for the optimizer to breach the limit at a high cost.
+                Might be removed at some point."""
+
+        ### index sets
+        index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_failure_states", "set_time_steps_yearly"],
+                                                              self.optimization_setup)
+        index = ZenIndex(index_values, index_names)
+
+        ### masks
+        # skipped because rule-based constraint
+
+        ### index loop
+        # skipped because rule-based constraint
+
+        ### auxiliary calculations
+        # not necessary
+
+        ### formulate constraint
+        constraints = []
+        assert 'co2_stored' in self.optimization_setup.sets['set_carriers'], "carrier 'co2_stored' not found in set_carriers"
+        for state, year in index.get_unique(levels=['set_failure_states', 'set_time_steps_yearly']):
+            total_co2_stored = (self.variables['flow_export'].loc['co2_stored', :, state, year] * self.parameters.time_steps_operation_duration.loc[year]).sum()
+            if 'emergency_storage' not in self.variables['flow_conversion_output'].coords['set_conversion_technologies'].values:
+                lhs = total_co2_stored
+            else:
+                feasibility_tech = (self.variables['flow_conversion_output'].loc['emergency_storage', 'dummy_carrier', :, state, year] * self.parameters.time_steps_operation_duration.loc[year]).sum()
+                lhs = total_co2_stored + feasibility_tech
+            rhs = self.parameters.min_co2_stored.loc[year].item()
+            constraints.append(lhs >= rhs)
+
+        return self.constraints.return_contraints(constraints,
+                                                  model=self.model,
+                                                  index_values=index.get_unique(levels=['set_failure_states', 'set_time_steps_yearly']),
+                                                  index_names=['set_failure_states', 'set_time_steps_yearly'])
 
     def constraint_carbon_emissions_budget_overshoot_block(self):
         """ ensures carbon emissions overshoot of carbon budget is zero when carbon emissions price for budget overshoot is inf

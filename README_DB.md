@@ -128,33 +128,20 @@ Copy `data_cost_optimal` to `data_n1` and ensure the following attributes are co
 ```
 
 #### Conversion Technologies Attributes
-- nominal_flow_conversion input: allways inf needs to be specified for every input
-- failure_rate: the rate of failure for a technology per hour the rate of failure for a technology per hour and km (set to 0 if technology should not be included in failure analysis, this can also be done for specified edges through the csv)
-- downtime: downtime when failure occurs
+- nominal_flow_conversion input: always inf needs to be specified for every input
+- failure_rate: the rate of failure for a technology per hour (set to 0 if technology should not be included in failure analysis, this can also be done for specified edges through the csv)
+- downtime: downtime for how long a failure occurs
 ```json
   {
     "nominal_flow_conversion_input": {
         "flue_gas": {
           "default_value": "inf",
-<<<<<<< HEAD
-          "unit": "tons/tons"
-        },
-        "heat": {
-          "default_value": "inf",
           "unit": "tons/hour"
         },
-=======
-          "unit": "tons/hour"
-        }
-      },
-      {
         "heat": {
           "default_value": "inf",
           "unit": "MWh/hour"
-        }
-      },
-      {
->>>>>>> parent of 1977c271 (Revert "Update README_DB.md")
+        },
         "electricity": {
           "default_value": "inf",
           "unit": "MWh/hour"
@@ -277,8 +264,10 @@ If system runs into infeasibilities consider increasing the emission budget.
     }
   }
 ]
-
 ```
+The optimization needs to be run with the objective function 'total_carbon_emissions' to ensure a solution that has minimal emissions while it is unable to increase capacities in the system.
+While this is a workaround for now, it determines one end of the Pareto front.
+
 `Run optimization of data_n1_add_0`
 
 ### Carbon Budget adjusted Analysis

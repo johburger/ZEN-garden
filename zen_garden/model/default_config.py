@@ -84,6 +84,7 @@ class HeaderDataInputs(Subscriptable):
     set_technologies_existing: str = "technology_existing"
     set_capacity_types: str = "capacity_type"
     set_lca_impact_categories: str = "lca_impact_category"
+    set_failure_states: str = "failure_state"
 
 
 class TimeSeriesAggregation(Subscriptable):

@@ -60,11 +60,11 @@ class TransportTechnology(Technology):
         if self.optimization_setup.system['include_n1_contingency_transport']:
             # get nominal flow transport
             # TODO change timestep from yearly to operation
-            self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly")
+            self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={'energy_quantity': 1, 'time': -1})
             # get failure rate
-            self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"])
+            self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
             # get downtime
-            self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"])
+            self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
             # calculate operation probability
             self.operation_probability_transport = self.calculate_operation_probability()
 
