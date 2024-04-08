@@ -184,14 +184,15 @@ class Carrier(Element):
         constraints.add_constraint_block(model, name="constraint_availability_export_yearly",
                                          constraint=rules.constraint_availability_export_yearly_block(),
                                          doc='node- and time-dependent carrier availability to export to outside the system boundaries summed over entire year', )
-        # limit import flow by availability for the entire optimization horizon
-        constraints.add_constraint_block(model, name="constraint_availability_import_total",
-                                        constraint=rules.constraint_availability_import_total_block(),
-                                        doc='node-dependent carrier availability to import from outside the system boundaries summed over entire optimization horizon')
-        # limit export flow by availability for the entire optimization horizon
-        constraints.add_constraint_block(model, name="constraint_availability_export_total",
-                                        constraint=rules.constraint_availability_export_total_block(),
-                                        doc='node-dependent carrier availability to export to outside the system boundaries summed over entire optimization horizon')
+        if not optimization_setup.system['include_n1_contingency_import_export']:  # assuming that resilience is only looked at for one year
+            # limit import flow by availability for the entire optimization horizon
+            constraints.add_constraint_block(model, name="constraint_availability_import_total",
+                                            constraint=rules.constraint_availability_import_total_block(),
+                                            doc='node-dependent carrier availability to import from outside the system boundaries summed over entire optimization horizon')
+            # limit export flow by availability for the entire optimization horizon
+            constraints.add_constraint_block(model, name="constraint_availability_export_total",
+                                            constraint=rules.constraint_availability_export_total_block(),
+                                            doc='node-dependent carrier availability to export to outside the system boundaries summed over entire optimization horizon')
         # cost for carrier
         constraints.add_constraint_block(model, name="constraint_cost_carrier",
                                          constraint=rules.constraint_cost_carrier_block(),
