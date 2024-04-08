@@ -538,12 +538,12 @@ class Technology(Element):
                                          doc='limit conversion input flow to nominal flow times operation probability factor factor for the n-1_contingency')
         # n-1 contingency for no failure
         if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
-            constraints.add_constraint_block(model, name="n1_contingency_no_failure_transport",
-                                             constraint=rules.constraint_n1_contingency_no_failure_transport(),
-                                             doc='equals transport flow of "no failure state" to nominal flow')
             constraints.add_constraint_block(model, name="n1_contingency_no_failure_conversion",
                                              constraint=rules.constraint_n1_contingency_no_failure_conversion(),
                                              doc='equals conversion input flow of "no failure state" to nominal flow')
+            constraints.add_constraint_block(model, name="n1_contingency_no_failure_transport",
+                                             constraint=rules.constraint_n1_contingency_no_failure_transport(),
+                                             doc='equals transport flow of "no failure state" to nominal flow')
         if optimization_setup.system['include_capture_minimum_equals_nominal_input_flow']:
             constraints.add_constraint_block(model, name="constraint_capture_minimum_equals_nominal_input_flow",
                                              constraint=rules.constraint_capture_minimum_equals_nominal_input_flow(),
@@ -1804,29 +1804,26 @@ class TechnologyRules(GenericRule):
 
         ### index loop
         # we loop over all technologies for the conditions and vectorize over the rest
-        constraints = []
 
         times = index.get_unique(["set_time_steps_operation"])
         state = "no_failure_technology: no_failure_location"
 
-        for tech in index.get_unique(["set_conversion_technologies"]):
-            for carriers in self.variables.coords["set_input_carriers"]:
-                m1 = (self.parameters.nominal_flow_conversion_input.loc[tech, carriers, :, times] != np.inf)
 
-                term_no_failure = self.parameters.nominal_flow_conversion_input.loc[tech, carriers, :, times]
-                term_no_failure = term_no_failure.where(m1, 0)
+        m1 = (self.parameters.nominal_flow_conversion_input.loc[:, :, :, times] != np.inf)
 
-                term_flow = self.variables["flow_conversion_input"].loc[tech, carriers, :, state, times]
+        term_no_failure = self.parameters.nominal_flow_conversion_input.loc[:, :, :, times]
+        term_no_failure = term_no_failure.where(m1, 0)
 
-                ### formulate constraint
-                lhs = term_flow
-                rhs = term_no_failure
-                constraints.append(lhs == rhs)
+        term_flow = self.variables["flow_conversion_input"].loc[:, :, :, state, times]
+
+        ### formulate constraint
+        lhs = term_flow
+        rhs = term_no_failure
+        constraints = lhs == rhs
+
         ### return
         return self.constraints.return_contraints(constraints,
-                                                  model=self.model,
-                                                  index_values=index.get_unique(["set_conversion_technologies", "set_carriers"]),
-                                                  index_names=["set_conversion_technologies", "set_carriers"])
+                                                  model=self.model)
 
 
     def constraint_n1_contingency_no_failure_transport(self):
@@ -1849,30 +1846,26 @@ class TechnologyRules(GenericRule):
         # below
 
         ### index loop
-        # we loop over all technologies for the conditions and vectorize over the rest
-        constraints = []
 
         times = index.get_unique(["set_time_steps_operation"])
         state = "no_failure_technology: no_failure_location"
 
-        for tech in self.sets["set_transport_technologies"]:
-            m1 = (self.parameters.nominal_flow_transport.loc[tech, :, times] != np.inf)
+        # for tech in self.sets["set_transport_technologies"]:
+        m1 = (self.parameters.nominal_flow_transport.loc[:, :, times] != np.inf)
 
-            term_no_failure = self.parameters.nominal_flow_transport.loc[tech, :, times]
-            term_no_failure = term_no_failure.where(m1, 0)
+        term_no_failure = self.parameters.nominal_flow_transport.loc[:, :, times]
+        term_no_failure = term_no_failure.where(m1, 0)
 
-            term_flow = self.variables["flow_transport"].loc[tech, :, state, times]
+        term_flow = self.variables["flow_transport"].loc[:, :, state, times]
 
-            ### formulate constraint
-            lhs = term_flow
-            rhs = term_no_failure
-            constraints.append(lhs == rhs)
+        ### formulate constraint
+        lhs = term_flow
+        rhs = term_no_failure
+        constraints = lhs == rhs
 
         ### return
         return self.constraints.return_contraints(constraints,
-                                                  model=self.model,
-                                                  index_values=index.get_unique(["set_transport_technologies"]),
-                                                  index_names=["set_transport_technologies"])
+                                                  model=self.model)
 
 
     def constraint_capture_minimum_equals_nominal_input_flow(self):
