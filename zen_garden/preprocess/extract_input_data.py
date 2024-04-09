@@ -445,7 +445,7 @@ class DataInput:
                         np.full(len(df_filter[location].unique()), self.element.name),  # First column with constant value
                         df_filter[location].unique()))  # Second column with unique values from 'location' column
 
-                    #add failure_technology_location to the existing array
+                    # add failure_technology_location to the existing array
                     self.energy_system.set_failure_technology_location = np.vstack((
                         self.energy_system.set_failure_technology_location,
                         failure_technology_location))

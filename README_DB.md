@@ -133,29 +133,29 @@ Copy `data_cost_optimal` to `data_n1` and ensure the following attributes are co
 - downtime: downtime for how long a failure occurs
 ```json
   {
-    "nominal_flow_conversion_input": {
-        "flue_gas": {
-          "default_value": "inf",
-          "unit": "tons/hour"
-        },
-        "heat": {
-          "default_value": "inf",
-          "unit": "MWh/hour"
-        },
-        "electricity": {
-          "default_value": "inf",
-          "unit": "MWh/hour"
-        }
+  "nominal_flow_conversion_input": {
+    "flue_gas": {
+      "default_value": "inf",
+      "unit": "tons/hour"
     },
-    "failure_rate": {
-      "default_value": 0,
-      "unit": "1/year"
+    "heat": {
+      "default_value": "inf",
+      "unit": "MWh/hour"
     },
-    "downtime": {
-      "default_value": 0,
-      "unit": "hour"
+    "electricity": {
+      "default_value": "inf",
+      "unit": "MWh/hour"
     }
+  },
+  "failure_rate": {
+    "default_value": 0,
+    "unit": "1/year"
+  },
+  "downtime": {
+    "default_value": 0,
+    "unit": "hour"
   }
+}
  ```
 
 ### Notebook Usage for Data Management
@@ -165,7 +165,7 @@ Utilize the following Jupyter notebooks to automatically create csv with needed 
 - `01_get_existing_capacity.ipynb`: Retrieves the existing capacities of all technologies.
 - `02_get_nominal_flow_transport.ipynb`: Retrieves the nominal flow of transport for all technologies.
 - `03_get_nominal_flow_conversion.ipynb`: Retrieves the nominal flow for all conversion technologies.
-- 
+-
 Configure the data paths in the notebooks as follows:
 
 - Input path: `output/data_cost_optimal`
@@ -196,74 +196,56 @@ Copy `data_n1` to `data_n1_add_0` and set the `capacity_addition_max` for all te
 
    ```json
    {
-     "capacity_addition_max": {
-       "default_value": 0,
-       "unit": "kilotons/year"
-     }
-   }
+  "capacity_addition_max": {
+    "default_value": 0,
+    "unit": "kilotons/year"
+  }
+}
    ```
 
-This configuration ensures that carbon emissions resulting from failures cannot be stored, enabling us to measure the impacts of such failures and calculate expected carbon non-resilience metrics. 
+This configuration ensures that carbon emissions resulting from failures cannot be stored, enabling us to measure the impacts of such failures and calculate expected carbon non-resilience metrics.
 To avoid system infeasibility, it's crucial that CO2 carriers are always exportable. This strategy must be implemented across all types of CO2 carriers to ensure the system's competence in handling carbon budgets efficiently across different failure conditions.
 If system runs into infeasibilities consider increasing the emission budget.
 
 ```json
-[
-  {
-    "carbon_intensity": {
-      "default_value": -1,
-      "unit": "tons/tons"
-    }
+{
+  "carbon_intensity": {
+    "default_value": -1,
+    "unit": "tons/tons"
   },
-  {
-    "demand": {
-      "default_value": 0,
-      "unit": "tons/h"
-    }
+  "demand": {
+    "default_value": 0,
+    "unit": "tons/h"
   },
-  {
-    "availability_import": {
-      "default_value": 0,
-      "unit": "tons"
-    }
+  "availability_import": {
+    "default_value": 0,
+    "unit": "tons"
   },
-  {
-    "availability_export": {
-      "default_value": "inf",
-      "unit": "tons"
-    }
+  "availability_export": {
+    "default_value": "inf",
+    "unit": "tons"
   },
-  {
-    "availability_import_yearly": {
-      "default_value": 0,
-      "unit": "tons"
-    }
+  "availability_import_yearly": {
+    "default_value": 0,
+    "unit": "tons"
   },
-  {
-    "availability_export_yearly": {
-      "default_value": "inf",
-      "unit": "tons"
-    }
+  "availability_export_yearly": {
+    "default_value": "inf",
+    "unit": "tons"
   },
-  {
-    "price_export": {
-      "default_value": 0,
-      "unit": "kiloEuro/tons"
-    }
+  "price_export": {
+    "default_value": 0,
+    "unit": "kiloEuro/tons"
   },
-  {
-    "price_import": {
-      "default_value": 23.58,
-      "unit": "kiloEuro/tons"
-    }
+  "price_import": {
+    "default_value": 23.58,
+    "unit": "kiloEuro/tons"
   },
-  {
-    "price_shed_demand": {
-      "default_value": "inf",
-      "unit": "kiloEuro/tons"
-    }
+  "price_shed_demand": {
+    "default_value": "inf",
+    "unit": "kiloEuro/tons"
   }
-]
+}
 ```
 The optimization needs to be run with the objective function 'total_carbon_emissions' to ensure a solution that has minimal emissions while it is unable to increase capacities in the system.
 While this is a workaround for now, it determines one end of the Pareto front.
@@ -272,32 +254,36 @@ While this is a workaround for now, it determines one end of the Pareto front.
 
 ### Carbon Budget adjusted Analysis
 
-Copy `data_cost_optimal` to `data_n1_adjusted` and ensure the following attributes are correctly set for transport and conversion technologies:
+<div style="border:2px solid red; padding: 10px; background-color: #f8d7da; color: #721c24;">
+    <strong>Warning:</strong> The carbon budget adjustment analysis description is not fully up to date! 
+    The annual limit adjustment does not need to be put in as separate parameters but existing functionality of the framework can be used. 
+    The description will be updated soon.
+</div>
+
+Copy `data_n1` to `data_n1_adjusted` and ensure the following attributes are correctly set for transport and conversion technologies:
 
 #### Energy System Attributes
-* carbon_emissions_annual_limit_adjustment: allways 0 (csv gets crate further down)
+* carbon_emissions_annual_limit_adjustment: always 0 (csv gets crate further down)
 * carbon_emissions_annual_limit_adjustment_factor: between 0 and 1 to define how much more budget there is be between 0 and 100% of expected carbon not stored
 
 ```json
   {
-    "carbon_emissions_annual_limit_adjustment": {
-      "default_value": 0,
-      "unit": "kilotons"
-    }
+  "carbon_emissions_annual_limit_adjustment": {
+    "default_value": 0,
+    "unit": "kilotons"
   },
-  {
-    "carbon_emissions_annual_limit_adjustment_factor": {
-      "default_value": 0,
-      "unit": "1"
-    }
-  }
+  "carbon_emissions_annual_limit_adjustment_factor": {
+    "default_value": 0,
+    "unit": "1"
+}
+}
 ```
 ### Notebook Usage for Data Management
 
 Utilize the following Jupyter notebook to automatically create csv with needed input data.
 
 - `04_get_difference_carbon_emissions.ipynb`: Retrieves the expected change in carbon emissions for the adjustment of the annual carbon emissions limit.
-Configure the data paths in the notebooks as follows:
+  Configure the data paths in the notebooks as follows:
 
 - Input path: `output/data_n1_addition_0`
 - Export path: `data_n1_adjusted`

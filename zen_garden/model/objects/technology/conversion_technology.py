@@ -63,6 +63,10 @@ class ConversionTechnology(Technology):
         self.get_conversion_factor()
         self.opex_specific_fixed = self.data_input.extract_input_data("opex_specific_fixed", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "time": 1})
         self.convert_to_fraction_of_capex()
+        # LCA parameters
+        if self.energy_system.system['load_lca_factors']:
+            self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'],
+                                                                             time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1})
         # get information for N-1 contingency
         if self.optimization_setup.system['include_n1_contingency_conversion']:
             # get nominal flow conversion inpt
