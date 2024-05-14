@@ -264,6 +264,10 @@ class TransportTechnology(Technology):
         constraints.add_constraint_block(model, name="constraint_transport_technology_capex",
                                          constraint=rules.constraint_transport_technology_capex_block(),
                                          doc='Capital expenditures for installing transport technology')
+        # no flow if failure occurs
+        constraints.add_constraint_block(model, name="constraint_no_flow_transport",
+                                         constraint=rules.constraint_no_flow_transport(),
+                                         doc='No Flow during Failure')
 
     # defines disjuncts if technology on/off
     @classmethod
@@ -416,3 +420,59 @@ class TransportTechnologyRules(GenericRule):
 
         ### return
         return self.constraints.return_contraints(constraints, mask=global_mask)
+
+    def constraint_no_flow_transport(self):
+        import random
+        ### index sets
+        index_values, index_names = Element.create_custom_set(
+            ["set_transport_technologies", "set_edges", "set_time_steps_operation"],
+            self.optimization_setup)
+        index = ZenIndex(index_values, index_names)
+
+        times = index.get_unique(["set_time_steps_operation"])
+        edges = index.get_unique(["set_edges"])
+
+        # TODO downtime
+        downtime_transport = 5
+
+        constraints = []
+
+        operation = {}
+        for edge in edges:
+            for tech in index.get_unique(["set_transport_technologies"]):
+                #term_capacity = self.parameters.capacity_limit.loc[{'set_technologies': tech,
+#                                                                    'set_location': edge, 'set_time_steps_yearly': 0}].item()
+                term_capacity = self.parameters.capacity_limit.loc[{'set_technologies': tech,
+                                                                    'set_location': edge, 'set_time_steps_yearly': times}]
+                #term_capacity = self.parameters.capacity_limit.loc[tech, edge, times]
+                term_flow = self.variables["flow_transport"].loc[tech, edge, times]
+                #operation_probability = self.parameters.operation_probability.loc[tech]
+                operation_probability = 0.5
+                sum_by_tech = 0
+                for time_step in times:
+                    if random.random() < operation_probability:
+                        operation[tech, time_step] = 1
+
+                    else:
+                        operation[tech, time_step] = 0
+                    sum_by_tech += 1-operation[tech, time_step]
+
+                    ### formulate constraint
+                    lhs = term_flow.loc[time_step]
+                    rhs = term_capacity.loc[{'set_time_steps_yearly': time_step}].item() * operation[tech, time_step]
+                    constraints.append(lhs <= rhs)
+
+                #lhs2 = sum_by_tech
+                #rhs2 = downtime_transport
+                #constraints.append(lhs2 <= rhs2)
+
+        return self.constraints.return_contraints(constraints,
+                                                  model=self.model,
+                                                  index_values=index.get_unique(["set_edges"]),
+                                                  index_names=["set_edges"])
+
+
+
+
+
+
