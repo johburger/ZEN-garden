@@ -56,6 +56,9 @@ class TransportTechnology(Technology):
         self.convert_to_fraction_of_capex()
         # calculate capex of existing capacity
         self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
+        # get downtime
+        self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"],
+                                                                     unit_category={'time': 1})
         if self.energy_system.system['load_lca_factors']:
             self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
             self.technology_lca_factors = self.technology_lca_factors * self.distance
@@ -184,7 +187,11 @@ class TransportTechnology(Technology):
         # carrier losses
         optimization_setup.parameters.add_parameter(name="transport_loss_factor_linear", index_names=["set_transport_technologies"], doc='linear carrier losses due to transport with transport technologies', calling_class=cls)
         optimization_setup.parameters.add_parameter(name="transport_loss_factor_exponential", index_names=["set_transport_technologies"], doc='exponential carrier losses due to transport with transport technologies', calling_class=cls)
-
+        # downtime
+        optimization_setup.parameters.add_parameter(name="downtime_transport",
+                                                    index_names=["set_transport_technologies", "set_edges"],
+                                                    doc='downtime for transport technologies whe failure occurs',
+                                                    calling_class=cls)
         # additional for N-1 contingency
         if optimization_setup.system['include_n1_contingency_transport']:
             # nominal flow
@@ -428,7 +435,7 @@ class TransportTechnologyRules(GenericRule):
             ["set_transport_technologies", "set_edges", "set_time_steps_operation"],
             self.optimization_setup)
         index = ZenIndex(index_values, index_names)
-
+        self.sets['set_time_steps_operation']
         times = index.get_unique(["set_time_steps_operation"])
         edges = index.get_unique(["set_edges"])
 
@@ -440,11 +447,7 @@ class TransportTechnologyRules(GenericRule):
         operation = {}
         for edge in edges:
             for tech in index.get_unique(["set_transport_technologies"]):
-                #term_capacity = self.parameters.capacity_limit.loc[{'set_technologies': tech,
-#                                                                    'set_location': edge, 'set_time_steps_yearly': 0}].item()
-                term_capacity = self.parameters.capacity_limit.loc[{'set_technologies': tech,
-                                                                    'set_location': edge, 'set_time_steps_yearly': times}]
-                #term_capacity = self.parameters.capacity_limit.loc[tech, edge, times]
+                term_capacity = self.parameters.capacity_limit.loc[tech,: ,edge, times]
                 term_flow = self.variables["flow_transport"].loc[tech, edge, times]
                 #operation_probability = self.parameters.operation_probability.loc[tech]
                 operation_probability = 0.5
