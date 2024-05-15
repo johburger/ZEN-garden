@@ -13,6 +13,7 @@ import logging
 
 import numpy as np
 import xarray as xr
+import linopy as lp
 
 from .technology import Technology
 from ..component import ZenIndex, IndexSet
@@ -273,7 +274,7 @@ class TransportTechnology(Technology):
                                          doc='Capital expenditures for installing transport technology')
         # no flow if failure occurs
         constraints.add_constraint_block(model, name="constraint_no_flow_transport",
-                                         constraint=rules.constraint_no_flow_transport(),
+                                         constraint=rules.constraint_no_flow_transport_block(),
                                          doc='No Flow during Failure')
 
     # defines disjuncts if technology on/off
@@ -428,16 +429,13 @@ class TransportTechnologyRules(GenericRule):
         ### return
         return self.constraints.return_contraints(constraints, mask=global_mask)
 
-    def constraint_no_flow_transport(self):
-        import random
+    def constraint_no_flow_transport_block(self):  # please always use consistent naming like the other constraints
+        import random  # This is not good practice, imports should be at the top of the file, I switched to np now anyway
         ### index sets
         index_values, index_names = Element.create_custom_set(
             ["set_transport_technologies", "set_edges", "set_time_steps_operation"],
             self.optimization_setup)
         index = ZenIndex(index_values, index_names)
-        self.sets['set_time_steps_operation']
-        times = index.get_unique(["set_time_steps_operation"])
-        edges = index.get_unique(["set_edges"])
 
         # TODO downtime
         downtime_transport = 5
@@ -445,34 +443,55 @@ class TransportTechnologyRules(GenericRule):
         constraints = []
 
         operation = {}
-        for edge in edges:
-            for tech in index.get_unique(["set_transport_technologies"]):
-                term_capacity = self.parameters.capacity_limit.loc[tech,: ,edge, times]
-                term_flow = self.variables["flow_transport"].loc[tech, edge, times]
-                #operation_probability = self.parameters.operation_probability.loc[tech]
-                operation_probability = 0.5
-                sum_by_tech = 0
-                for time_step in times:
-                    if random.random() < operation_probability:
-                        operation[tech, time_step] = 1
+        for tech in index.get_unique(["set_transport_technologies"]):
+            locs, times = index.get_values([tech], [1, 2], unique=True)
+            # important: capacity limit is indexed by yearly time steps not operation.
+            yearly_time_steps = [self.time_steps.convert_time_step_operation2year(t) for t in times]
+            # please name all attributes with a meaningful name, e.g., term_capacity_limit instead of term_capacity
+            # this renaming etc is improvised and needs to be changed. Since we shift to a fully vectorized version at
+            # some point, there is no need to put in effort now. However, try to understand what happens here.
+            term_capacity_limit = self.parameters.capacity_limit.loc[tech, 'power', locs, yearly_time_steps].assign_coords(
+                {'set_time_steps_yearly': times}).rename({"set_time_steps_yearly": "set_time_steps_operation", "set_location": "set_edges"})
+            term_flow = self.variables["flow_transport"].loc[tech, :, times]
+            operation_probability = 0.5
+            # here we create an array which we will use as mask where we directly apply the operation probability
+            # it's a very improvised solution for now, please make more robust.
+            # m is true for random number being smaller than operation_probability
+            m = xr.DataArray(np.random.rand(len(times), len(locs)) < operation_probability, coords=[self.variables.coords["set_time_steps_operation"].loc[times], self.variables.coords["set_edges"].loc[locs]])
+            # the whole broadcasting is not a pretty solution but I could not make it work otherwise.
+            # Please play around a little to understand what happens here and maybe you find a better solution.
+            lhs = term_flow.broadcast_like(m)
+            rhs = term_capacity_limit.where(m, 0.0).broadcast_like(m)  # for m = False, the capacity_limit is set to 0
+            constraints.append(lhs <= rhs)
 
-                    else:
-                        operation[tech, time_step] = 0
-                    sum_by_tech += 1-operation[tech, time_step]
+            sum_by_tech = 0
+            # for time_step in times:
+            #     if random.random() < operation_probability:
+            #         operation[tech, time_step] = 1
+            #
+            #     else:
+            #         operation[tech, time_step] = 0
+            #     sum_by_tech += 1-operation[tech, time_step]
+            #
+            #     ### formulate constraint
+            #     lhs = term_flow.loc[time_step]
+            #     rhs = term_capacity_limit.loc[{'set_time_steps_yearly': time_step}].item() * operation[tech, time_step]
+            #     constraints.append(lhs <= rhs)
 
-                    ### formulate constraint
-                    lhs = term_flow.loc[time_step]
-                    rhs = term_capacity.loc[{'set_time_steps_yearly': time_step}].item() * operation[tech, time_step]
-                    constraints.append(lhs <= rhs)
+            # idea: Currently, the failures change each run and thus also the resulting resilient system.
+            #   Consequently, the results have to be run multiple times in a Monte-carlo style simulation.
+            #   This can also be done by computing the failure times before the optimization and giving them as input.
+            #   The failure computation can then be done in a Monte-Carlo style simulation outside the optimization.
 
-                #lhs2 = sum_by_tech
-                #rhs2 = downtime_transport
-                #constraints.append(lhs2 <= rhs2)
+            #lhs2 = sum_by_tech
+            #rhs2 = downtime_transport
+            #constraints.append(lhs2 <= rhs2)
 
+        # you tried to index the constraint by edges only although you created the list of constraints for both edges and transport techs.
         return self.constraints.return_contraints(constraints,
                                                   model=self.model,
-                                                  index_values=index.get_unique(["set_edges"]),
-                                                  index_names=["set_edges"])
+                                                  index_values=index.get_unique(["set_transport_technologies"]),
+                                                  index_names=["set_transport_technologies"])
 
 
 
