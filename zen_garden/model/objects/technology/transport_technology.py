@@ -431,6 +431,50 @@ class TransportTechnologyRules(GenericRule):
 
     def constraint_no_flow_transport_block(self):  # please always use consistent naming like the other constraints
         import random  # This is not good practice, imports should be at the top of the file, I switched to np now anyway
+
+        def simulate_operation(num_edges, failure_probability, downtime, array, failed_edge=None,
+                            downtime_counter=0):
+            """
+            Simulate the state of the system over one timestep.
+
+            Params:
+            - num_edges: Num of edges in the system
+            - failure_probability: pobability of failure at each time step.
+            - downtime: Donwtime duration in time steps
+            - array: current state of the system represented as array.
+            - failed_edge: Index of the technology that failed in the previous timestep.
+            - downtime_counter: Remaining downtime for the failed technology
+
+            Returns:
+            - array: Updated state of the system represented as a numpy array.
+            - failed_edge: Index of the technology that failed in the current timestep.
+            - downtime_counter: Remaining downtime for the failed technology.
+            """
+
+            # Check if we are still in downtime
+            if downtime_counter > 0:
+                downtime_counter -= 1
+                # append a row with same failure state
+                array = np.vstack([array, array[-1]])
+                return array, failed_edge, downtime_counter
+
+            # check if failure occurs at this timestep
+            if np.random.rand() < failure_probability:
+                # choose a random edge to fail
+                failed_edge = np.random.randint(num_edges)
+                # Set all other edges to working (1) and the failed one to failed (0)
+                row = np.ones((1, num_edges), dtype=int)
+                row[0, failed_edge] = 0
+                array = np.vstack([array, row])
+                # set downtime counter
+                downtime_counter = downtime
+            else:
+                # If no failure, append a row with all edges working (1)
+                array = np.vstack([array, np.ones((1, num_edges), dtype=int)])
+
+            return array, failed_edge, downtime_counter
+
+
         ### index sets
         index_values, index_names = Element.create_custom_set(
             ["set_transport_technologies", "set_edges", "set_time_steps_operation"],
@@ -438,11 +482,9 @@ class TransportTechnologyRules(GenericRule):
         index = ZenIndex(index_values, index_names)
 
         # TODO downtime
-        downtime_transport = 5
+        downtime_transport = 4
 
         constraints = []
-
-        operation = {}
         for tech in index.get_unique(["set_transport_technologies"]):
             locs, times = index.get_values([tech], [1, 2], unique=True)
             # important: capacity limit is indexed by yearly time steps not operation.
@@ -454,38 +496,40 @@ class TransportTechnologyRules(GenericRule):
                 {'set_time_steps_yearly': times}).rename({"set_time_steps_yearly": "set_time_steps_operation", "set_location": "set_edges"})
             term_flow = self.variables["flow_transport"].loc[tech, :, times]
             operation_probability = 0.5
+
+            operation = np.ones((1, len(locs)), dtype=int)
+            failed_edge = None
+            downtime_counter = 0
+            for timestep in range(0,len(times)-1):
+                operation, failed_edge, downtime_counter = simulate_operation(num_edges=len(locs), failure_probability=1-operation_probability,
+                                                                              downtime=downtime_transport, array=operation,
+                                                                              failed_edge=failed_edge, downtime_counter=downtime_counter)
+
+            operation = xr.DataArray(operation, coords=[self.variables.coords["set_time_steps_operation"].loc[times],self.variables.coords["set_edges"].loc[locs]])
+            operation_transposed = operation.transpose()
+            # Benutze ich nur, damit die shapes stimmen
+            m = xr.DataArray(np.random.rand(len(times), len(locs)) < operation_probability,
+                             coords=[self.variables.coords["set_time_steps_operation"].loc[times],
+                                     self.variables.coords["set_edges"].loc[locs]])
+            lhs = term_flow.broadcast_like(m)
+            rhs = term_capacity_limit*operation_transposed
+            rhs = rhs.broadcast_like(m)
+            constraints.append(lhs <= rhs)
+
             # here we create an array which we will use as mask where we directly apply the operation probability
             # it's a very improvised solution for now, please make more robust.
             # m is true for random number being smaller than operation_probability
-            m = xr.DataArray(np.random.rand(len(times), len(locs)) < operation_probability, coords=[self.variables.coords["set_time_steps_operation"].loc[times], self.variables.coords["set_edges"].loc[locs]])
+            #m = xr.DataArray(np.random.rand(len(times), len(locs)) < operation_probability, coords=[self.variables.coords["set_time_steps_operation"].loc[times], self.variables.coords["set_edges"].loc[locs]])
             # the whole broadcasting is not a pretty solution but I could not make it work otherwise.
             # Please play around a little to understand what happens here and maybe you find a better solution.
-            lhs = term_flow.broadcast_like(m)
-            rhs = term_capacity_limit.where(m, 0.0).broadcast_like(m)  # for m = False, the capacity_limit is set to 0
-            constraints.append(lhs <= rhs)
-
-            sum_by_tech = 0
-            # for time_step in times:
-            #     if random.random() < operation_probability:
-            #         operation[tech, time_step] = 1
-            #
-            #     else:
-            #         operation[tech, time_step] = 0
-            #     sum_by_tech += 1-operation[tech, time_step]
-            #
-            #     ### formulate constraint
-            #     lhs = term_flow.loc[time_step]
-            #     rhs = term_capacity_limit.loc[{'set_time_steps_yearly': time_step}].item() * operation[tech, time_step]
-            #     constraints.append(lhs <= rhs)
+            #lhs = term_flow.broadcast_like(m)
+            #rhs = term_capacity_limit.where(m, 0.0).broadcast_like(m)  # for m = False, the capacity_limit is set to 0
+            #constraints.append(lhs <= rhs)
 
             # idea: Currently, the failures change each run and thus also the resulting resilient system.
             #   Consequently, the results have to be run multiple times in a Monte-carlo style simulation.
             #   This can also be done by computing the failure times before the optimization and giving them as input.
             #   The failure computation can then be done in a Monte-Carlo style simulation outside the optimization.
-
-            #lhs2 = sum_by_tech
-            #rhs2 = downtime_transport
-            #constraints.append(lhs2 <= rhs2)
 
         # you tried to index the constraint by edges only although you created the list of constraints for both edges and transport techs.
         return self.constraints.return_contraints(constraints,
