@@ -181,15 +181,6 @@ class Carrier(Element):
         # limit import flow by availability for the entire optimization horizon
         rules.constraint_availability_import_export_total()
 
-        if not optimization_setup.system['include_n1_contingency_import_export']:  # assuming that resilience is only looked at for one year
-            # limit import flow by availability for the entire optimization horizon
-            constraints.add_constraint_block(model, name="constraint_availability_import_total",
-                                            constraint=rules.constraint_availability_import_total_block(),
-                                            doc='node-dependent carrier availability to import from outside the system boundaries summed over entire optimization horizon')
-            # limit export flow by availability for the entire optimization horizon
-            constraints.add_constraint_block(model, name="constraint_availability_export_total",
-                                            constraint=rules.constraint_availability_export_total_block(),
-                                            doc='node-dependent carrier availability to export to outside the system boundaries summed over entire optimization horizon')
         # cost for carrier
         rules.constraint_cost_carrier()
 
@@ -506,12 +497,12 @@ class CarrierRules(GenericRule):
             flow_import = (self.variables["flow_import"] - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_import"].where(m, 0.0)).sum('set_failure_states')
             flow_export = (self.variables["flow_export"] - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_export"].where(m, 0.0)).sum('set_failure_states')
             lhs = (self.variables["carbon_emissions_carrier"]
-                   - (flow_import*carbon_intensity_carrier_import
-                    - flow_export*carbon_intensity_carrier_export))
+                   - (flow_import * carbon_intensity_carrier_import
+                      - flow_export * carbon_intensity_carrier_export))
         else:
             lhs = (self.variables["carbon_emissions_carrier"]
-                   - (self.variables["flow_import"]*carbon_intensity_carrier_import
-                   - self.variables["flow_export"]*carbon_intensity_carrier_export))
+                   - (self.variables["flow_import"] * carbon_intensity_carrier_import
+                      - self.variables["flow_export"] * carbon_intensity_carrier_export))
 
         rhs = 0
 
@@ -523,7 +514,9 @@ class CarrierRules(GenericRule):
         """ lca impacts of importing and exporting carrier"""
 
         ### index sets
-        index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_lca_impact_categories", "set_time_steps_operation"], self.optimization_setup)
+        index_values, index_names = Element.create_custom_set(
+            ["set_carriers", "set_nodes", "set_lca_impact_categories", "set_time_steps_operation"],
+            self.optimization_setup)
         index = ZenIndex(index_values, index_names)
         times = index.get_unique(["set_time_steps_operation"])
 
@@ -590,9 +583,9 @@ class CarrierRules(GenericRule):
                                                                                         self.sets["set_nodes"]])
 
             # create the variables
-            flow_transport_in_vars = xr.DataArray(-1, coords=[self.variables.coords["set_carriers"],
-                                                              self.variables.coords["set_nodes"],
-                                                              self.variables.coords["set_time_steps_operation"],
+            flow_transport_in_vars = xr.DataArray(-1, coords=[self.parameters.demand.coords["set_carriers"],
+                                                              self.parameters.demand.coords["set_nodes"],
+                                                              self.parameters.demand.coords["set_time_steps_operation"],
                                                               xr.DataArray(np.arange(
                                                                   len(self.sets["set_transport_technologies"]) * (
                                                                           2 * max_edges + 1)), dims=["_term"])])
@@ -711,11 +704,11 @@ class CarrierRules(GenericRule):
                        term_carrier_shed_demand,
                        compat="broadcast_equals")
         rhs = term_carrier_demand
-        constraints = lhs == rhs
+        aligned_idx = xr.align(lhs.coords, rhs, join="inner")[0]
+        constraints = lhs.sel(aligned_idx) == rhs.sel(aligned_idx)
 
         ### return
-        return self.constraints.return_contraints(constraints)
-
+        self.constraints.add_constraint("constraint_nodal_energy_balance", constraints)
 
     def constraint_nodal_energy_balance_block_failure_states(self):
         """

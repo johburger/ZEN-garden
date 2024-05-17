@@ -518,7 +518,8 @@ class Technology(Element):
                                              constraint=rules.constraint_n1_contingency_conversion_block(),
                                              doc='limit conversion input flow to nominal flow times operation probability factor factor for the n-1_contingency')
         # n-1 contingency for no failure
-        if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
+        if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system[
+            'include_n1_contingency_conversion']:
             constraints.add_constraint_block(model, name="n1_contingency_no_failure_conversion",
                                              constraint=rules.constraint_n1_contingency_no_failure_conversion(),
                                              doc='equals conversion input flow of "no failure state" to nominal flow')
@@ -547,7 +548,8 @@ class Technology(Element):
         # LCA
         if optimization_setup.system['load_lca_factors']:
             # lca impacts
-            constraints.add_constraint_block(model, name='constraint_technology_lca_impacts', constraint=rules.constraint_technology_lca_impacts_block(),
+            constraints.add_constraint_block(model, name='constraint_technology_lca_impacts',
+                                             constraint=rules.constraint_technology_lca_impacts_block(),
                                              doc='lca impacts of each technology at each location and time step')
             # total LCA impacts
             constraints.add_constraint_block(model, name='constraint_technology_lca_impacts_total', constraint=rules.constraint_technology_lca_impacts_total_block(),
@@ -1328,7 +1330,8 @@ class TechnologyRules(GenericRule):
 
         ### index sets
         index_values, index_names = Element.create_custom_set(
-            ["set_conversion_technologies", "set_carriers", "set_nodes", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
+            ["set_conversion_technologies", "set_carriers", "set_nodes", "set_failure_states",
+             "set_time_steps_operation"], self.optimization_setup)
         index = ZenIndex(index_values, index_names)
 
         ### masks
@@ -1356,7 +1359,6 @@ class TechnologyRules(GenericRule):
         ### return
         return self.constraints.return_contraints(constraints,
                                                   model=self.model)
-
 
     def constraint_n1_contingency_no_failure_transport(self):
         """ For failure state "no_failure_technology: no_failure_location", all corresponding transport flows are equal to the nominal transport flow
