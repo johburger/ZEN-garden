@@ -13,6 +13,7 @@ import logging
 
 import linopy as lp
 import numpy as np
+import pandas as pd
 import xarray as xr
 
 from zen_garden.utils import lp_sum
@@ -51,7 +52,8 @@ class Carrier(Element):
         self.availability_export_yearly = self.data_input.extract_input_data("availability_export_yearly", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1})
         self.availability_import_total = self.data_input.extract_input_data("availability_import_total", index_sets=["set_nodes"], unit_category={"energy_quantity": 1})
         self.availability_export_total = self.data_input.extract_input_data("availability_export_total", index_sets=["set_nodes"], unit_category={"energy_quantity": 1})
-        self.carbon_intensity_carrier = self.data_input.extract_input_data("carbon_intensity_carrier", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"emissions": 1, "energy_quantity": -1})
+        self.carbon_intensity_carrier_import = self.data_input.extract_input_data("carbon_intensity_carrier_import", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"emissions": 1, "energy_quantity": -1})
+        self.carbon_intensity_carrier_export = self.data_input.extract_input_data("carbon_intensity_carrier_export", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly",  unit_category={"emissions": 1, "energy_quantity": -1})
         self.price_shed_demand = self.data_input.extract_input_data("price_shed_demand", index_sets=[], unit_category={"money": 1, "energy_quantity": -1})
         # LCA factors
         if self.energy_system.system['load_lca_factors']:
@@ -98,8 +100,10 @@ class Carrier(Element):
         optimization_setup.parameters.add_parameter(name="price_export", index_names=["set_carriers", "set_nodes", "set_time_steps_operation"], doc='Parameter which specifies the export carrier price', calling_class=cls)
         # demand shedding price
         optimization_setup.parameters.add_parameter(name="price_shed_demand", index_names=["set_carriers"], doc='Parameter which specifies the price to shed demand', calling_class=cls)
-        # carbon intensity
-        optimization_setup.parameters.add_parameter(name="carbon_intensity_carrier", index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"], doc='Parameter which specifies the carbon intensity of carrier', calling_class=cls)
+        # carbon intensity carrier import
+        optimization_setup.parameters.add_parameter(name="carbon_intensity_carrier_import", index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"], doc='Parameter which specifies the carbon intensity of carrier import', calling_class=cls)
+        # carbon intensity carrier exmport
+        optimization_setup.parameters.add_parameter(name="carbon_intensity_carrier_export", index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"], doc='Parameter which specifies the carbon intensity of carrier export', calling_class=cls)
         # lca parameters
         if optimization_setup.system['load_lca_factors']:
             optimization_setup.parameters.add_parameter(name='carrier_lca_factors', index_names=['set_carriers', 'set_nodes', 'set_lca_impact_categories', 'set_time_steps_yearly'],
@@ -161,71 +165,44 @@ class Carrier(Element):
 
     @classmethod
     def construct_constraints(cls, optimization_setup):
-        """ constructs the pe.Constraints of the class <Carrier>
+        """ constructs the Constraints of the class <Carrier>
 
         :param optimization_setup: The OptimizationSetup the element is part of """
         model = optimization_setup.model
         constraints = optimization_setup.constraints
         sets = optimization_setup.sets
         rules = CarrierRules(optimization_setup)
-        # limit import flow by availability
-        constraints.add_constraint_block(model, name="constraint_availability_import",
-                                         constraint=rules.constraint_availability_import_block(),
-                                         doc='node- and time-dependent carrier availability to import from outside the system boundaries', )
-        # limit export flow by availability
-        constraints.add_constraint_block(model, name="constraint_availability_export",
-                                         constraint=rules.constraint_availability_export_block(),
-                                         doc='node- and time-dependent carrier availability to export to outside the system boundaries')
-        # limit import flow by availability for each year
-        constraints.add_constraint_block(model, name="constraint_availability_import_yearly",
-                                         constraint=rules.constraint_availability_import_yearly_block(),
-                                         doc='node- and time-dependent carrier availability to import from outside the system boundaries summed over entire year', )
-        # limit export flow by availability for each year
-        constraints.add_constraint_block(model, name="constraint_availability_export_yearly",
-                                         constraint=rules.constraint_availability_export_yearly_block(),
-                                         doc='node- and time-dependent carrier availability to export to outside the system boundaries summed over entire year', )
-        if not optimization_setup.system['include_n1_contingency_import_export']:  # assuming that resilience is only looked at for one year
-            # limit import flow by availability for the entire optimization horizon
-            constraints.add_constraint_block(model, name="constraint_availability_import_total",
-                                            constraint=rules.constraint_availability_import_total_block(),
-                                            doc='node-dependent carrier availability to import from outside the system boundaries summed over entire optimization horizon')
-            # limit export flow by availability for the entire optimization horizon
-            constraints.add_constraint_block(model, name="constraint_availability_export_total",
-                                            constraint=rules.constraint_availability_export_total_block(),
-                                            doc='node-dependent carrier availability to export to outside the system boundaries summed over entire optimization horizon')
+
+        # limit import/export flow by availability
+        rules.constraint_availability_import_export()
+
+        # limit import/export flow by availability for each year
+        rules.constraint_availability_import_export_yearly()
+        # limit import flow by availability for the entire optimization horizon
+        rules.constraint_availability_import_export_total()
+
         # cost for carrier
-        constraints.add_constraint_block(model, name="constraint_cost_carrier",
-                                         constraint=rules.constraint_cost_carrier_block(),
-                                         doc="cost of importing and exporting carrier")
-        # cost for shed demand
-        constraints.add_constraint_block(model, name="constraint_cost_shed_demand",
-                                         constraint=rules.constraint_cost_shed_demand_block(),
-                                         doc="cost of shedding carrier demand")
-        # limit of shed demand
-        constraints.add_constraint_block(model, name="constraint_limit_shed_demand",
-                                         constraint=rules.constraint_limit_shed_demand_block(),
-                                         doc="limit of shedding carrier demand")
+        rules.constraint_cost_carrier()
+
+        # cost and limit for shed demand
+        rules.constraint_cost_limit_shed_demand()
+
         # total cost for carriers
-        constraints.add_constraint_rule(model, name="constraint_cost_carrier_total",
-                                        index_sets=sets["set_time_steps_yearly"], rule=rules.constraint_cost_carrier_total_rule,
-                                        doc="total cost of importing and exporting carriers")
+        rules.constraint_cost_carrier_total()
+
         # carbon emissions
-        constraints.add_constraint_block(model, name="constraint_carbon_emissions_carrier",
-                                         constraint=rules.constraint_carbon_emissions_carrier_block(),
-                                         doc="carbon emissions of importing and exporting carrier")
+        rules.constraint_carbon_emissions_carrier()
+
         # carbon emissions carrier
-        constraints.add_constraint_rule(model, name="constraint_carbon_emissions_carrier_total",
-                                        index_sets=sets["set_time_steps_yearly"], rule=rules.constraint_carbon_emissions_carrier_total_rule,
-            doc="total carbon emissions of importing and exporting carriers")
+        rules.constraint_carbon_emissions_carrier_total()
+
         # energy balance
         if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
             constraints.add_constraint_block(model, name="constraint_nodal_energy_balance_failure_states",
                                             constraint=rules.constraint_nodal_energy_balance_block_failure_states(),
                                             doc='node- and time-dependent energy balance for each carrier for n-1 contigency')
         else:
-            constraints.add_constraint_block(model, name="constraint_nodal_energy_balance",
-                                         constraint=rules.constraint_nodal_energy_balance_block(),
-                                         doc='node- and time-dependent energy balance for each carrier')
+            rules.constraint_nodal_energy_balance()
         # LCA
         if optimization_setup.system['load_lca_factors']:
             # lca impacts
@@ -261,90 +238,42 @@ class CarrierRules(GenericRule):
     # Rule-based constraints
     # ----------------------
 
-    def constraint_cost_carrier_total_rule(self, year):
+    def constraint_cost_carrier_total(self):
         """ total cost of importing and exporting carrier
 
         .. math::
             C_y^{\mathcal{C}} = \sum_{c\in\mathcal{C}}\sum_{n\in\mathcal{N}}\sum_{t\in\mathcal{T}} \\tau_t (C_{c,n,t} + C_{c,n,t}^{\mathrm{shed}\ \mathrm{demand}})
 
-        :param year: #TODO describe parameter/return
-        :return: #TODO describe parameter/return
         """
-
-        ### index sets
-        # skipped because rule-based constraint
-
-        ### masks
-        # skipped because rule-based constraint
-
-        ### index loop
-        # skipped because rule-based constraint
-
-        ### auxiliary calculations
-        terms = []
-        # This vectorizes over times and locations
-        for carrier in self.sets["set_carriers"]:
-            times = self.energy_system.time_steps.get_time_steps_year2operation(year)
-            expr = (self.variables["cost_carrier"].loc[carrier, :, times]
-                    + self.variables["cost_shed_demand"].loc[carrier, :, times]) * self.parameters.time_steps_operation_duration.loc[times]
-            terms.append(expr.sum())
-        term_summed_carrier_shed_demand_costs = lp_sum(terms)
-
-        ### formulate constraint
-        lhs = self.variables["cost_carrier_total"].loc[year] - term_summed_carrier_shed_demand_costs
+        times = self.get_year_time_step_duration_array()
+        term_summed_cost_carrier = (
+                    (self.variables["cost_carrier"].broadcast_like(times) + self.variables["cost_shed_demand"].broadcast_like(times))
+                    * times).sum(["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = self.variables["cost_carrier_total"] - term_summed_cost_carrier
         rhs = 0
         constraints = lhs == rhs
 
-        ### return
-        return self.constraints.return_contraints(constraints)
+        self.constraints.add_constraint("constraint_cost_carrier_total",constraints)
 
-    def constraint_carbon_emissions_carrier_total_rule(self, year):
+    def constraint_carbon_emissions_carrier_total(self):
         """ total carbon emissions of importing and exporting carrier
 
         .. math::
             E_y^{\mathcal{C}} = \sum_{c\in\mathcal{C}}\sum_{n\in\mathcal{N}}\sum_{t\in\mathcal{T}} \\tau_t E_{c,n,t}
 
-        :param model: #TODO describe parameter/return
-        :param year: #TODO describe parameter/return
         """
-
-        ### index sets
-        # skipped because rule-based constraint
-
-        ### masks
-        # skipped because rule-based constraint
-
-        ### index loop
-        # skipped because rule-based constraint
-
-        ### auxiliary calculations
-        terms = []
-        # This vectorizes over times and locations
-        for carrier in self.sets["set_carriers"]:
-            times = self.energy_system.time_steps.get_time_steps_year2operation(year)
-            expr = self.variables["carbon_emissions_carrier"].loc[carrier, :, times] * self.parameters.time_steps_operation_duration.loc[times]
-            terms.append(expr.sum())
-        term_summed_carbon_emissions_carrier = lp_sum(terms)
-
-        ### formulate constraint
-        lhs = self.variables["carbon_emissions_carrier_total"].loc[year] - term_summed_carbon_emissions_carrier
+        term_summed_carbon_emissions_carrier = (
+                self.variables["carbon_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
+            ["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = self.variables["carbon_emissions_carrier_total"] - term_summed_carbon_emissions_carrier
         rhs = 0
         constraints = lhs == rhs
 
-        ### return
-        return self.constraints.return_contraints(constraints)
+        self.constraints.add_constraint("constraint_carbon_emissions_carrier_total",constraints)
+
 
     def constraint_carrier_lca_impacts_total_rule(self, lca_category, year):
         """ total lca impacts of all carriers """
-
-        ### index sets
-        # skipped because rule-based constraint
-
-        ### masks
-        # skipped because rule-based constraint
-
-        ### index loop
-        # skipped because rule-based constraint
 
         ### auxiliary calculations
         terms = []
@@ -361,231 +290,104 @@ class CarrierRules(GenericRule):
         constraints = lhs == rhs
 
         ### return
-        return self.constraints.return_contraints(constraints)
+        self.constraints.add_constraint("constraint_carrier_lca_impacts_total", constraints)
 
-    # Block-based constraints
-    # -----------------------
-
-    def constraint_availability_import_block(self):
-        """node- and time-dependent carrier availability to import from outside the system boundaries
+    def constraint_availability_import_export(self):
+        """node- and time-dependent carrier availability to import/export from outside the system boundaries
 
         .. math::
             U_{c,n,t} \\leq a_{c,n,t}^\mathrm{import}
-
-        :return: #TODO describe parameter/return
+            V_{c,n,t} \\leq a_{c,n,t}^\mathrm{export}
         """
 
-        ### index sets
-        # not necessary
+        lhs_imp = self.variables["flow_import"]
+        rhs_imp = self.parameters.availability_import
+        constraints_imp = lhs_imp <= rhs_imp
 
-        ### masks
-        # not necessary
+        lhs_exp = self.variables["flow_export"]
+        rhs_exp = self.parameters.availability_export
+        constraints_exp = lhs_exp <= rhs_exp
 
-        ### index loop
-        # not necessary
+        self.constraints.add_constraint("constraint_availability_import",constraints_imp)
+        self.constraints.add_constraint("constraint_availability_export",constraints_exp)
 
-        ### auxiliary calculations
-        # not necessary
-
-        ### formulate constraint
-        lhs = self.variables["flow_import"]
-        rhs = self.parameters.availability_import
-        constraints = lhs <= rhs
-
-        ### return
-        return self.constraints.return_contraints(constraints)
-
-    def constraint_availability_export_block(self):
-        """node- and time-dependent carrier availability to export to outside the system boundaries
-
-        .. math::
-           V_{c,n,t} \\leq a_{c,n,t}^\mathrm{export}
-
-        :return: #TODO describe parameter/return
-        """
-
-        ### index sets
-        # not necessary
-
-        ### masks
-        # not necessary
-
-        ### index loop
-        # not necessary
-
-        ### auxiliary calculations
-        # not necessary
-
-        ### formulate constraint
-        lhs = self.variables["flow_export"]
-        rhs = self.parameters.availability_export
-        constraints = lhs <= rhs
-
-        ### return
-        return self.constraints.return_contraints(constraints)
-
-    def constraint_availability_import_yearly_block(self):
-        """node- and year-dependent carrier availability to import from outside the system boundaries
+    def constraint_availability_import_export_yearly(self):
+        """node- and year-dependent carrier availability to import/export from outside the system boundaries
 
          .. math::
             a_{c,n,y}^\mathrm{import} \geq \\sum_{t\\in\mathcal{T}}\\tau_t U_{c,n,t}
+            a_{c,n,y}^\mathrm{export} \geq \\sum_{t\\in\mathcal{T}}\\tau_t V_{c,n,t}
 
-        :return: #TODO describe parameter/return
         """
+        # The constraint is only constrained if the availability is finite
+        mask_imp = self.parameters.availability_import_yearly != np.inf
+        mask_exp = self.parameters.availability_export_yearly != np.inf
 
-        ### index sets
-        if self.system['include_n1_contingency_import_export']:
-            index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_failure_states", "set_time_steps_yearly"],
-                                                                  self.optimization_setup)
-        else:
-            index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_yearly"],
-                                                                  self.optimization_setup)
-        index = ZenIndex(index_values, index_names)
+        # import
+        lhs_imp = (self.variables["flow_import"] * self.get_year_time_step_duration_array()).sum("set_time_steps_operation").where(mask_imp)
+        rhs_imp = self.parameters.availability_import_yearly.where(mask_imp)
+        constraints_imp = lhs_imp <= rhs_imp
 
-        ### index loop
-        # this loop vectorizes over the nodes
-        constraints = []
-        if self.system['include_n1_contingency_import_export']:
-            for carrier, state, year in index.get_unique(levels=["set_carriers", "set_failure_states", "set_time_steps_yearly"]):
-                ### masks
-                # The constraints is only bounded if the availability is finite
-                mask = self.parameters.availability_import_yearly.loc[carrier, :, year] != np.inf
-                ### auxiliary calculations
-                operational_time_steps = self.time_steps.get_time_steps_year2operation(year)
-                term_summed_import_flow = (self.variables["flow_import"].loc[carrier, :, state, operational_time_steps]
-                                           * self.parameters.time_steps_operation_duration.loc[operational_time_steps]).sum("set_time_steps_operation")
+        # export
+        lhs_exp = (self.variables["flow_export"] * self.get_year_time_step_duration_array()).sum("set_time_steps_operation").where(mask_exp)
+        rhs_exp = self.parameters.availability_export_yearly.where(mask_exp)
+        constraints_exp = lhs_exp <= rhs_exp
 
-                ### formulate constraint
-                lhs = term_summed_import_flow.where(mask)
-                rhs = self.parameters.availability_import_yearly.loc[carrier, :, year].where(mask)
-                constraints.append(lhs <= rhs)
-            ### return
-            return self.constraints.return_contraints(constraints,
-                                                      model=self.model,
-                                                      index_values=index.get_unique(
-                                                          levels=["set_carriers", "set_failure_states",
-                                                                  "set_time_steps_yearly"]),
-                                                      index_names=["set_carriers", "set_failure_states", "set_time_steps_yearly"])
-        else:
-            for carrier, year in index.get_unique(levels=["set_carriers", "set_time_steps_yearly"]):
-                ### masks
-                # The constraints is only bounded if the availability is finite
-                mask = self.parameters.availability_import_yearly.loc[carrier, :, year] != np.inf
-                ### auxiliary calculations
-                operational_time_steps = self.time_steps.get_time_steps_year2operation(year)
-                term_summed_import_flow = (self.variables["flow_import"].loc[carrier, :, operational_time_steps]
-                                           * self.parameters.time_steps_operation_duration.loc[operational_time_steps]).sum("set_time_steps_operation")
+        self.constraints.add_constraint("constraint_availability_import_yearly",constraints_imp)
+        self.constraints.add_constraint("constraint_availability_export_yearly",constraints_exp)
 
-                ### formulate constraint
-                lhs = term_summed_import_flow.where(mask)
-                rhs = self.parameters.availability_import_yearly.loc[carrier, :, year].where(mask)
-                constraints.append(lhs <= rhs)
-            ### return
-            return self.constraints.return_contraints(constraints,
-                                                      model=self.model,
-                                                      index_values=index.get_unique(levels=["set_carriers", "set_time_steps_yearly"]),
-                                                      index_names=["set_carriers", "set_time_steps_yearly"])
-
-    def constraint_availability_export_yearly_block(self):
-        """node- and year-dependent carrier availability to export to outside the system boundaries
-
-        .. math::
-           a_{c,n,y}^\mathrm{export} \geq \\sum_{t\\in\mathcal{T}}\\tau_t V_{c,n,t}
-
-        .. math::
-           \mathrm{if\ n-1\ contingency}\ a_{c,n,y}^\mathrm{export} \geq \\sum_{t\\in\mathcal{T}}\\tau_t V_{c,n,f,t}
-
-        :return: #TODO describe parameter/return
-        """
-
-        ### index sets
-        if self.system['include_n1_contingency_import_export']:
-            index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_failure_states", "set_time_steps_yearly"],
-                                                                  self.optimization_setup)
-        else:
-            index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_yearly"],
-                                                                  self.optimization_setup)
-        index = ZenIndex(index_values, index_names)
-
-        ### index loop
-        # this loop vectorizes over the nodes
-        constraints = []
-        if self.system['include_n1_contingency_import_export']:
-            for carrier, state, year in index.get_unique(levels=["set_carriers", "set_failure_states", "set_time_steps_yearly"]):
-                ### masks
-                # The constraints is only bounded if the availability is finite
-                mask = self.parameters.availability_export_yearly.loc[carrier, :, year] != np.inf
-                ### auxiliary calculations
-                operational_time_steps = self.time_steps.get_time_steps_year2operation(year)
-                term_summed_export_flow = (self.variables["flow_export"].loc[carrier, :, state, operational_time_steps]
-                                           * self.parameters.time_steps_operation_duration.loc[operational_time_steps]).sum("set_time_steps_operation")
-
-                ### formulate constraint
-                lhs = term_summed_export_flow.where(mask)
-                rhs = self.parameters.availability_export_yearly.loc[carrier, :, year].where(mask)
-                constraints.append(lhs <= rhs)
-            ### return
-            return self.constraints.return_contraints(constraints,
-                                                      model=self.model,
-                                                      index_values=index.get_unique(levels=["set_carriers", "set_failure_states", "set_time_steps_yearly"]),
-                                                      index_names=["set_carriers",  "set_failure_states", "set_time_steps_yearly"])
-
-        else:
-            for carrier, year in index.get_unique(levels=["set_carriers", "set_time_steps_yearly"]):
-                ### masks
-                # The constraints is only bounded if the availability is finite
-                mask = self.parameters.availability_export_yearly.loc[carrier, :, year] != np.inf
-                ### auxiliary calculations
-                operational_time_steps = self.time_steps.get_time_steps_year2operation(year)
-                term_summed_export_flow = (self.variables["flow_export"].loc[carrier, :, operational_time_steps]
-                                           * self.parameters.time_steps_operation_duration.loc[operational_time_steps]).sum("set_time_steps_operation")
-
-                ### formulate constraint
-                lhs = term_summed_export_flow.where(mask)
-                rhs = self.parameters.availability_export_yearly.loc[carrier, :, year].where(mask)
-                constraints.append(lhs <= rhs)
-            ### return
-            return self.constraints.return_contraints(constraints,
-                                                      model=self.model,
-                                                      index_values=index.get_unique(levels=["set_carriers", "set_time_steps_yearly"]),
-                                                      index_names=["set_carriers", "set_time_steps_yearly"])
-
-    def constraint_availability_import_total_block(self):
+    def constraint_availability_import_export_total(self):
         """node-dependent carrier availability to import from outside the system boundaries summed over entire optimization horizon
 
         .. math::
-           a_{c,n}^\mathrm{import} \geq \\sum_{y\\in\mathcal{Y}} \\sum_{t\\in\mathcal{T_y}}\\tau_t U_{c,n,t}
+           a_{c,n}^\\mathrm{import} \\geq \\sum_{y\\in\\mathcal{Y}} \\sum_{t\\in\\mathcal{T_y}}\\tau_t U_{c,n,t} \\\\
+           a_{c,n}^\\mathrm{export} \\geq \\sum_{y\\in\\mathcal{Y}} \\sum_{t\\in\\mathcal{T_y}}\\tau_t V_{c,n,t}
 
         :return: constraints
         """
+        m_imp = self.parameters.availability_import_total != np.inf
+        lhs_imp = (self.variables['flow_import'] * self.get_year_time_step_duration_array()).sum(
+            ["set_time_steps_operation", "set_time_steps_yearly"]).where(m_imp)
+        rhs_imp = self.parameters.availability_import_total.where(m_imp)
+        constraints_imp = lhs_imp <= rhs_imp
 
-        ### index sets
-        index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes"], self.optimization_setup)
-        index = ZenIndex(index_values, index_names)
+        m_exp = self.parameters.availability_export_total != np.inf
+        lhs_exp = (self.variables['flow_export'] * self.get_year_time_step_duration_array()).sum(
+            ["set_time_steps_operation", "set_time_steps_yearly"]).where(m_exp)
+        rhs_exp = self.parameters.availability_export_total.where(m_exp)
+        constraints_exp = lhs_exp <= rhs_exp
 
-        ### masks
-        # The constraint is only bounded if the availability is finite
-        mask = self.parameters.availability_import_total != np.inf
-
-        ### index loop
-        # this loop vectorizes over the nodes
-        constraints = []
-        for carrier in index.get_unique(["set_carriers"]):
-            ### auxiliary calculations
-            term_summed_import_flow = (self.variables["flow_import"].loc[carrier, :, :]
-                                    * self.parameters.time_steps_operation_duration.loc[:]).sum("set_time_steps_operation")
-
-            ### formulate constraint
-            lhs = term_summed_import_flow
-            rhs = self.parameters.availability_import_total.loc[carrier, :]
-            constraints.append(lhs <= rhs)
-
-        ### return
-        return self.constraints.return_contraints(constraints,
-                                                  model=self.model,
-                                                  mask=mask,
-                                                  index_values=index.get_unique(["set_carriers"]),
-                                                  index_names=["set_carriers"])
+        self.constraints.add_constraint("constraint_availability_import_total", constraints_imp)
+        self.constraints.add_constraint("constraint_availability_export_total", constraints_exp)
+        # old stuff:
+        # ### index sets
+        # index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes"], self.optimization_setup)
+        # index = ZenIndex(index_values, index_names)
+        #
+        # ### masks
+        # # The constraint is only bounded if the availability is finite
+        # mask = self.parameters.availability_import_total != np.inf
+        #
+        # ### index loop
+        # # this loop vectorizes over the nodes
+        # constraints = {}
+        # for carrier in index.get_unique(["set_carriers"]):
+        #     ### auxiliary calculations
+        #     term_summed_import_flow = (self.variables["flow_import"].loc[carrier, :, :]
+        #                                * self.parameters.time_steps_operation_duration.loc[:]).sum(
+        #         "set_time_steps_operation")
+        #
+        #     ### formulate constraint
+        #     lhs = term_summed_import_flow
+        #     rhs = self.parameters.availability_import_total.loc[carrier, :]
+        #     constraints[carrier] = lhs <= rhs
+        #
+        # ### return
+        # # return self.constraints.return_constraints(constraints,
+        # #                                           model=self.model,
+        # #                                           mask=mask,
+        # #                                           index_values=index.get_unique(["set_carriers"]),
+        # #                                           index_names=["set_carriers"])
 
     def constraint_availability_export_total_block(self):
         """node-dependent carrier availability to export to outside the system boundaries summed over entire optimization horizon
@@ -606,194 +408,116 @@ class CarrierRules(GenericRule):
 
         ### index loop
         # this loop vectorizes over the nodes
-        constraints = []
+        constraints = {}
         for carrier in index.get_unique(["set_carriers"]):
             ### auxiliary calculations
             term_summed_export_flow = (self.variables["flow_export"].loc[carrier, :, :]
-                                    * self.parameters.time_steps_operation_duration.loc[:]).sum("set_time_steps_operation")
+                                       * self.parameters.time_steps_operation_duration.loc[:]).sum(
+                "set_time_steps_operation")
 
             ### formulate constraint
             lhs = term_summed_export_flow
             rhs = self.parameters.availability_export_total.loc[carrier, :]
-            constraints.append(lhs <= rhs)
+            constraints[carrier] = lhs <= rhs
 
         ### return
-        return self.constraints.return_contraints(constraints,
-                                                  model=self.model,
-                                                  mask=mask,
-                                                  index_values=index.get_unique(["set_carriers"]),
-                                                  index_names=["set_carriers"])
+        self.constraints.add_constraint("constraint_availability_export_total", constraints)
+        # return self.constraints.return_constraints(constraints,
+        #                                           model=self.model,
+        #                                           mask=mask,
+        #                                           index_values=index.get_unique(["set_carriers"]),
+        #                                           index_names=["set_carriers"])
 
-    def constraint_cost_carrier_block(self):
+    def constraint_cost_carrier(self):
         """ cost of importing and exporting carrier
 
         .. math::
            C_{c,n,t} = u_{c,n,t} U_{c,n,t} - v_{c,n,t} V_{c,n,t}
+           \mathrm{if\ n-1\ contingency}\ C_{c,n,t} = u_{c,n,t} (U_{c,n,f0,t} + \sum_{f\in F} U_{c,n,f,t} - U_{c,n,f0,t}) - v_{c,n,t} (V_{c,n,f0,t} + \sum_{f\in F} V_{c,n,f,t} - V_{c,n,f0,t})
 
-        .. math::
-            \mathrm{if\ n-1\ contingency}\ C_{c,n,t} = u_{c,n,t} (U_{c,n,f0,t} + \sum_{f\in F} U_{c,n,f,t} - U_{c,n,f0,t}) - v_{c,n,t} (V_{c,n,f0,t} + \sum_{f\in F} V_{c,n,f,t} - V_{c,n,f0,t})
-
-        :return: #TODO describe parameter/return
         """
-
-        ### index sets
-        # not necessary
-
-        ### masks
-        # we distinguish the cases where there is availability to import or export and where there is not
-        mask = ((self.parameters.availability_import != 0) | (self.parameters.availability_export != 0))
-        #mask = xr.align(self.variables.labels, mask)[1]
-
-        ### index loop
-        # not necessary
-
-        ### auxiliary calculations
-        # not necessary
 
         ### formulate constraint
         if self.system['include_n1_contingency_import_export']:
+            m = xr.DataArray([s == "no_failure_technology: no_failure_location" for s in self.sets.sets['set_failure_states']],
+                             coords=self.sets.sets['set_failure_states'], dims='set_failure_states')
             lhs = (self.variables["cost_carrier"]
-               # these terms are only necessary if import or export is available
-               - self.parameters.price_import.where(mask) * (self.variables["flow_import"].sum(["set_failure_states"]) - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_import"].loc[:,:,"no_failure_technology: no_failure_location",:]).where(mask)
-               + self.parameters.price_export.where(mask) * (self.variables["flow_export"].sum(["set_failure_states"]) - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_export"].loc[:,:,"no_failure_technology: no_failure_location",:]).where(mask))
+               - self.parameters.price_import * (self.variables["flow_import"].sum(["set_failure_states"]) - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_import"].where(m, 0.0))
+               + self.parameters.price_export * (self.variables["flow_export"].sum(["set_failure_states"]) - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_export"].where(m, 0.0)))
         else:
             lhs = (self.variables["cost_carrier"]
-               # these terms are only necessary if import or export is available
-               - self.parameters.price_import.where(mask) * self.variables["flow_import"].where(mask)
-               + self.parameters.price_export.where(mask) * self.variables["flow_export"].where(mask))
+                   - self.parameters.price_import * self.variables["flow_import"]
+                   + self.parameters.price_export * self.variables["flow_export"])
         rhs = 0
         constraints = lhs == rhs
 
-        ### return
-        return self.constraints.return_contraints(constraints)
+        self.constraints.add_constraint("constraint_cost_carrier",constraints)
 
-    def constraint_cost_shed_demand_block(self):
-        """ cost of shedding demand of carrier
+    def constraint_cost_limit_shed_demand(self):
+        """ cost and limit of shedding demand of carrier
 
         .. math::
            C_{c,n,t}^{\mathrm{shed}\ \mathrm{demand}} = D_{c,n,t} \\nu_c
-
-        :return: #TODO describe parameter/return
-        """
-
-        ### index sets
-        index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], self.optimization_setup)
-        index = ZenIndex(index_values, index_names)
-
-        ### masks
-        # not necessary
-
-        ### index loop
-        # we loop over the carriers, because the constraint depends on the carrier, vectorization over the nodes and time steps
-        constraints = []
-        for carrier in index.get_unique(["set_carriers"]):
-            ### auxiliary calculations
-            # not necessary
-
-            ### formulate constraint
-            if self.parameters.price_shed_demand.loc[carrier] != np.inf:
-                lhs = (self.variables["cost_shed_demand"].loc[carrier]
-                       - self.parameters.price_shed_demand.loc[carrier] * self.variables["shed_demand"].loc[carrier])
-                rhs = 0
-                constraints.append(lhs == rhs)
-            else:
-                lhs = self.variables["shed_demand"].loc[carrier]
-                rhs = 0
-                constraints.append(lhs == rhs)
-
-        ### return
-        return self.constraints.return_contraints(constraints,
-                                                  model=self.model,
-                                                  index_values=index.get_unique(["set_carriers"]),
-                                                  index_names=["set_carriers"])
-
-    def constraint_limit_shed_demand_block(self):
-        """ limit demand shedding
-
-        .. math::
            D_{c,n,t} \leq d_{c,n,t}
 
-        :return: #TODO describe parameter/return
         """
 
-        ### index sets
-        # not necessary
+        ### mask for finite price, otherwise the shed demand is zero
+        mask = self.parameters.price_shed_demand != np.inf
 
-        ### masks
-        # not necessary
+        # cost of shedding demand
+        lhs_cost = (self.variables["cost_shed_demand"] - self.parameters.price_shed_demand * self.variables["shed_demand"]).where(mask)
+        rhs_cost = 0
+        constraints_cost = lhs_cost == rhs_cost
 
-        ### index loop
-        # not necessary
+        # limit of shedding demand, either the demand (price != inf) or zero (price == inf)
+        lhs_shed_demand = self.variables["shed_demand"]
+        rhs_shed_demand = self.parameters.demand.where(mask, 0.0)
+        constraints_shed_demand = lhs_shed_demand <= rhs_shed_demand
 
-        ### auxiliary calculations
-        # not necessary
+        self.constraints.add_constraint("constraint_cost_shed_demand",constraints_cost)
+        self.constraints.add_constraint("constraint_limit_shed_demand",constraints_shed_demand)
 
-        ### formulate constraint
-        lhs = self.variables["shed_demand"]
-        rhs = self.parameters.demand
-        constraints = lhs <= rhs
-
-        ### return
-        return self.constraints.return_contraints(constraints)
-
-    def constraint_carbon_emissions_carrier_block(self):
+    def constraint_carbon_emissions_carrier(self):
         """ carbon emissions of importing and exporting carrier
 
         .. math::
            E_{c,n,t} = \\epsilon_c (U_{c,n,t} - V_{c,n,t})
+           \mathrm{if\ n-1\ contingency}\ E_{c,n,t} = \\epsilon_c ((U_{c,n,f0,t} + \sum_{f\in F} U_{c,n,f,t} - U_{c,n,f0,t}) - (V_{c,n,f0,t} + \sum_{f\in F} V_{c,n,f,t} - V_{c,n,f0,t}))
 
-        .. math::
-            \mathrm{if\ n-1\ contingency}\ E_{c,n,t} = \\epsilon_c ((U_{c,n,f0,t} + \sum_{f\in F} U_{c,n,f,t} - U_{c,n,f0,t}) - (V_{c,n,f0,t} + \sum_{f\in F} V_{c,n,f,t} - V_{c,n,f0,t}))
-
-        :return: #TODO describe parameter/return
         """
-
-        ### index sets
+        # create times xarray with 1 where the operation time step is in the year
+        times = self.get_year_time_step_array()
+        # convert the carbon intensity carrier from yearly to operation time steps
+        # TODO map and expand
+        carbon_intensity_carrier_import = (self.parameters.carbon_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        carbon_intensity_carrier_export = (self.parameters.carbon_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
         if self.system['include_n1_contingency_import_export']:
-            index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
+            m = xr.DataArray([s == "no_failure_technology: no_failure_location" for s in self.sets.sets['set_failure_states']],
+                             coords=self.sets.sets['set_failure_states'], dims='set_failure_states')
+            flow_import = (self.variables["flow_import"] - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_import"].where(m, 0.0)).sum('set_failure_states')
+            flow_export = (self.variables["flow_export"] - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_export"].where(m, 0.0)).sum('set_failure_states')
+            lhs = (self.variables["carbon_emissions_carrier"]
+                   - (flow_import * carbon_intensity_carrier_import
+                      - flow_export * carbon_intensity_carrier_export))
         else:
-            index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], self.optimization_setup)
-        index = ZenIndex(index_values, index_names)
-        times = index.get_unique(["set_time_steps_operation"])
+            lhs = (self.variables["carbon_emissions_carrier"]
+                   - (self.variables["flow_import"] * carbon_intensity_carrier_import
+                      - self.variables["flow_export"] * carbon_intensity_carrier_export))
 
-        ### masks
-        # not necessary
+        rhs = 0
 
-        ### index loop
-        # we loop over the carriers and vectorize over the nodes and over the times after converting them from operation to yearly time steps
-        constraints = []
-        for carrier in index.get_unique(["set_carriers"]):
-            ### auxiliary calculations
-            yearly_time_steps = [self.time_steps.convert_time_step_operation2year(t) for t in times]
+        constraints = lhs == rhs
 
-            # get the time-dependent factor
-            mask = (self.parameters.availability_import.loc[carrier, :, times] != 0) | (self.parameters.availability_export.loc[carrier, :, times] != 0)
-            fac = np.where(mask, self.parameters.carbon_intensity_carrier.loc[carrier, :, yearly_time_steps], 0)
-            fac = xr.DataArray(fac, coords=[self.variables.coords["set_nodes"], self.variables.coords["set_time_steps_operation"]])
-            if self.system['include_n1_contingency_import_export']:
-                term_flow_import_export = fac * (self.variables["flow_import"].loc[carrier, :].sum(["set_failure_states"]) - self.variables["flow_export"].loc[carrier, :].sum(["set_failure_states"])
-                                                 - (len(self.sets.sets["set_failure_states"])-1) * (self.variables["flow_import"].loc[carrier,:,"no_failure_technology: no_failure_location",:] - self.variables["flow_export"].loc[carrier,:,"no_failure_technology: no_failure_location",:])).where(mask)
-
-            else:
-                term_flow_import_export = fac * (self.variables["flow_import"].loc[carrier, :] - self.variables["flow_export"].loc[carrier, :])
-
-            ### formulate constraint
-            lhs = (self.variables["carbon_emissions_carrier"].loc[carrier, :]
-                   - term_flow_import_export)
-            rhs = 0
-            constraints.append(lhs == rhs)
-
-        ### return
-        return self.constraints.return_contraints(constraints,
-                                                  model=self.model,
-                                                  index_values=index.get_unique(["set_carriers"]),
-                                                  index_names=["set_carriers"])
+        self.constraints.add_constraint("constraint_carbon_emissions_carrier", constraints)
 
     def constraint_carrier_lca_impacts_block(self):
         """ lca impacts of importing and exporting carrier"""
 
         ### index sets
-        index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_lca_impact_categories", "set_time_steps_operation"], self.optimization_setup)
+        index_values, index_names = Element.create_custom_set(
+            ["set_carriers", "set_nodes", "set_lca_impact_categories", "set_time_steps_operation"],
+            self.optimization_setup)
         index = ZenIndex(index_values, index_names)
         times = index.get_unique(["set_time_steps_operation"])
 
@@ -802,7 +526,7 @@ class CarrierRules(GenericRule):
 
         ### index loop
         # we loop over the carriers and vectorize over the nodes, lca categories, and over the times after converting them from operation to yearly time steps
-        constraints = []
+        constraints = {}
         for carrier in index.get_unique(["set_carriers"]):
             ### auxiliary calculations
             yearly_time_steps = [self.time_steps.convert_time_step_operation2year(t) for t in times]
@@ -816,14 +540,15 @@ class CarrierRules(GenericRule):
             ### formulate constraint
             lhs = (self.variables["carrier_lca_impacts"].loc[carrier, :, :, times] - term_flow_import_export)
             rhs = 0
-            constraints.append(lhs == rhs)
+            constraints[carrier] = lhs == rhs
 
         ### return
-        return self.constraints.return_contraints(constraints, model=self.model,
-                                                  index_values=index.get_unique(["set_carriers"]),
-                                                  index_names=["set_carriers"])
+        self.constraints.add_constraint("constraint_carrier_lca_impacts",constraints)
+        # return self.constraints.return_constraints(constraints, model=self.model,
+        #                                           index_values=index.get_unique(["set_carriers"]),
+        #                                           index_names=["set_carriers"])
 
-    def constraint_nodal_energy_balance_block(self):
+    def constraint_nodal_energy_balance(self):
         """
         nodal energy balance for each time step
 
@@ -834,7 +559,6 @@ class CarrierRules(GenericRule):
             + \\sum_{k\\in\mathcal{K}}(\\overline{H}_{k,n,t}-\\underline{H}_{k,n,t})
             + U_{c,n,t} - V_{c,n,t}
 
-        :return: #TODO describe parameter/return
         """
 
         ### index sets
@@ -860,9 +584,9 @@ class CarrierRules(GenericRule):
                                                                                         self.sets["set_nodes"]])
 
             # create the variables
-            flow_transport_in_vars = xr.DataArray(-1, coords=[self.variables.coords["set_carriers"],
-                                                              self.variables.coords["set_nodes"],
-                                                              self.variables.coords["set_time_steps_operation"],
+            flow_transport_in_vars = xr.DataArray(-1, coords=[self.parameters.demand.coords["set_carriers"],
+                                                              self.parameters.demand.coords["set_nodes"],
+                                                              self.parameters.demand.coords["set_time_steps_operation"],
                                                               xr.DataArray(np.arange(
                                                                   len(self.sets["set_transport_technologies"]) * (
                                                                           2 * max_edges + 1)), dims=["_term"])])
@@ -981,11 +705,11 @@ class CarrierRules(GenericRule):
                        term_carrier_shed_demand,
                        compat="broadcast_equals")
         rhs = term_carrier_demand
-        constraints = lhs == rhs
+        aligned_idx = xr.align(lhs.coords, rhs, join="inner")[0]
+        constraints = lhs.sel(aligned_idx) == rhs.sel(aligned_idx)
 
         ### return
-        return self.constraints.return_contraints(constraints)
-
+        self.constraints.add_constraint("constraint_nodal_energy_balance", constraints)
 
     def constraint_nodal_energy_balance_block_failure_states(self):
         """
@@ -1027,20 +751,20 @@ class CarrierRules(GenericRule):
 
             # create the variables
             if self.system['include_n1_contingency_transport']:
-                flow_transport_in_vars = xr.DataArray(-1, coords=[self.variables.coords["set_carriers"],
-                                                              self.variables.coords["set_nodes"],
+                flow_transport_in_vars = xr.DataArray(-1, coords=[self.parameters.demand.coords["set_carriers"],
+                                                              self.parameters.demand.coords["set_nodes"],
                                                               self.variables.coords["set_failure_states"],
-                                                              self.variables.coords["set_time_steps_operation"],
+                                                              self.parameters.demand.coords["set_time_steps_operation"],
                                                               xr.DataArray(np.arange(
                                                                   len(self.sets["set_transport_technologies"]) * (
                                                                           2 * max_edges + 1)), dims=["_term"])])
             else:
-                flow_transport_in_vars = xr.DataArray(-1, coords=[self.variables.coords["set_carriers"],
-                                                              self.variables.coords["set_nodes"],
-                                                              self.variables.coords["set_time_steps_operation"],
-                                                              xr.DataArray(np.arange(
-                                                                  len(self.sets["set_transport_technologies"]) * (
-                                                                          2 * max_edges + 1)), dims=["_term"])])
+                flow_transport_in_vars = xr.DataArray(-1, coords=[self.parameters.demand.coords["set_carriers"],
+                                                                  self.parameters.demand.coords["set_nodes"],
+                                                                  self.parameters.demand.coords["set_time_steps_operation"],
+                                                                  xr.DataArray(np.arange(
+                                                                      len(self.sets["set_transport_technologies"]) * (
+                                                                              2 * max_edges + 1)), dims=["_term"])])
             flow_transport_in_coeffs = xr.full_like(flow_transport_in_vars, np.nan, dtype=float)
             flow_transport_out_vars = flow_transport_in_vars.copy()
             flow_transport_out_coeffs = xr.full_like(flow_transport_in_vars, np.nan, dtype=float)
@@ -1180,7 +904,8 @@ class CarrierRules(GenericRule):
                        compat="broadcast_equals",
                        coords="minimal")
         rhs = term_carrier_demand
-        constraints = lhs == rhs
+        aligned_idx = xr.align(lhs.coords,rhs,join="inner")[0]
+        constraints = lhs.sel(aligned_idx) == rhs.sel(aligned_idx)
 
         ### return
-        return self.constraints.return_contraints(constraints)
+        self.constraints.add_constraint("constraint_nodal_energy_balance",constraints)

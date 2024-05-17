@@ -272,6 +272,16 @@ class OptimizationSetup(object):
         else:
             return None
 
+    def get_class_set_of_element(self, element_name: str, klass):
+        """ returns the set of all elements in the class of the element
+
+        :param element_name: name of element
+        :param klass: class of the elements to return
+        :return class_set: set of all elements in the class of the element """
+        class_name = self.get_element(klass,element_name).__class__.label
+        class_set = self.sets[class_name]
+        return class_set
+
     def get_attribute_of_all_elements(self, cls, attribute_name: str, capacity_types=False,
                                       return_attribute_is_series=False):
         """ get attribute values of all elements in a class
@@ -404,11 +414,11 @@ class OptimizationSetup(object):
         self.sets = IndexSet()
         self.variables = Variable(self)
         self.parameters = Parameter(self)
-        self.constraints = Constraint(self.sets)
+        self.constraints = Constraint(self.sets,self.model)
         # define and construct components of self.model
         Element.construct_model_components(self)
         # find smallest and largest coefficient and RHS
-        self.analyze_numerics()
+        self.analyze_numerics() # TODO slow!
 
     def get_optimization_horizon(self):
         """ returns list of optimization horizon steps """
@@ -466,6 +476,8 @@ class OptimizationSetup(object):
     def analyze_numerics(self):
         """ get largest and smallest matrix coefficients and RHS """
         if self.solver["analyze_numerics"]:
+            logging.warning("Analyzing numerics is currently disabled due to performance reasons.")
+            return
             largest_rhs = [None, 0]
             smallest_rhs = [None, np.inf]
             largest_coeff = [None, 0]
@@ -505,10 +517,16 @@ class OptimizationSetup(object):
                 coords_idx_max = np.where((variables == var_max) & (coeffs == coeff_max))
                 coords_max = [cons.lhs.coords.indexes[dim][idx[0]] for dim, idx in zip(cons.lhs.coords.dims, coords_idx_max[:-1])]
                 if 0.0 < coeff_min < smallest_coeff[1]:
-                    smallest_coeff[0] = (f"{cons.name}{coords_min}", lp.constraints.print_single_expression([coeff_min], [var_min], self.model))
+                    if int(lp.__version__.split('.')[1]) <= 1: # check if linopy version is lower than 0.2.0
+                        smallest_coeff[0] = (f"{cons.name}{coords_min}", lp.constraints.print_single_expression([coeff_min], [var_min], self.model))
+                    else:
+                        smallest_coeff[0] = (f"{cons.name}{coords_min}", lp.constraints.print_single_expression([coeff_min], [var_min],0, self.model))
                     smallest_coeff[1] = coeff_min
                 if coeff_max > largest_coeff[1]:
-                    largest_coeff[0] = (f"{cons.name}{coords_max}", lp.constraints.print_single_expression([coeff_max], [var_max], self.model))
+                    if int(lp.__version__.split('.')[1]) <= 1: # check if linopy version is lower than 0.2.0
+                        largest_coeff[0] = (f"{cons.name}{coords_max}", lp.constraints.print_single_expression([coeff_max], [var_max], self.model))
+                    else:
+                        largest_coeff[0] = (f"{cons.name}{coords_max}", lp.constraints.print_single_expression([coeff_max], [var_max],0, self.model))
                     largest_coeff[1] = coeff_max
 
                 # smallest and largest rhs
@@ -522,9 +540,9 @@ class OptimizationSetup(object):
                 rhs_max = rhs_sorted[-1]
 
                 # get coords for rhs_min and rhs_max
-                coords_idx_min = np.where(cons.rhs.data == rhs_min)
+                coords_idx_min = np.atleast_1d(cons.rhs.data == rhs_min).nonzero()
                 coords_min = [cons.rhs.coords.indexes[dim][idx[0]] for dim, idx in zip(cons.rhs.coords.dims, coords_idx_min)]
-                coords_idx_max = np.where(cons.rhs.data == rhs_max)
+                coords_idx_max = np.atleast_1d(cons.rhs.data == rhs_max).nonzero()
                 coords_max = [cons.rhs.coords.indexes[dim][idx[0]] for dim, idx in zip(cons.rhs.coords.dims, coords_idx_max)]
 
                 if 0.0 < rhs_min < smallest_rhs[1]:
@@ -557,7 +575,6 @@ class OptimizationSetup(object):
                              keep_files=self.solver["keep_files"], sanitize_zeros=True)
         # enable logger
         logging.disable(logging.NOTSET)
-        # write IIS
         if self.model.termination_condition == 'optimal':
             self.optimality = True
         elif self.model.termination_condition == "suboptimal":
@@ -574,8 +591,7 @@ class OptimizationSetup(object):
         """ write an ILP file to print the IIS if infeasible. Only possible for gurobi
         """
         if self.model.termination_condition == 'infeasible' and self.solver["name"] == "gurobi":
-            logging.info("The optimization is infeasible")
-            # ilp_file = f"{os.path.dirname(solver['solver_options']['logfile'])}//infeasible_model_IIS.ilp"
+
             output_folder = StringUtils.get_output_folder(self.analysis,self.system)
             ilp_file = os.path.join(output_folder,"infeasible_model_IIS.ilp")
             logging.info(f"Writing parsed IIS to {ilp_file}")

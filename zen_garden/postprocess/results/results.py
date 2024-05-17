@@ -77,7 +77,7 @@ class Results:
         :param element_name: Filter results by a given element
         :param keep_raw: Keep the raw values of the rolling horizon optimization
         """
-        assert component.timestep_type is not None
+        assert component.timestep_type is not None, "Component has no timestep type."
         series = self.solution_loader.get_component_data(scenario, component, keep_raw=keep_raw)
 
         if element_name is not None and element_name in series.index.get_level_values(0):
@@ -421,8 +421,8 @@ class Results:
         units = res[scenario_name]
         if droplevel:
             # TODO make more flexible
-            loc_idx = ["set_nodes","set_location","set_edges"]
-            time_idx = ["set_time_steps_yearly","set_time_steps_operation","set_time_steps_storage"]
+            loc_idx = ["node","location","edge"]
+            time_idx = ["year","time_operation","time_storage_level"]
             drop_idx = pd.Index(loc_idx+time_idx).intersection(units.index.names)
             units.index = units.index.droplevel(drop_idx.to_list())
             units = units[~units.index.duplicated()]
