@@ -481,7 +481,7 @@ class TransportTechnologyRules(GenericRule):
             self.optimization_setup)
         index = ZenIndex(index_values, index_names)
 
-        # TODO downtime
+        # TODO downtime, get downtime of each tech [in hours] and scale to timesteps (needs to be done within for loop)
         downtime_transport = 4
 
         constraints = []
@@ -506,14 +506,14 @@ class TransportTechnologyRules(GenericRule):
                                                                               failed_edge=failed_edge, downtime_counter=downtime_counter)
 
             operation = xr.DataArray(operation, coords=[self.variables.coords["set_time_steps_operation"].loc[times],self.variables.coords["set_edges"].loc[locs]])
-            operation_transposed = operation.transpose()
-            # Benutze ich nur, damit die shapes stimmen
+            #operation_transposed = operation.transpose()
+            # Benutze ich nur damit die shapes stimmen
             m = xr.DataArray(np.random.rand(len(times), len(locs)) < operation_probability,
                              coords=[self.variables.coords["set_time_steps_operation"].loc[times],
                                      self.variables.coords["set_edges"].loc[locs]])
             lhs = term_flow.broadcast_like(m)
-            rhs = term_capacity_limit*operation_transposed
-            rhs = rhs.broadcast_like(m)
+            rhs = (term_capacity_limit*operation).broadcast_like(m)
+            #rhs = rhs.broadcast_like(m)
             constraints.append(lhs <= rhs)
 
             # here we create an array which we will use as mask where we directly apply the operation probability
