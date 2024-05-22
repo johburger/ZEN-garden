@@ -275,10 +275,12 @@ class TransportTechnology(Technology):
 
         # capex of transport technologies
         rules.constraint_transport_technology_capex()
+
         # no flow if failure occurs
-        constraints.add_constraint_block(model, name="constraint_no_flow_transport",
-                                         constraint=rules.constraint_no_flow_transport_block(),
-                                         doc='No Flow during Failure')
+        rules.constraint_no_flow_transport_block()
+        # constraints.add_constraint_block(model, name="constraint_no_flow_transport",
+        #                                  constraint=rules.constraint_no_flow_transport_block(),
+        #                                  doc='No Flow during Failure')
 
     # defines disjuncts if technology on/off
     @classmethod
@@ -470,7 +472,7 @@ class TransportTechnologyRules(GenericRule):
         self.constraints.add_constraint("constraint_transport_technology_capex",constraints)
 
         ### return
-        return self.constraints.return_contraints(constraints, mask=global_mask)
+        # return self.constraints.return_contraints(constraints, mask=global_mask)
 
     def constraint_no_flow_transport_block(self):  # please always use consistent naming like the other constraints
         import random  # This is not good practice, imports should be at the top of the file, I switched to np now anyway
@@ -527,7 +529,7 @@ class TransportTechnologyRules(GenericRule):
         # TODO downtime, get downtime of each tech [in hours] and scale to timesteps (needs to be done within for loop)
         downtime_transport = 4
 
-        constraints = []
+        constraints = {}
         for tech in index.get_unique(["set_transport_technologies"]):
             locs, times = index.get_values([tech], [1, 2], unique=True)
             # important: capacity limit is indexed by yearly time steps not operation.
@@ -549,15 +551,15 @@ class TransportTechnologyRules(GenericRule):
                                                                               failed_edge=failed_edge, downtime_counter=downtime_counter)
 
             operation = xr.DataArray(operation, coords=[self.variables.coords["set_time_steps_operation"].loc[times],self.variables.coords["set_edges"].loc[locs]])
-            #operation_transposed = operation.transpose()
+            # operation_transposed = operation.transpose()
             # Benutze ich nur damit die shapes stimmen
-            m = xr.DataArray(np.random.rand(len(times), len(locs)) < operation_probability,
-                             coords=[self.variables.coords["set_time_steps_operation"].loc[times],
-                                     self.variables.coords["set_edges"].loc[locs]])
-            lhs = term_flow.broadcast_like(m)
-            rhs = (term_capacity_limit*operation).broadcast_like(m)
-            #rhs = rhs.broadcast_like(m)
-            constraints.append(lhs <= rhs)
+            # m = xr.DataArray(np.random.rand(len(times), len(locs)) < operation_probability,
+            #                  coords=[self.variables.coords["set_time_steps_operation"].loc[times],
+            #                          self.variables.coords["set_edges"].loc[locs]])
+            lhs = term_flow# .broadcast_like(m)
+            rhs = term_capacity_limit*operation# ).broadcast_like(m)
+            # rhs = rhs.broadcast_like(m)
+            constraints[tech] = lhs <= rhs
 
             # here we create an array which we will use as mask where we directly apply the operation probability
             # it's a very improvised solution for now, please make more robust.
@@ -574,11 +576,13 @@ class TransportTechnologyRules(GenericRule):
             #   This can also be done by computing the failure times before the optimization and giving them as input.
             #   The failure computation can then be done in a Monte-Carlo style simulation outside the optimization.
 
+        self.constraints.add_constraint("constraint_no_flow_transport", constraints)
+
         # you tried to index the constraint by edges only although you created the list of constraints for both edges and transport techs.
-        return self.constraints.return_contraints(constraints,
-                                                  model=self.model,
-                                                  index_values=index.get_unique(["set_transport_technologies"]),
-                                                  index_names=["set_transport_technologies"])
+        # return self.constraints.return_contraints(constraints,
+        #                                           model=self.model,
+        #                                           index_values=index.get_unique(["set_transport_technologies"]),
+        #                                           index_names=["set_transport_technologies"])
 
 
 
