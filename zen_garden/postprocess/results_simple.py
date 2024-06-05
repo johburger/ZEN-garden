@@ -9,7 +9,7 @@ if __name__ == '__main__':
     # %% Load the results
     # os.chdir('/Users/jburger/Documents/GitHub/ZEN-garden/tests/testcases/')
     os.chdir('F:/GitHub/ZEN-garden/data')
-    model = '01_5_nodes_rev'
+    model = '01_5_nodes_test_05_15'
     run_module(args=['--config=./config.py', f'--dataset=./{model}'])
     results = Results(f'./outputs/{model}')
     capacity = results.get_total('capacity')
