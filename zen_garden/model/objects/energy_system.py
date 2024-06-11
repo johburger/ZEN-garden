@@ -341,7 +341,7 @@ class EnergySystem:
         self.rules.constraint_carbon_emissions_annual_limit()
 
         # minimum CO2 stored
-        self.rules.constraint_min_co2_stored()
+        #self.rules.constraint_min_co2_stored()
 
         # carbon emission budget limit
         self.rules.constraint_carbon_emissions_budget()
