@@ -483,51 +483,7 @@ class TransportTechnologyRules(GenericRule):
         ### return
         # return self.constraints.return_contraints(constraints, mask=global_mask)
 
-    def constraint_no_flow_transport(self):  # please always use consistent naming like the other constraints
-
-        # def simulate_operation(num_edges, failure_probability, downtime, array, failed_edge=None,
-        #                     downtime_counter=0):
-        #     """
-        #     Simulate the state of the system over one timestep.
-        #
-        #     Params:
-        #     - num_edges: Num of edges in the system
-        #     - failure_probability: probability of failure at each time step.
-        #     - downtime: Donwtime duration in time steps
-        #     - array: current state of the system represented as array.
-        #     - failed_edge: Index of the technology that failed in the previous timestep.
-        #     - downtime_counter: Remaining downtime for the failed technology
-        #
-        #     Returns:
-        #     - array: Updated state of the system represented as a numpy array.
-        #     - failed_edge: Index of the technology that failed in the current timestep.
-        #     - downtime_counter: Remaining downtime for the failed technology.
-        #     """
-        #
-        #     # Check if we are still in downtime
-        #     if downtime_counter > 0:
-        #         downtime_counter -= 1
-        #         # append a row with same failure state
-        #         array = np.vstack([array, array[-1]])
-        #         return array, failed_edge, downtime_counter
-        #
-        #     # check if failure occurs at this timestep
-        #     if np.random.rand() < failure_probability:
-        #         # choose a random edge to fail
-        #         failed_edge = np.random.randint(num_edges)
-        #         # Set all other edges to working (1) and the failed one to failed (0)
-        #         row = np.ones((1, num_edges), dtype=int)
-        #         row[0, failed_edge] = 0
-        #         array = np.vstack([array, row])
-        #         # set downtime counter
-        #         downtime_counter = downtime
-        #     else:
-        #         # If no failure, append a row with all edges working (1)
-        #         array = np.vstack([array, np.ones((1, num_edges), dtype=int)])
-        #     return array, failed_edge, downtime_counter
-
-
-        ### index sets
+    def constraint_no_flow_transport(self):
 
         def simulate_operation(num_edges, failure_probabilities, downtime, array, downtime_counters):
             """
@@ -570,13 +526,15 @@ class TransportTechnologyRules(GenericRule):
             array = np.vstack([array, new_row])
 
             return array, downtime_counters
+
+        ### index sets
         index_values, index_names = Element.create_custom_set(
             ["set_transport_technologies", "set_edges", "set_time_steps_operation"],
             self.optimization_setup)
         index = ZenIndex(index_values, index_names)
 
-        # TODO downtime, get downtime of each tech [in hours] and scale to timesteps (needs to be done within for loop)
-        downtime_transport = 4
+        # TODO get timesteps
+        timesteps_per_year = 100
 
         constraints = {}
         for tech in index.get_unique(["set_transport_technologies"]):
@@ -589,21 +547,23 @@ class TransportTechnologyRules(GenericRule):
             term_capacity_limit = self.parameters.capacity_limit.loc[tech, 'power', locs, yearly_time_steps].assign_coords(
                 {'set_time_steps_yearly': times}).rename({"set_time_steps_yearly": "set_time_steps_operation", "set_location": "set_edges"})
             term_flow = self.variables["flow_transport"].loc[tech, :, times]
-            operation_probability = 0.5
 
+            # Get downtime of the transport techs and scale it to match the operation timesteps
+            downtime_transport = self.parameters.downtime_transport.loc[tech][0].item()
+            downtime_transport_scaled = timesteps_per_year*downtime_transport/8760
+
+            #Initiate operation array, downtime counters and operation probabilites
             operation = np.ones((1, len(locs)), dtype=int)
-            failed_edge = None
             downtime_counters = np.zeros(len(locs), dtype=int)
-            #operation_probabilities = [0.99] * len(locs)
             operation_probabilities = self.parameters.operation_probability_transport.loc[tech, :].to_numpy()
             for timestep in range(0,len(times)-1):
-                #operation, failed_edge, downtime_counter = simulate_operation(num_edges=len(locs), failure_probability=1-operation_probabilities,
-                #                                                              downtime=downtime_transport, array=operation,
-                #                                                              failed_edge=failed_edge, downtime_counter=downtime_counter)
+                operation, downtime_counters = simulate_operation(num_edges=len(locs),
+                                                                  failure_probabilities=[1.1-x for x in operation_probabilities],
+                                                                  downtime=downtime_transport_scaled, array=operation,
+                                                                  downtime_counters=downtime_counters)
 
-                operation, downtime_counters = simulate_operation(num_edges=len(locs), failure_probabilities=[1.01-x for x in operation_probabilities], downtime=downtime_transport, array=operation, downtime_counters=downtime_counters)
-
-            operation = xr.DataArray(operation, coords=[self.variables.coords["set_time_steps_operation"].loc[times],self.variables.coords["set_edges"].loc[locs]])
+            operation = xr.DataArray(operation, coords=[self.variables.coords["set_time_steps_operation"].loc[times],
+                                                        self.variables.coords["set_edges"].loc[locs]])
 
             lhs = term_flow
             rhs = term_capacity_limit*operation
