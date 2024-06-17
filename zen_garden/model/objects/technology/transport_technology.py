@@ -534,7 +534,7 @@ class TransportTechnologyRules(GenericRule):
         index = ZenIndex(index_values, index_names)
 
         # TODO get timesteps
-        timesteps_per_year = 100
+        timesteps_per_year = self.system['unaggregated_time_steps_per_year']
 
         constraints = {}
         for tech in index.get_unique(["set_transport_technologies"]):
