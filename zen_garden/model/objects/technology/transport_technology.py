@@ -203,6 +203,10 @@ class TransportTechnology(Technology):
                                                     index_names=["set_transport_technologies", "set_edges"],
                                                     doc='probability of connection being operational for edge and transport technologies',
                                                     calling_class=cls)
+        optimization_setup.parameters.add_parameter(name="failure_rate_transport",
+                                                    index_names=["set_transport_technologies", "set_edges"],
+                                                    doc='failure rate for transport technologies',
+                                                    calling_class=cls)
         # additional for N-1 contingency
         if optimization_setup.system['include_n1_contingency_transport']:
             # nominal flow
@@ -533,7 +537,7 @@ class TransportTechnologyRules(GenericRule):
             self.optimization_setup)
         index = ZenIndex(index_values, index_names)
 
-        # TODO get timesteps
+        # Get unagg. timesteps within a year
         timesteps_per_year = self.system['unaggregated_time_steps_per_year']
 
         constraints = {}
@@ -551,14 +555,17 @@ class TransportTechnologyRules(GenericRule):
             # Get downtime of the transport techs and scale it to match the operation timesteps
             downtime_transport = self.parameters.downtime_transport.loc[tech][0].item()
             downtime_transport_scaled = timesteps_per_year*downtime_transport/8760
+            #downtime_transport_scaled = 4
 
             #Initiate operation array, downtime counters and operation probabilites
             operation = np.ones((1, len(locs)), dtype=int)
             downtime_counters = np.zeros(len(locs), dtype=int)
             operation_probabilities = self.parameters.operation_probability_transport.loc[tech, :].to_numpy()
+            failure_probabilities = (self.parameters.distance.loc[tech, :].to_numpy() *
+                                     self.parameters.failure_rate_transport.loc[tech, :].to_numpy() * 8760 / timesteps_per_year)
             for timestep in range(0,len(times)-1):
                 operation, downtime_counters = simulate_operation(num_edges=len(locs),
-                                                                  failure_probabilities=[1.1-x for x in operation_probabilities],
+                                                                  failure_probabilities=[x + 0.1 for x in failure_probabilities],
                                                                   downtime=downtime_transport_scaled, array=operation,
                                                                   downtime_counters=downtime_counters)
 
