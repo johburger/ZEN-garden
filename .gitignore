@@ -32,6 +32,7 @@ postprocessing_HB
 
 # Standard python stuff
 # Byte-compiled / optimized / DLL files
+zen_garden/postprocess/results_simple.py
 __pycache__/
 *.py[cod]
 *$py.class
