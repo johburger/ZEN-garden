@@ -195,13 +195,13 @@ class TransportTechnology(Technology):
         timesteps_per_year = self.energy_system.system['unaggregated_time_steps_per_year']
         downtime_transport = self.downtime_transport.values[0]
         #downtime_transport = self.parameters.downtime_transport.loc[tech][0].item()
-        downtime_transport_scaled = timesteps_per_year * downtime_transport / 8760
+        downtime_transport_scaled = downtime_transport * self.calculate_fraction_of_year()
         #operation = np.ones((1, len(locs)), dtype=int)
         operation = pd.DataFrame(data=[[1] * len(locs)], columns=locs)
         downtime_counters = np.zeros(len(locs), dtype=int)
         #failure_probabilities = (self.parameters.distance.loc[tech, :].to_numpy() *
                                  #self.parameters.failure_rate_transport.loc[tech,:].to_numpy() * 8760 / timesteps_per_year)
-        failure_probabilities = self.distance.array * self.failure_rate_transport.array * 8760 / timesteps_per_year
+        failure_probabilities = self.distance.array * self.failure_rate_transport.array / self.calculate_fraction_of_year()
         failure_probabilities += failure_rate_offset
 
         num_edges = len(locs)
@@ -215,24 +215,19 @@ class TransportTechnology(Technology):
             # Determine which technologies are currently in downtime
             in_downtime = downtime_counters > 0
 
-            # Set technologies in downtime to failed state (0)
-            new_row[in_downtime] = 0
-
-            # Determine failures for technologies not in downtime
-            can_fail = ~in_downtime
+            # Determine failures for technologies
             failures = np.random.rand(num_edges) < failure_probabilities
-            new_failures = can_fail & failures
 
             # Update the new row and downtime counters for new failures
-            new_row[new_failures] = 0
-            downtime_counters[new_failures] = downtime_transport_scaled
+            new_row[failures | in_downtime] = 0
+            downtime_counters[failures & ~in_downtime] = downtime_transport_scaled
 
             # Append the new row to the operation array
             #operation = np.vstack([operation, new_row])
             operation = pd.concat([operation, pd.DataFrame([new_row], columns=locs)], ignore_index=True)
 
-        operation_series = operation.stack()
-        operation_series.index.names = ['timestep', 'edge']
+        operation_series = operation.T.stack()
+        operation_series.index.names = ['edge', 'time']
         return operation_series
 
     @classmethod
