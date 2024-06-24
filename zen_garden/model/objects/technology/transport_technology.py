@@ -66,6 +66,8 @@ class TransportTechnology(Technology):
                                                                          unit_category={'distance': -1, 'time': -1})
         # calculate operation probability
         self.operation_probability_transport = self.calculate_operation_probability()
+        # Calculate Operation State Array
+        self.operation_state_array = self.simulate_operation()
         if self.energy_system.system['load_lca_factors']:
             self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
             self.technology_lca_factors = self.technology_lca_factors * self.distance
@@ -172,6 +174,67 @@ class TransportTechnology(Technology):
         operation_probability = (1 - self.failure_rate_transport * self.distance * self.downtime_transport).clip(lower=0)
         return operation_probability
 
+    def simulate_operation(self, failure_rate_offset = 0.1):
+        """
+        Simulate the state of the system over one timestep.
+
+        Parameters:
+        - num_edges: Number of transport technologies.
+        - failure_probabilities: Array of failure probabilities for each technology.
+        - downtime: Downtime duration in time steps.
+        - array: Current state of the system represented as a numpy array.
+        - downtime_counters: Array of remaining downtimes for each technology.
+
+        Returns:
+        - array: Updated state of the system represented as a numpy array.
+        - downtime_counters: Updated array of remaining downtimes for each technology.
+        """
+
+        locs = self.energy_system.set_edges
+        times = self.energy_system.set_base_time_steps
+        timesteps_per_year = self.energy_system.system['unaggregated_time_steps_per_year']
+        downtime_transport = self.downtime_transport.values[0]
+        #downtime_transport = self.parameters.downtime_transport.loc[tech][0].item()
+        downtime_transport_scaled = timesteps_per_year * downtime_transport / 8760
+        #operation = np.ones((1, len(locs)), dtype=int)
+        operation = pd.DataFrame(data=[[1] * len(locs)], columns=locs)
+        downtime_counters = np.zeros(len(locs), dtype=int)
+        #failure_probabilities = (self.parameters.distance.loc[tech, :].to_numpy() *
+                                 #self.parameters.failure_rate_transport.loc[tech,:].to_numpy() * 8760 / timesteps_per_year)
+        failure_probabilities = self.distance.array * self.failure_rate_transport.array * 8760 / timesteps_per_year
+        failure_probabilities += failure_rate_offset
+
+        num_edges = len(locs)
+        for timestep in range(0, len(times)-1):
+            # Create a new row for the current timestep
+            new_row = np.ones(num_edges, dtype=int)
+
+            # Decrement the downtime counters
+            downtime_counters = np.maximum(0, downtime_counters - 1)
+
+            # Determine which technologies are currently in downtime
+            in_downtime = downtime_counters > 0
+
+            # Set technologies in downtime to failed state (0)
+            new_row[in_downtime] = 0
+
+            # Determine failures for technologies not in downtime
+            can_fail = ~in_downtime
+            failures = np.random.rand(num_edges) < failure_probabilities
+            new_failures = can_fail & failures
+
+            # Update the new row and downtime counters for new failures
+            new_row[new_failures] = 0
+            downtime_counters[new_failures] = downtime_transport_scaled
+
+            # Append the new row to the operation array
+            #operation = np.vstack([operation, new_row])
+            operation = pd.concat([operation, pd.DataFrame([new_row], columns=locs)], ignore_index=True)
+
+        operation_series = operation.stack()
+        operation_series.index.names = ['timestep', 'edge']
+        return operation_series
+
     @classmethod
     def construct_sets(cls, optimization_setup):
         """ constructs the pe.Sets of the class <TransportTechnology>
@@ -206,6 +269,10 @@ class TransportTechnology(Technology):
         optimization_setup.parameters.add_parameter(name="failure_rate_transport",
                                                     index_names=["set_transport_technologies", "set_edges"],
                                                     doc='failure rate for transport technologies',
+                                                    calling_class=cls)
+        optimization_setup.parameters.add_parameter(name="operation_state_array",
+                                                    index_names=["set_transport_technologies", "set_edges", "set_time_steps_operation"],
+                                                    doc='operation state',
                                                     calling_class=cls)
         # additional for N-1 contingency
         if optimization_setup.system['include_n1_contingency_transport']:
@@ -565,13 +632,13 @@ class TransportTechnologyRules(GenericRule):
                                      self.parameters.failure_rate_transport.loc[tech, :].to_numpy() * 8760 / timesteps_per_year)
             for timestep in range(0,len(times)-1):
                 operation, downtime_counters = simulate_operation(num_edges=len(locs),
-                                                                  failure_probabilities=[x + 0.1 for x in failure_probabilities],
+                                                                  failure_probabilities=[x + 0.15 for x in failure_probabilities],
                                                                   downtime=downtime_transport_scaled, array=operation,
                                                                   downtime_counters=downtime_counters)
 
             operation = xr.DataArray(operation, coords=[self.variables.coords["set_time_steps_operation"].loc[times],
                                                         self.variables.coords["set_edges"].loc[locs]])
-
+            test = self.parameters.operation_state_array
             lhs = term_flow
             rhs = term_capacity_limit*operation
             constraints[tech] = lhs <= rhs
