@@ -192,18 +192,14 @@ class TransportTechnology(Technology):
 
         locs = self.energy_system.set_edges
         times = self.energy_system.set_base_time_steps
-        timesteps_per_year = self.energy_system.system['unaggregated_time_steps_per_year']
         downtime_transport = self.downtime_transport.values[0]
-        #downtime_transport = self.parameters.downtime_transport.loc[tech][0].item()
         downtime_transport_scaled = downtime_transport * self.calculate_fraction_of_year()
         #operation = np.ones((1, len(locs)), dtype=int)
         operation = pd.DataFrame(data=[[1] * len(locs)], columns=locs)
         downtime_counters = np.zeros(len(locs), dtype=int)
-        #failure_probabilities = (self.parameters.distance.loc[tech, :].to_numpy() *
-                                 #self.parameters.failure_rate_transport.loc[tech,:].to_numpy() * 8760 / timesteps_per_year)
         failure_probabilities = self.distance.array * self.failure_rate_transport.array / self.calculate_fraction_of_year()
         failure_probabilities += failure_rate_offset
-
+        # TODO keine Failures back to back zulassen
         num_edges = len(locs)
         for timestep in range(0, len(times)-1):
             # Create a new row for the current timestep
@@ -226,8 +222,10 @@ class TransportTechnology(Technology):
             #operation = np.vstack([operation, new_row])
             operation = pd.concat([operation, pd.DataFrame([new_row], columns=locs)], ignore_index=True)
 
+        #TODO als csv speichern
         operation_series = operation.T.stack()
         operation_series.index.names = ['edge', 'time']
+
         return operation_series
 
     @classmethod
@@ -551,11 +549,43 @@ class TransportTechnologyRules(GenericRule):
 
     def constraint_no_flow_transport(self):
 
+        def convert_timesteps(df, years, timesteps_per_year):
+            """Convert the time indices of a DataFrame that are indexed with 'set_time_steps_operation' to a new
+            chronological order based on years and timesteps per year
+
+            Parameters
+            ----------
+            df : pd.DataFrame
+                DataFrame containing the original time indices
+            years : int
+                Number of years in the optimization horizon
+            timesteps_per_year : int
+                Number of time steps per year
+
+            Returns
+            -------
+            pd.DataFrame
+                DataFrame with and additional column containing the new time indices
+            """
+
+            # Extract the original time indices
+            time_indices = df['set_time_steps_operation']
+            # Convert to new time indices that reflect the chronological order
+            new_time_indices = (time_indices // years) + (time_indices % years) * timesteps_per_year
+            # Assign the new time indices to a new column
+            df['sorted_set_time_steps_operation'] = new_time_indices
+            # Sort the DataFrame based on the new time indices
+            df = df.sort_values(by='sorted_set_time_steps_operation')
+            return df
+
         ### index sets
         index_values, index_names = Element.create_custom_set(
             ["set_transport_technologies", "set_edges", "set_time_steps_operation"],
             self.optimization_setup)
         index = ZenIndex(index_values, index_names)
+
+        years = self.system["optimized_years"]
+        time_steps_per_year = self.system["unaggregated_time_steps_per_year"]
 
         constraints = {}
         for tech in index.get_unique(["set_transport_technologies"]):
@@ -569,9 +599,34 @@ class TransportTechnologyRules(GenericRule):
                 {'set_time_steps_yearly': times}).rename({"set_time_steps_yearly": "set_time_steps_operation", "set_location": "set_edges"})
             term_flow = self.variables["flow_transport"].loc[tech, :, times]
 
+            df_cap_limit = term_capacity_limit.to_dataframe(name='capacity_limit').reset_index()
+            sorted_cap_limit = convert_timesteps(df_cap_limit, years=years, timesteps_per_year=time_steps_per_year)
+
+            # Set the index for the sorted DataFrame for alignment
+            sorted_cap_limit.set_index(['set_edges', 'sorted_set_time_steps_operation'], inplace=True)
+
             operation = self.parameters.operation_state_array.loc[tech, :, :]
+
+            # Align the DataFrame and DataArray for multiplication
+            operation_df = operation.to_dataframe(name='operation_state').reset_index()
+            operation_df['set_edges'] = operation_df['set_edges'].astype(str)  # Ensure matching types for merge
+            # Merge DataFrames on matching columns
+            sorted_cap_limit = pd.merge(sorted_cap_limit.reset_index(), operation_df,
+                                 left_on=['set_edges', 'sorted_set_time_steps_operation'],
+                                 right_on=['set_edges', 'set_time_steps_operation'])
+
+            sorted_cap_limit['result'] = sorted_cap_limit['capacity_limit'] * sorted_cap_limit['operation_state']
+            sorted_cap_limit = sorted_cap_limit.drop(columns=['sorted_set_time_steps_operation', 'operation_state',
+                                                              'capacity_limit', 'set_transport_technologies',
+                                                              'set_time_steps_operation_y'])
+            sorted_cap_limit = sorted_cap_limit.rename(columns={'set_time_steps_operation_x': 'set_time_steps_operation',
+                                                                'result': 'capacity_limit'})
+            sorted_cap_limit.set_index(['set_technologies', 'set_capacity_types', 'set_edges', 'set_time_steps_operation'], inplace=True)
+            sorted_cap_limit = sorted_cap_limit.to_xarray()
+            sorted_cap_limit = sorted_cap_limit.capacity_limit.loc[tech, 'power', :, :]
+            sorted_cap_limit.name = None
             lhs = term_flow
-            rhs = term_capacity_limit*operation
+            rhs = sorted_cap_limit
             constraints[tech] = lhs <= rhs
 
             # idea: Currently, the failures change each run and thus also the resulting resilient system.
