@@ -68,6 +68,26 @@ class TransportTechnology(Technology):
         self.operation_probability_transport = self.calculate_operation_probability()
         # Calculate Operation State Array
         self.operation_state_array = self.simulate_operation()
+
+        #TEST MONTE CARLO
+        locs = self.energy_system.set_edges
+        times = self.energy_system.set_base_time_steps
+        sum_df = pd.DataFrame(0, index=times, columns=locs)
+        #iterations = 50
+        #for i in range(iterations):
+
+            #operation = self.simulate_operation()
+            # Align the DataFrame and DataArray for multiplication
+            #operation_df = operation.to_frame(name='operation_state').reset_index()
+            #operation_df['edge'] = operation_df['edge'].astype(str)  # Ensure matching types for merge
+            #operation_wide_df = operation_df.pivot(index='time', columns='edge',
+                                                   #values='operation_state')
+
+            # Sum the arrays
+            #sum_df += operation_wide_df.fillna(0)  # Fill NA with 0 to handle missing values
+            #print(i)
+        #mean_df = sum_df / iterations
+
         if self.energy_system.system['load_lca_factors']:
             self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
             self.technology_lca_factors = self.technology_lca_factors * self.distance
