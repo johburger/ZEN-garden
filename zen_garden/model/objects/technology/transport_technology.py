@@ -219,6 +219,7 @@ class TransportTechnology(Technology):
         downtime_counters = np.zeros(len(locs), dtype=int)
         failure_probabilities = self.distance.array * self.failure_rate_transport.array / self.calculate_fraction_of_year()
         failure_probabilities += failure_rate_offset
+        #failure_probabilities = np.zeros(len(locs))
         # TODO keine Failures back to back zulassen
         num_edges = len(locs)
         for timestep in range(0, len(times)-1):
