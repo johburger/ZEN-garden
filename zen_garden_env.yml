@@ -1,4 +1,4 @@
-name: zen-garden_new_linopy
+name: zen-garden
 channels:
   - conda-forge
   - gurobi
@@ -21,6 +21,8 @@ dependencies:
   - gurobi
   - pytables
   - pydantic
+  - tqdm
+  - ipython
   - jupyter
   - utm
   - grid-strategy
@@ -32,7 +34,7 @@ dependencies:
       - ordered-set
       - pyogrio
       - psutil
-      - linopy>=0.3.8
+      - linopy>=0.3.8, <=0.3.10
       - sphinx
       - myst-parser
       - -e .
