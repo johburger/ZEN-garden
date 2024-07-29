@@ -80,6 +80,10 @@ class Technology(Element):
         self.capacity_investment_existing = self.data_input.extract_input_data("capacity_investment_existing", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
         self.lifetime_existing = self.data_input.extract_lifetime_existing("capacity_existing", index_sets=[set_location, "set_technologies_existing"])
 
+        self.raw_time_series["operation_state_hannes"] = self.data_input.extract_input_data("operation_state_hannes", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
+        if not self.optimization_setup.system['operation_failure']:
+            self.raw_time_series["operation_state_hannes"][:] = 1
+
     def calculate_capex_of_capacities_existing(self, storage_energy=False):
         """ this method calculates the annualized capex of the existing capacities
 
@@ -358,6 +362,9 @@ class Technology(Element):
         if optimization_setup.system['load_lca_factors']:
             optimization_setup.parameters.add_parameter(name='technology_lca_factors', index_names=['set_technologies', 'set_location', 'set_lca_impact_categories', 'set_time_steps_yearly'],
                                                         doc='Parameters for the environmental impacts of each technology', calling_class=cls)
+
+        optimization_setup.parameters.add_parameter(name="operation_state_hannes", index_names=["set_technologies", "set_location", "set_time_steps_operation"],
+                                                    doc='Parameter which specifies the operation state of technology', calling_class=cls)
 
         # calculate additional existing parameters
         optimization_setup.parameters.add_parameter(name="existing_capacities", data=cls.get_existing_quantity(optimization_setup, type_existing_quantity="capacity"),
@@ -1326,7 +1333,6 @@ class TechnologyRules(GenericRule):
                                                   index_values=index.get_unique(["set_failure_states", "set_conversion_technologies", "set_carriers"]),
                                                   index_names=["set_failure_states", "set_conversion_technologies", "set_carriers"])
 
-
     def constraint_n1_contingency_no_failure_conversion(self):
         """ For failure state "no_failure_technology: no_failure_location", all corresponding conversion flows are equal to the nominal conversion flow
 
@@ -1410,7 +1416,6 @@ class TechnologyRules(GenericRule):
         ### return
         return self.constraints.return_contraints(constraints,
                                                   model=self.model)
-
 
     def constraint_capture_minimum_equals_nominal_input_flow(self):
         """ Minimum of conversion input flow of capture equals to nominal flow
