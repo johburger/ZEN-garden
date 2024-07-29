@@ -67,26 +67,12 @@ class TransportTechnology(Technology):
         # calculate operation probability
         self.operation_probability_transport = self.calculate_operation_probability()
         # Calculate Operation State Array
-        self.operation_state_array = self.simulate_operation()
-
-        #TEST MONTE CARLO
-        locs = self.energy_system.set_edges
-        times = self.energy_system.set_base_time_steps
-        sum_df = pd.DataFrame(0, index=times, columns=locs)
-        #iterations = 50
-        #for i in range(iterations):
-
-            #operation = self.simulate_operation()
-            # Align the DataFrame and DataArray for multiplication
-            #operation_df = operation.to_frame(name='operation_state').reset_index()
-            #operation_df['edge'] = operation_df['edge'].astype(str)  # Ensure matching types for merge
-            #operation_wide_df = operation_df.pivot(index='time', columns='edge',
-                                                   #values='operation_state')
-
-            # Sum the arrays
-            #sum_df += operation_wide_df.fillna(0)  # Fill NA with 0 to handle missing values
-            #print(i)
-        #mean_df = sum_df / iterations
+        if self.energy_system.system['conduct_scenario_analysis']: # TODO use data input for !'conduct_scenario_analysis'
+            self.operation_state_array = self.data_input.extract_input_data('operation_state',
+                                                                            index_sets=['set_edges', 'set_time_steps_operation'],
+                                                                            unit_category={1})
+        else:
+            self.operation_state_array = self.simulate_operation()
 
         if self.energy_system.system['load_lca_factors']:
             self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
@@ -217,9 +203,9 @@ class TransportTechnology(Technology):
         #operation = np.ones((1, len(locs)), dtype=int)
         operation = pd.DataFrame(data=[[1] * len(locs)], columns=locs)
         downtime_counters = np.zeros(len(locs), dtype=int)
-        failure_probabilities = self.distance.array * self.failure_rate_transport.array / self.calculate_fraction_of_year()
-        failure_probabilities += failure_rate_offset
-        #failure_probabilities = np.zeros(len(locs))
+        #failure_probabilities = self.distance.array * self.failure_rate_transport.array / self.calculate_fraction_of_year()
+        #failure_probabilities += failure_rate_offset
+        failure_probabilities = np.zeros(len(locs))
         # TODO keine Failures back to back zulassen
         num_edges = len(locs)
         for timestep in range(0, len(times)-1):
