@@ -357,7 +357,7 @@ class TransportTechnology(Technology):
         rules.constraint_transport_technology_capex()
 
         # no flow if failure occurs
-        rules.constraint_no_flow_transport()
+        # rules.constraint_no_flow_transport()
         # constraints.add_constraint_block(model, name="constraint_no_flow_transport",
         #                                  constraint=rules.constraint_no_flow_transport_block(),
         #                                  doc='No Flow during Failure')
@@ -440,9 +440,13 @@ class TransportTechnologyRules(GenericRule):
         edges = self.sets["set_edges"]
         times = self.variables["flow_transport"].coords["set_time_steps_operation"]
         time_step_year = xr.DataArray([self.optimization_setup.energy_system.time_steps.convert_time_step_operation2year(t) for t in times.data], coords=[times])
+
+        # include failures
+        term_failure = self.parameters.operation_state_hannes.loc[techs, edges, :]
         term_capacity = (
                 self.parameters.max_load.loc[techs, "power", edges, :]
                 * self.variables["capacity"].loc[techs, "power", edges, time_step_year]
+                * term_failure
         ).rename({"set_technologies":"set_transport_technologies","set_location": "set_edges"})
 
         lhs = term_capacity - self.variables["flow_transport"].loc[techs, edges, :]

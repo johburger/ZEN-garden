@@ -72,6 +72,8 @@ class DataInput:
         # use distances computed with node coordinates as default values
         elif file_name == "distance":
             df_output, default_value, index_name_list = self.create_default_output(index_sets, unit_category, file_name=file_name, time_steps=time_steps, manual_default_value=self.energy_system.set_haversine_distances_edges)
+        elif file_name == "operation_state_hannes":
+            df_output, default_value, index_name_list = self.create_default_output(index_sets, unit_category, file_name=file_name, time_steps=time_steps, manual_default_value=1, subelement=subelement)
         else:
             df_output, default_value, index_name_list = self.create_default_output(index_sets, unit_category, file_name=file_name, time_steps=time_steps,subelement=subelement)
         # read input file
