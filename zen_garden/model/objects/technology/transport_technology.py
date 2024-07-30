@@ -67,7 +67,7 @@ class TransportTechnology(Technology):
         # calculate operation probability
         self.operation_probability_transport = self.calculate_operation_probability()
         # Calculate Operation State Array
-        self.operation_state_array = self.simulate_operation()
+        # self.operation_state_array = self.simulate_operation()
 
         #TEST MONTE CARLO
         locs = self.energy_system.set_edges
@@ -91,17 +91,6 @@ class TransportTechnology(Technology):
         if self.energy_system.system['load_lca_factors']:
             self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
             self.technology_lca_factors = self.technology_lca_factors * self.distance
-        # get information for N-1 contingency
-        if self.optimization_setup.system['include_n1_contingency_transport']:
-            # get nominal flow transport
-            # TODO change timestep from yearly to operation
-            self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={'energy_quantity': 1, 'time': -1})
-            # get failure rate
-            self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
-            # get downtime
-            self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
-            # calculate operation probability
-            self.operation_probability_transport = self.calculate_operation_probability()
 
     def get_transport_loss_factor(self):
         """get transport loss factor
