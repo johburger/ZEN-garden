@@ -67,12 +67,9 @@ class TransportTechnology(Technology):
         # calculate operation probability
         self.operation_probability_transport = self.calculate_operation_probability()
         # Calculate Operation State Array
-        if self.energy_system.system['conduct_scenario_analysis']: # TODO use data input for !'conduct_scenario_analysis'
-            self.operation_state_array = self.data_input.extract_input_data('operation_state',
-                                                                            index_sets=['set_edges', 'set_time_steps_operation'],
-                                                                            unit_category={1})
-        else:
-            self.operation_state_array = self.simulate_operation()
+        self.operation_state_array = self.data_input.extract_input_data('operation_state_0',
+                                                                        index_sets=['set_edges', 'set_time_steps'],
+                                                                        unit_category={})
 
         if self.energy_system.system['load_lca_factors']:
             self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
@@ -203,9 +200,9 @@ class TransportTechnology(Technology):
         #operation = np.ones((1, len(locs)), dtype=int)
         operation = pd.DataFrame(data=[[1] * len(locs)], columns=locs)
         downtime_counters = np.zeros(len(locs), dtype=int)
-        #failure_probabilities = self.distance.array * self.failure_rate_transport.array / self.calculate_fraction_of_year()
-        #failure_probabilities += failure_rate_offset
-        failure_probabilities = np.zeros(len(locs))
+        failure_probabilities = self.distance.array * self.failure_rate_transport.array / self.calculate_fraction_of_year()
+        failure_probabilities += failure_rate_offset
+        #failure_probabilities = np.zeros(len(locs))
         # TODO keine Failures back to back zulassen
         num_edges = len(locs)
         for timestep in range(0, len(times)-1):
@@ -357,7 +354,7 @@ class TransportTechnology(Technology):
         rules.constraint_transport_technology_capex()
 
         # no flow if failure occurs
-        # rules.constraint_no_flow_transport()
+        rules.constraint_no_flow_transport()
         # constraints.add_constraint_block(model, name="constraint_no_flow_transport",
         #                                  constraint=rules.constraint_no_flow_transport_block(),
         #                                  doc='No Flow during Failure')
