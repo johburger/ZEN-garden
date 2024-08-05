@@ -65,6 +65,8 @@ class EnergySystem:
                                     energy_system=self, unit_handling=self.unit_handling)
         # initialize empty set_carriers list
         self.set_carriers = []
+        # initialize empty set_failures list
+        self.set_failures = []
         #dict to save the parameter units (and save them in the results later on)
         self.units = {}
 

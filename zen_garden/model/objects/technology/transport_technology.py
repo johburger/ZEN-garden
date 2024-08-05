@@ -14,7 +14,6 @@ import logging
 import numpy as np
 import pandas as pd
 import xarray as xr
-import linopy as lp
 
 from .technology import Technology
 from ..component import ZenIndex, IndexSet
@@ -58,39 +57,28 @@ class TransportTechnology(Technology):
         self.convert_to_fraction_of_capex()
         # calculate capex of existing capacity
         self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
-        # get downtime
-        self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"],
-                                                                     unit_category={'time': 1})
-        # get failure rate
-        self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"],
-                                                                         unit_category={'distance': -1, 'time': -1})
-        # calculate operation probability
-        self.operation_probability_transport = self.calculate_operation_probability()
-        # Calculate Operation State Array
-        # self.operation_state_array = self.simulate_operation()
-
-        #TEST MONTE CARLO
-        locs = self.energy_system.set_edges
-        times = self.energy_system.set_base_time_steps
-        sum_df = pd.DataFrame(0, index=times, columns=locs)
-        #iterations = 50
-        #for i in range(iterations):
-
-            #operation = self.simulate_operation()
-            # Align the DataFrame and DataArray for multiplication
-            #operation_df = operation.to_frame(name='operation_state').reset_index()
-            #operation_df['edge'] = operation_df['edge'].astype(str)  # Ensure matching types for merge
-            #operation_wide_df = operation_df.pivot(index='time', columns='edge',
-                                                   #values='operation_state')
-
-            # Sum the arrays
-            #sum_df += operation_wide_df.fillna(0)  # Fill NA with 0 to handle missing values
-            #print(i)
-        #mean_df = sum_df / iterations
-
         if self.energy_system.system['load_lca_factors']:
             self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
             self.technology_lca_factors = self.technology_lca_factors * self.distance
+        # get nominal flow and operation probability
+        if self.optimization_setup.system['n1_contingency']:
+            # nominal flow probably not required
+            # self.raw_time_series["nominal_flow"] = self.data_input.extract_input_data("nominal_flow", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
+            self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
+            self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
+            self.operation_probability = self.calculate_operation_probability()
+            # fill set_failures with potential technology installation locations
+            self.extract_failure_states()
+        # get information for N-1 contingency
+        if self.optimization_setup.system['include_n1_contingency_transport']:
+            # get nominal flow transport
+            # TODO change timestep from yearly to operation
+            self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={'energy_quantity': 1, 'time': -1})
+            # get failure rate
+            self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
+            # get downtime
+            self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
+            # calculate operation probability
 
     def get_transport_loss_factor(self):
         """get transport loss factor
@@ -180,63 +168,8 @@ class TransportTechnology(Technology):
 
         :return: operation probabilit
         """
-        operation_probability = (1 - self.failure_rate_transport * self.distance * self.downtime_transport).clip(lower=0)
+        operation_probability = (1 - self.failure_rate * self.distance * self.downtime).clip(lower=0)
         return operation_probability
-
-    def simulate_operation(self, failure_rate_offset = 0.1):
-        """
-        Simulate the state of the system over one timestep.
-
-        Parameters:
-        - num_edges: Number of transport technologies.
-        - failure_probabilities: Array of failure probabilities for each technology.
-        - downtime: Downtime duration in time steps.
-        - array: Current state of the system represented as a numpy array.
-        - downtime_counters: Array of remaining downtimes for each technology.
-
-        Returns:
-        - array: Updated state of the system represented as a numpy array.
-        - downtime_counters: Updated array of remaining downtimes for each technology.
-        """
-
-        locs = self.energy_system.set_edges
-        times = self.energy_system.set_base_time_steps
-        downtime_transport = self.downtime_transport.values[0]
-        downtime_transport_scaled = downtime_transport * self.calculate_fraction_of_year()
-        #operation = np.ones((1, len(locs)), dtype=int)
-        operation = pd.DataFrame(data=[[1] * len(locs)], columns=locs)
-        downtime_counters = np.zeros(len(locs), dtype=int)
-        failure_probabilities = self.distance.array * self.failure_rate_transport.array / self.calculate_fraction_of_year()
-        failure_probabilities += failure_rate_offset
-        #failure_probabilities = np.zeros(len(locs))
-        # TODO keine Failures back to back zulassen
-        num_edges = len(locs)
-        for timestep in range(0, len(times)-1):
-            # Create a new row for the current timestep
-            new_row = np.ones(num_edges, dtype=int)
-
-            # Decrement the downtime counters
-            downtime_counters = np.maximum(0, downtime_counters - 1)
-
-            # Determine which technologies are currently in downtime
-            in_downtime = downtime_counters > 0
-
-            # Determine failures for technologies
-            failures = np.random.rand(num_edges) < failure_probabilities
-
-            # Update the new row and downtime counters for new failures
-            new_row[failures | in_downtime] = 0
-            downtime_counters[failures & ~in_downtime] = downtime_transport_scaled
-
-            # Append the new row to the operation array
-            #operation = np.vstack([operation, new_row])
-            operation = pd.concat([operation, pd.DataFrame([new_row], columns=locs)], ignore_index=True)
-
-        #TODO als csv speichern
-        operation_series = operation.T.stack()
-        operation_series.index.names = ['edge', 'time']
-
-        return operation_series
 
     @classmethod
     def construct_sets(cls, optimization_setup):
@@ -260,23 +193,7 @@ class TransportTechnology(Technology):
         # carrier losses
         optimization_setup.parameters.add_parameter(name="transport_loss_factor_linear", index_names=["set_transport_technologies"], doc='linear carrier losses due to transport with transport technologies', calling_class=cls)
         optimization_setup.parameters.add_parameter(name="transport_loss_factor_exponential", index_names=["set_transport_technologies"], doc='exponential carrier losses due to transport with transport technologies', calling_class=cls)
-        # downtime
-        optimization_setup.parameters.add_parameter(name="downtime_transport",
-                                                    index_names=["set_transport_technologies", "set_edges"],
-                                                    doc='downtime for transport technologies whe failure occurs',
-                                                    calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="operation_probability_transport",
-                                                    index_names=["set_transport_technologies", "set_edges"],
-                                                    doc='probability of connection being operational for edge and transport technologies',
-                                                    calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="failure_rate_transport",
-                                                    index_names=["set_transport_technologies", "set_edges"],
-                                                    doc='failure rate for transport technologies',
-                                                    calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="operation_state_array",
-                                                    index_names=["set_transport_technologies", "set_edges", "set_time_steps_operation"],
-                                                    doc='operation state',
-                                                    calling_class=cls)
+
         # additional for N-1 contingency
         if optimization_setup.system['include_n1_contingency_transport']:
             # nominal flow
@@ -359,12 +276,6 @@ class TransportTechnology(Technology):
         # capex of transport technologies
         rules.constraint_transport_technology_capex()
 
-        # no flow if failure occurs
-        # rules.constraint_no_flow_transport()
-        # constraints.add_constraint_block(model, name="constraint_no_flow_transport",
-        #                                  constraint=rules.constraint_no_flow_transport_block(),
-        #                                  doc='No Flow during Failure')
-
     # defines disjuncts if technology on/off
     @classmethod
     def disjunct_on_technology(cls, optimization_setup, tech, capacity_type, edge, time, binary_var):
@@ -443,13 +354,9 @@ class TransportTechnologyRules(GenericRule):
         edges = self.sets["set_edges"]
         times = self.variables["flow_transport"].coords["set_time_steps_operation"]
         time_step_year = xr.DataArray([self.optimization_setup.energy_system.time_steps.convert_time_step_operation2year(t) for t in times.data], coords=[times])
-
-        # include failures
-        term_failure = self.parameters.operation_state_hannes.loc[techs, edges, :]
         term_capacity = (
                 self.parameters.max_load.loc[techs, "power", edges, :]
                 * self.variables["capacity"].loc[techs, "power", edges, time_step_year]
-                * term_failure
         ).rename({"set_technologies":"set_transport_technologies","set_location": "set_edges"})
 
         lhs = term_capacity - self.variables["flow_transport"].loc[techs, edges, :]
@@ -558,94 +465,3 @@ class TransportTechnologyRules(GenericRule):
         constraints = lhs == rhs
         self.constraints.add_constraint("constraint_transport_technology_capex",constraints)
 
-        ### return
-        # return self.constraints.return_contraints(constraints, mask=global_mask)
-
-    def constraint_no_flow_transport(self):
-
-        def convert_timesteps(df, years, timesteps_per_year):
-            """Convert the time indices of a DataFrame that are indexed with 'set_time_steps_operation' to a new
-            chronological order based on years and timesteps per year
-
-            Parameters
-            ----------
-            df : pd.DataFrame
-                DataFrame containing the original time indices
-            years : int
-                Number of years in the optimization horizon
-            timesteps_per_year : int
-                Number of time steps per year
-
-            Returns
-            -------
-            pd.DataFrame
-                DataFrame with and additional column containing the new time indices
-            """
-
-            # Extract the original time indices
-            time_indices = df['set_time_steps_operation']
-            # Convert to new time indices that reflect the chronological order
-            new_time_indices = (time_indices // years) + (time_indices % years) * timesteps_per_year
-            # Assign the new time indices to a new column
-            df['sorted_set_time_steps_operation'] = new_time_indices
-            # Sort the DataFrame based on the new time indices
-            df = df.sort_values(by='sorted_set_time_steps_operation')
-            return df
-
-        ### index sets
-        index_values, index_names = Element.create_custom_set(
-            ["set_transport_technologies", "set_edges", "set_time_steps_operation"],
-            self.optimization_setup)
-        index = ZenIndex(index_values, index_names)
-
-        years = self.system["optimized_years"]
-        time_steps_per_year = self.system["unaggregated_time_steps_per_year"]
-
-        constraints = {}
-        for tech in index.get_unique(["set_transport_technologies"]):
-            locs, times = index.get_values([tech], [1, 2], unique=True)
-            # important: capacity limit is indexed by yearly time steps not operation.
-            yearly_time_steps = [self.time_steps.convert_time_step_operation2year(t) for t in times]
-            # please name all attributes with a meaningful name, e.g., term_capacity_limit instead of term_capacity
-            # this renaming etc is improvised and needs to be changed. Since we shift to a fully vectorized version at
-            # some point, there is no need to put in effort now. However, try to understand what happens here.
-            term_capacity_limit = self.parameters.capacity_limit.loc[tech, 'power', locs, yearly_time_steps].assign_coords(
-                {'set_time_steps_yearly': times}).rename({"set_time_steps_yearly": "set_time_steps_operation", "set_location": "set_edges"})
-            term_flow = self.variables["flow_transport"].loc[tech, :, times]
-
-            df_cap_limit = term_capacity_limit.to_dataframe(name='capacity_limit').reset_index()
-            sorted_cap_limit = convert_timesteps(df_cap_limit, years=years, timesteps_per_year=time_steps_per_year)
-
-            # Set the index for the sorted DataFrame for alignment
-            sorted_cap_limit.set_index(['set_edges', 'sorted_set_time_steps_operation'], inplace=True)
-
-            operation = self.parameters.operation_state_array.loc[tech, :, :]
-
-            # Align the DataFrame and DataArray for multiplication
-            operation_df = operation.to_dataframe(name='operation_state').reset_index()
-            operation_df['set_edges'] = operation_df['set_edges'].astype(str)  # Ensure matching types for merge
-            # Merge DataFrames on matching columns
-            sorted_cap_limit = pd.merge(sorted_cap_limit.reset_index(), operation_df,
-                                 left_on=['set_edges', 'sorted_set_time_steps_operation'],
-                                 right_on=['set_edges', 'set_time_steps_operation'])
-
-            sorted_cap_limit['result'] = sorted_cap_limit['capacity_limit'] * sorted_cap_limit['operation_state']
-            sorted_cap_limit = sorted_cap_limit.drop(columns=['sorted_set_time_steps_operation', 'operation_state',
-                                                              'capacity_limit', 'set_transport_technologies',
-                                                              'set_time_steps_operation_y'])
-            sorted_cap_limit = sorted_cap_limit.rename(columns={'set_time_steps_operation_x': 'set_time_steps_operation',
-                                                                'result': 'capacity_limit'})
-            sorted_cap_limit.set_index(['set_technologies', 'set_capacity_types', 'set_edges', 'set_time_steps_operation'], inplace=True)
-            sorted_cap_limit = sorted_cap_limit.to_xarray()
-            sorted_cap_limit = sorted_cap_limit.capacity_limit.loc[tech, 'power', :, :]
-            sorted_cap_limit.name = None
-            lhs = term_flow
-            rhs = sorted_cap_limit
-            constraints[tech] = lhs <= rhs
-
-            # idea: Currently, the failures change each run and thus also the resulting resilient system.
-            #   Consequently, the results have to be run multiple times in a Monte-carlo style simulation.
-            #   This can also be done by computing the failure times before the optimization and giving them as input.
-            #   The failure computation can then be done in a Monte-Carlo style simulation outside the optimization.
-
-        self.constraints.add_constraint("constraint_no_flow_transport", constraints)

@@ -80,9 +80,17 @@ class Technology(Element):
         self.capacity_investment_existing = self.data_input.extract_input_data("capacity_investment_existing", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
         self.lifetime_existing = self.data_input.extract_lifetime_existing("capacity_existing", index_sets=[set_location, "set_technologies_existing"])
 
-        self.raw_time_series["operation_state_hannes"] = self.data_input.extract_input_data("operation_state_hannes", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
-        if not self.optimization_setup.system['operation_failure']:
-            self.raw_time_series["operation_state_hannes"][:] = 1
+
+    def extract_failure_states(self):
+        """ constructs all possible failure states for all locations from the locations where capacity_limit != 0 and
+         failure_rate != 0 """
+        loc_rename = {'node': 'location', 'edge': 'location'}
+        # only technologies with a capacity limit != 0 and a failure rate != 0 are considered in the failure set
+        non_zero_cap_limit = self.capacity_limit.reset_index().rename(loc_rename, axis=1).groupby(['location']).max()
+        non_zero_cap_limit = non_zero_cap_limit[non_zero_cap_limit[0] != 0].index.to_list()
+        non_zero_failure_rate = self.failure_rate[self.failure_rate != 0].index.get_level_values(0).to_list()
+        potential_locations = list(set(non_zero_cap_limit) & set(non_zero_failure_rate))
+        self.energy_system.set_failures.extend([(self.name, i) for i in potential_locations])
 
     def calculate_capex_of_capacities_existing(self, storage_energy=False):
         """ this method calculates the annualized capex of the existing capacities
@@ -1247,3 +1255,9 @@ class TechnologyRules(GenericRule):
             constraints[year] = lhs == rhs
 
         self.constraints.return_contraints('constraint_technology_lca_impacts_total', constraints)
+
+    def constraint_n1_contingency(self):
+
+        index_values, index_names = Element.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation", "set_failure_states"], self.optimization_setup)
+        index = ZenIndex(index_values, index_names)
+

@@ -64,14 +64,20 @@ class ConversionTechnology(Technology):
         self.get_conversion_factor()
         self.opex_specific_fixed = self.data_input.extract_input_data("opex_specific_fixed", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "time": 1})
         self.convert_to_fraction_of_capex()
-        # LCA parameters
-        if self.energy_system.system['load_lca_factors']:
-            self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'],
-                                                                             time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1})
+
+        # get nominal flow and operation probability
+        if self.optimization_setup.system['n1_contingency']:
+            # nominal flow probably not required
+            # self.raw_time_series["nominal_flow"] = self.data_input.extract_input_data("nominal_flow", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
+            self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_nodes"], unit_category={'time': -1})
+            self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_nodes"], unit_category={'time': 1})
+            self.operation_probability = self.calculate_operation_probability()
+            # fill set_failures with potential technology installation locations
+            self.extract_failure_states()
 
         # get information for N-1 contingency
         if self.optimization_setup.system['include_n1_contingency_conversion']:
-            # get nominal flow conversion inpt
+            # get nominal flow conversion input
             # TODO change timestep from yearly to operation
             self.nominal_flow_conversion_input = self.get_nominal_flow_conversion_input()
             # get failure rate
@@ -79,7 +85,6 @@ class ConversionTechnology(Technology):
             # get downtime
             self.downtime_conversion = self.data_input.extract_input_data("downtime", index_sets=["set_nodes"], unit_category={'time': 1})
             # calculate operation probability
-            self.operation_probability_conversion = self.calculate_operation_probability()
 
     def get_nominal_flow_conversion_input(self):
         """retrieves and stores nominal flow_conversion input """
@@ -187,7 +192,7 @@ class ConversionTechnology(Technology):
 
         :return: operation probabilit
         """
-        operation_probability = (1 - self.failure_rate_conversion * self.downtime_conversion).clip(lower=0)
+        operation_probability = (1 - self.failure_rate * self.downtime).clip(lower=0)
         return operation_probability
 
     ### --- classmethods to construct sets, parameters, variables, and constraints, that correspond to ConversionTechnology --- ###

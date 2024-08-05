@@ -449,7 +449,7 @@ class DataInput:
                 if self.system['include_n1_contingency_transport']:
                     # extract failure rates from input data and create mask
                     get_failure_rates = self.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
-                    m1 = (get_failure_rates!= 0)
+                    m1 = (get_failure_rates != 0)
                     # filter df_input based on the boolean mask m1
                     df_filter = df_input[m1.loc[df_input[location]].values]
 
