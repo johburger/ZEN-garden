@@ -283,7 +283,7 @@ class ConversionTechnology(Technology):
             upper = xr.DataArray(np.inf, coords=coords)
 
             # get the sets
-            if optimization_setup.system['include_n1_contingency_conversion']:
+            if optimization_setup.system['n1_contingency']:
                 technology_set, carrier_set, node_set, failure_set, timestep_set = [sets[name] for name in index_names]
 
                 for tech in technology_set:
@@ -323,15 +323,15 @@ class ConversionTechnology(Technology):
 
         ## Flow variables
         # input flow of carrier into technology
-        if optimization_setup.system['include_n1_contingency_conversion']:
-            index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_input_carriers", "set_nodes", "set_failure_states", "set_time_steps_operation"], optimization_setup)
+        if optimization_setup.system['n1_contingency']:
+            index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_input_carriers", "set_nodes", "set_failures", "set_time_steps_operation"], optimization_setup)
         else:
             index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_input_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup)
         variables.add_variable(model, name="flow_conversion_input", index_sets=(index_values, index_names),
             bounds=flow_conversion_bounds(index_values, index_names), doc='Carrier input of conversion technologies', unit_category={"energy_quantity": 1, "time": -1})
         # output flow of carrier into technology
-        if optimization_setup.system['include_n1_contingency_conversion']:
-            index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_output_carriers", "set_nodes", "set_failure_states", "set_time_steps_operation"], optimization_setup)
+        if optimization_setup.system['n1_contingency']:
+            index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_output_carriers", "set_nodes", "set_failures", "set_time_steps_operation"], optimization_setup)
         else:
             index_values, index_names = cls.create_custom_set(["set_conversion_technologies", "set_output_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup)
         variables.add_variable(model, name="flow_conversion_output", index_sets=(index_values, index_names),
@@ -376,7 +376,7 @@ class ConversionTechnology(Technology):
 
         # add constraints of the child classes
         for subclass in cls.__subclasses__():
-           if np.size(optimization_setup.system[subclass.label]):
+            if np.size(optimization_setup.system[subclass.label]):
                 subclass.construct_constraints(optimization_setup)
 
     # defines disjuncts if technology on/off
@@ -506,6 +506,9 @@ class ConversionTechnologyRules(GenericRule):
                 self.parameters.max_load.loc[techs, "power", nodes, :]
                 * self.variables["capacity"].loc[techs, "power", nodes, time_step_year]
             ).rename({"set_technologies": "set_conversion_technologies","set_location": "set_nodes"})
+        if self.optimization_setup.system['n1_contingency']:
+            term_failure = self.parameters.operation_state.loc[techs, nodes, :].rename({"set_technologies":"set_conversion_technologies","set_location": "set_nodes"})
+            term_capacity = term_capacity.where(term_failure, 0)
         term_reference_flow = self.get_flow_expression_conversion(techs,nodes)
         lhs = term_capacity + term_reference_flow
         rhs = 0

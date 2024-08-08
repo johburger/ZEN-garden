@@ -118,12 +118,12 @@ class Carrier(Element):
         variables = optimization_setup.variables
         sets = optimization_setup.sets
 
-        if optimization_setup.system['include_n1_contingency_import_export']:
+        if optimization_setup.system['n1_contingency']:
             # flow of imported carrier
-            variables.add_variable(model, name="flow_import", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_failure_states", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
+            variables.add_variable(model, name="flow_import", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_failures", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
                                    doc="node- and time-dependent carrier import from the grid", unit_category={"energy_quantity": 1, "time": -1})
             # flow of exported carrier
-            variables.add_variable(model, name="flow_export", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_failure_states",  "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
+            variables.add_variable(model, name="flow_export", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_failures",  "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
                                    doc="node- and time-dependent carrier export from the grid", unit_category={"energy_quantity": 1, "time": -1})
         else:
             # flow of imported carrier
@@ -145,8 +145,12 @@ class Carrier(Element):
         variables.add_variable(model, name="carbon_emissions_carrier_total", index_sets=sets["set_time_steps_yearly"],
                                doc="total carbon emissions of importing and exporting carrier", unit_category={"emissions": 1})
         # shed demand
-        variables.add_variable(model, name="shed_demand", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
-                               doc="shed demand of carrier", unit_category={"energy_quantity": 1, "time": -1})
+        if optimization_setup.system['n1_contingency']:
+            variables.add_variable(model, name="shed_demand", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_failures", "set_time_steps_operation"], optimization_setup), bounds=(0, np.inf),
+                                   doc="shed demand of carrier", unit_category={"energy_quantity": 1, "time": -1})
+        else:
+            variables.add_variable(model, name="shed_demand", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
+                                   doc="shed demand of carrier", unit_category={"energy_quantity": 1, "time": -1})
         # cost of shed demand
         variables.add_variable(model, name="cost_shed_demand", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
                                doc="shed demand of carrier", unit_category={"money": 1, "time": -1})
@@ -196,13 +200,7 @@ class Carrier(Element):
         # carbon emissions carrier
         rules.constraint_carbon_emissions_carrier_total()
 
-        # energy balance
-        if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
-            constraints.add_constraint_block(model, name="constraint_nodal_energy_balance_failure_states",
-                                            constraint=rules.constraint_nodal_energy_balance_block_failure_states(),
-                                            doc='node- and time-dependent energy balance for each carrier for n-1 contigency')
-        else:
-            rules.constraint_nodal_energy_balance()
+        rules.constraint_nodal_energy_balance()
         # LCA
         if optimization_setup.system['load_lca_factors']:
             # lca impacts
@@ -438,12 +436,10 @@ class CarrierRules(GenericRule):
         """
 
         ### formulate constraint
-        if self.system['include_n1_contingency_import_export']:
-            m = xr.DataArray([s == "no_failure_technology: no_failure_location" for s in self.sets.sets['set_failure_states']],
-                             coords=self.sets.sets['set_failure_states'], dims='set_failure_states')
-            lhs = (self.variables["cost_carrier"]
-               - self.parameters.price_import * (self.variables["flow_import"].sum(["set_failure_states"]) - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_import"].where(m, 0.0))
-               + self.parameters.price_export * (self.variables["flow_export"].sum(["set_failure_states"]) - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_export"].where(m, 0.0)))
+        if self.system['n1_contingency']:
+            lhs = (self.variables["cost_carrier"] +
+                   (- self.parameters.price_import * self.variables["flow_import"] +
+                    self.parameters.price_export * self.variables["flow_export"]).sum(["set_failures"]) / (len(self.sets.sets["set_failures"])))
         else:
             lhs = (self.variables["cost_carrier"]
                    - self.parameters.price_import * self.variables["flow_import"]
@@ -492,14 +488,12 @@ class CarrierRules(GenericRule):
         # TODO map and expand
         carbon_intensity_carrier_import = (self.parameters.carbon_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
         carbon_intensity_carrier_export = (self.parameters.carbon_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        if self.system['include_n1_contingency_import_export']:
-            m = xr.DataArray([s == "no_failure_technology: no_failure_location" for s in self.sets.sets['set_failure_states']],
-                             coords=self.sets.sets['set_failure_states'], dims='set_failure_states')
-            flow_import = (self.variables["flow_import"] - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_import"].where(m, 0.0)).sum('set_failure_states')
-            flow_export = (self.variables["flow_export"] - (len(self.sets.sets["set_failure_states"])-1) * self.variables["flow_export"].where(m, 0.0)).sum('set_failure_states')
+        if self.system['n1_contingency']:
+            flow_import = self.variables["flow_import"].sum('set_failures') / len(self.sets.sets["set_failures"])
+            flow_export = self.variables["flow_export"].sum('set_failures') / len(self.sets.sets["set_failures"])
+            # flow_export = (self.variables["flow_export"] - (len(self.sets.sets["set_failures"])-1) * self.variables["flow_export"].where(m, 0.0)).sum('set_failures')
             lhs = (self.variables["carbon_emissions_carrier"]
-                   - (flow_import * carbon_intensity_carrier_import
-                      - flow_export * carbon_intensity_carrier_export))
+                   - (flow_import * carbon_intensity_carrier_import - flow_export * carbon_intensity_carrier_export))
         else:
             lhs = (self.variables["carbon_emissions_carrier"]
                    - (self.variables["flow_import"] * carbon_intensity_carrier_import
@@ -544,9 +538,6 @@ class CarrierRules(GenericRule):
 
         ### return
         self.constraints.add_constraint("constraint_carrier_lca_impacts",constraints)
-        # return self.constraints.return_constraints(constraints, model=self.model,
-        #                                           index_values=index.get_unique(["set_carriers"]),
-        #                                           index_names=["set_carriers"])
 
     def constraint_nodal_energy_balance(self):
         """
@@ -562,8 +553,12 @@ class CarrierRules(GenericRule):
         """
 
         ### index sets
-        index_values, index_names = Carrier.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"],
-                                                              self.optimization_setup)
+        if self.optimization_setup.system['n1_contingency']:
+            index_values, index_names = Carrier.create_custom_set(["set_carriers", "set_nodes", "set_failures", "set_time_steps_operation"],
+                                                                  self.optimization_setup)
+        else:
+            index_values, index_names = Carrier.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"],
+                                                                  self.optimization_setup)
         index = ZenIndex(index_values, index_names)
 
         ### masks
@@ -584,7 +579,16 @@ class CarrierRules(GenericRule):
                                                                                         self.sets["set_nodes"]])
 
             # create the variables
-            flow_transport_in_vars = xr.DataArray(-1, coords=[self.parameters.demand.coords["set_carriers"],
+            if self.system['n1_contingency']:
+                flow_transport_in_vars = xr.DataArray(-1, coords=[self.parameters.demand.coords["set_carriers"],
+                                                              self.parameters.demand.coords["set_nodes"],
+                                                              self.variables.coords["set_failures"],
+                                                              self.parameters.demand.coords["set_time_steps_operation"],
+                                                              xr.DataArray(np.arange(
+                                                                  len(self.sets["set_transport_technologies"]) * (
+                                                                          2 * max_edges + 1)), dims=["_term"])])
+            else:
+                flow_transport_in_vars = xr.DataArray(-1, coords=[self.parameters.demand.coords["set_carriers"],
                                                               self.parameters.demand.coords["set_nodes"],
                                                               self.parameters.demand.coords["set_time_steps_operation"],
                                                               xr.DataArray(np.arange(
@@ -593,30 +597,57 @@ class CarrierRules(GenericRule):
             flow_transport_in_coeffs = xr.full_like(flow_transport_in_vars, np.nan, dtype=float)
             flow_transport_out_vars = flow_transport_in_vars.copy()
             flow_transport_out_coeffs = xr.full_like(flow_transport_in_vars, np.nan, dtype=float)
-            for carrier, node in index.get_unique([0, 1]):
-                techs = [tech for tech in self.sets["set_transport_technologies"] if
-                         carrier in self.sets["set_reference_carriers"][tech]]
-                edges_in = self.energy_system.calculate_connected_edges(node, "in")
-                edges_out = self.energy_system.calculate_connected_edges(node, "out")
+            if self.system['n1_contingency']:
+                for carrier, node, state in index.get_unique([0, 1, 2]):
+                    techs = [tech for tech in self.sets["set_transport_technologies"] if
+                             carrier in self.sets["set_reference_carriers"][tech]]
+                    edges_in = self.energy_system.calculate_connected_edges(node, "in")
+                    edges_out = self.energy_system.calculate_connected_edges(node, "out")
 
-                # get the variables for the in flow
-                in_vars_plus = self.variables["flow_transport"].labels.loc[techs, edges_in, :].data
-                in_vars_plus = in_vars_plus.reshape((-1, in_vars_plus.shape[-1])).T
-                in_coefs_plus = np.ones_like(in_vars_plus)
-                in_vars_minus = self.variables["flow_transport_loss"].labels.loc[techs, edges_out, :].data
-                in_vars_minus = in_vars_minus.reshape((-1, in_vars_minus.shape[-1])).T
-                in_coefs_minus = np.ones_like(in_vars_minus)
-                in_vars = np.concatenate([in_vars_plus, in_vars_minus], axis=1)
-                in_coefs = np.concatenate([in_coefs_plus, -in_coefs_minus], axis=1)
-                flow_transport_in_vars.loc[carrier, node, :, :in_vars.shape[-1] - 1] = in_vars
-                flow_transport_in_coeffs.loc[carrier, node, :, :in_coefs.shape[-1] - 1] = in_coefs
+                    # get the variables for the in flow
+                    in_vars_plus = self.variables["flow_transport"].labels.loc[techs, edges_in, state, :].data
+                    in_vars_plus = in_vars_plus.reshape((-1, in_vars_plus.shape[-1])).T
+                    in_coefs_plus = np.ones_like(in_vars_plus)
+                    in_vars_minus = self.variables["flow_transport_loss"].labels.loc[techs, edges_out, state, :].data
+                    in_vars_minus = in_vars_minus.reshape((-1, in_vars_minus.shape[-1])).T
+                    in_coefs_minus = np.ones_like(in_vars_minus)
+                    in_vars = np.concatenate([in_vars_plus, in_vars_minus], axis=1)
+                    in_coefs = np.concatenate([in_coefs_plus, -in_coefs_minus], axis=1)
+                    flow_transport_in_vars.loc[carrier, node, state, :, :in_vars.shape[-1] - 1] = in_vars
+                    flow_transport_in_coeffs.loc[carrier, node, state, :, :in_coefs.shape[-1] - 1] = in_coefs
 
-                # get the variables for the out flow
-                out_vars_plus = self.variables["flow_transport"].labels.loc[techs, edges_out, :].data
-                out_vars_plus = out_vars_plus.reshape((-1, out_vars_plus.shape[-1])).T
-                out_coefs_plus = np.ones_like(out_vars_plus)
-                flow_transport_out_vars.loc[carrier, node, :, :out_vars_plus.shape[-1] - 1] = out_vars_plus
-                flow_transport_out_coeffs.loc[carrier, node, :, :out_coefs_plus.shape[-1] - 1] = out_coefs_plus
+                    # get the variables for the out flow
+                    out_vars_plus = self.variables["flow_transport"].labels.loc[techs, edges_out, state, :].data
+                    out_vars_plus = out_vars_plus.reshape((-1, out_vars_plus.shape[-1])).T
+                    out_coefs_plus = np.ones_like(out_vars_plus)
+                    flow_transport_out_vars.loc[carrier, node, state, :, :out_vars_plus.shape[-1] - 1] = out_vars_plus
+                    flow_transport_out_coeffs.loc[carrier, node, state, :, :out_coefs_plus.shape[-1] - 1] = out_coefs_plus
+
+            else:
+                for carrier, node in index.get_unique([0, 1]):
+                    techs = [tech for tech in self.sets["set_transport_technologies"] if
+                             carrier in self.sets["set_reference_carriers"][tech]]
+                    edges_in = self.energy_system.calculate_connected_edges(node, "in")
+                    edges_out = self.energy_system.calculate_connected_edges(node, "out")
+
+                    # get the variables for the in flow
+                    in_vars_plus = self.variables["flow_transport"].labels.loc[techs, edges_in, :].data
+                    in_vars_plus = in_vars_plus.reshape((-1, in_vars_plus.shape[-1])).T
+                    in_coefs_plus = np.ones_like(in_vars_plus)
+                    in_vars_minus = self.variables["flow_transport_loss"].labels.loc[techs, edges_out, :].data
+                    in_vars_minus = in_vars_minus.reshape((-1, in_vars_minus.shape[-1])).T
+                    in_coefs_minus = np.ones_like(in_vars_minus)
+                    in_vars = np.concatenate([in_vars_plus, in_vars_minus], axis=1)
+                    in_coefs = np.concatenate([in_coefs_plus, -in_coefs_minus], axis=1)
+                    flow_transport_in_vars.loc[carrier, node, :, :in_vars.shape[-1] - 1] = in_vars
+                    flow_transport_in_coeffs.loc[carrier, node, :, :in_coefs.shape[-1] - 1] = in_coefs
+
+                    # get the variables for the out flow
+                    out_vars_plus = self.variables["flow_transport"].labels.loc[techs, edges_out, :].data
+                    out_vars_plus = out_vars_plus.reshape((-1, out_vars_plus.shape[-1])).T
+                    out_coefs_plus = np.ones_like(out_vars_plus)
+                    flow_transport_out_vars.loc[carrier, node, :, :out_vars_plus.shape[-1] - 1] = out_vars_plus
+                    flow_transport_out_coeffs.loc[carrier, node, :, :out_coefs_plus.shape[-1] - 1] = out_coefs_plus
 
             # craete the linear expression
             term_flow_transport_in = lp.LinearExpression(xr.Dataset({"coeffs": flow_transport_in_coeffs,
@@ -704,7 +735,7 @@ class CarrierRules(GenericRule):
                        -term_carrier_export,
                        term_carrier_shed_demand,
                        compat="broadcast_equals")
-        rhs = term_carrier_demand
+        rhs = term_carrier_demand.broadcast_like(self.variables['flow_import'].mask)
         aligned_idx = xr.align(lhs.coords, rhs, join="inner")[0]
         constraints = lhs.sel(aligned_idx) == rhs.sel(aligned_idx)
 
@@ -725,8 +756,8 @@ class CarrierRules(GenericRule):
         :return: #TODO describe parameter/return
         """
         ### index sets
-        if self.system['include_n1_contingency_transport']:
-            index_values, index_names = Carrier.create_custom_set(["set_carriers", "set_nodes", "set_failure_states", "set_time_steps_operation"], self.optimization_setup)
+        if self.system['n1_contingency']:
+            index_values, index_names = Carrier.create_custom_set(["set_carriers", "set_nodes", "set_failures", "set_time_steps_operation"], self.optimization_setup)
         else:
             index_values, index_names = Carrier.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], self.optimization_setup)
 
@@ -753,7 +784,7 @@ class CarrierRules(GenericRule):
             if self.system['include_n1_contingency_transport']:
                 flow_transport_in_vars = xr.DataArray(-1, coords=[self.parameters.demand.coords["set_carriers"],
                                                               self.parameters.demand.coords["set_nodes"],
-                                                              self.variables.coords["set_failure_states"],
+                                                              self.variables.coords["set_failures"],
                                                               self.parameters.demand.coords["set_time_steps_operation"],
                                                               xr.DataArray(np.arange(
                                                                   len(self.sets["set_transport_technologies"]) * (

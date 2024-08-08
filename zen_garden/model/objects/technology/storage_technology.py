@@ -139,7 +139,10 @@ class StorageTechnology(Technology):
             :return bounds: bounds of carrier_flow"""
 
             # get the arrays
-            tech_arr, node_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
+            if optimization_setup.system['n1_contingency']:
+                tech_arr, node_arr, failure_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
+            else:
+                tech_arr, node_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
             # convert operationTimeStep to time_step_year: operationTimeStep -> base_time_step -> time_step_year
             time_step_year = xr.DataArray([optimization_setup.energy_system.time_steps.convert_time_step_operation2year(time) for time in time_arr.data])
             lower = model.variables["capacity"].lower.loc[tech_arr, "power", node_arr, time_step_year].data
@@ -147,7 +150,10 @@ class StorageTechnology(Technology):
             return np.stack([lower, upper], axis=-1)
 
         # flow of carrier on node into storage
-        index_values, index_names = cls.create_custom_set(["set_storage_technologies", "set_nodes", "set_time_steps_operation"], optimization_setup)
+        if optimization_setup.system['n1_contingency']:
+            index_values, index_names = cls.create_custom_set(["set_storage_technologies", "set_nodes", "set_failures", "set_time_steps_operation"], optimization_setup)
+        else:
+            index_values, index_names = cls.create_custom_set(["set_storage_technologies", "set_nodes", "set_time_steps_operation"], optimization_setup)
         bounds = flow_storage_bounds(index_values, index_names)
         variables.add_variable(model, name="flow_storage_charge", index_sets=(index_values, index_names),
             bounds=bounds, doc='carrier flow into storage technology on node i and time t', unit_category={"energy_quantity": 1, "time": -1})
@@ -155,8 +161,12 @@ class StorageTechnology(Technology):
         variables.add_variable(model, name="flow_storage_discharge", index_sets=(index_values, index_names),
             bounds=bounds, doc='carrier flow out of storage technology on node i and time t', unit_category={"energy_quantity": 1, "time": -1})
         # storage level
-        variables.add_variable(model, name="storage_level", index_sets=cls.create_custom_set(["set_storage_technologies", "set_nodes", "set_time_steps_storage"], optimization_setup), bounds=(0, np.inf),
-            doc='storage level of storage technology ón node in each storage time step', unit_category={"energy_quantity": 1})
+        if optimization_setup.system['n1_contingency']:
+            variables.add_variable(model, name="storage_level", index_sets=cls.create_custom_set(["set_storage_technologies", "set_nodes", "set_failures", "set_time_steps_storage"], optimization_setup),
+                                   bounds=(0, np.inf), doc='storage level of storage technology on node in each storage time step', unit_category={"energy_quantity": 1})
+        else:
+            variables.add_variable(model, name="storage_level", index_sets=cls.create_custom_set(["set_storage_technologies", "set_nodes", "set_time_steps_storage"], optimization_setup), bounds=(0, np.inf),
+                doc='storage level of storage technology on node in each storage time step', unit_category={"energy_quantity": 1})
 
     @classmethod
     def construct_constraints(cls, optimization_setup):

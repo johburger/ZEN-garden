@@ -12,6 +12,7 @@ constraints that hold for all technologies.
 import cProfile
 import itertools
 import logging
+import time
 
 import linopy as lp
 import numpy as np
@@ -80,17 +81,34 @@ class Technology(Element):
         self.capacity_investment_existing = self.data_input.extract_input_data("capacity_investment_existing", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
         self.lifetime_existing = self.data_input.extract_lifetime_existing("capacity_existing", index_sets=[set_location, "set_technologies_existing"])
 
+        self.raw_time_series["operation_state"] = self.data_input.extract_input_data("operation_state", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
+        if not self.optimization_setup.system['n1_contingency']:
+            self.raw_time_series["operation_state"][:] = 1
 
     def extract_failure_states(self):
         """ constructs all possible failure states for all locations from the locations where capacity_limit != 0 and
          failure_rate != 0 """
         loc_rename = {'node': 'location', 'edge': 'location'}
         # only technologies with a capacity limit != 0 and a failure rate != 0 are considered in the failure set
+        # completely rewrite this function so that the failure states are extracted from the operation state matrix.
         non_zero_cap_limit = self.capacity_limit.reset_index().rename(loc_rename, axis=1).groupby(['location']).max()
         non_zero_cap_limit = non_zero_cap_limit[non_zero_cap_limit[0] != 0].index.to_list()
-        non_zero_failure_rate = self.failure_rate[self.failure_rate != 0].index.get_level_values(0).to_list()
-        potential_locations = list(set(non_zero_cap_limit) & set(non_zero_failure_rate))
-        self.energy_system.set_failures.extend([(self.name, i) for i in potential_locations])
+        zero_operation_state = self.raw_time_series['operation_state'][self.raw_time_series['operation_state'] == 0].index.get_level_values(0).to_list()
+        potential_locations = list(set(non_zero_cap_limit) & set(zero_operation_state))
+        self.energy_system.set_failures.extend([f'{self.name}+{i}' for i in potential_locations])
+
+    def create_n1_contingency_matrix(self):
+        """ Adjusts the operation_state matrix to include all failure states as index """
+
+        # add all failure states as additional index level
+        loc = 'node' if self.location_type == 'set_nodes' else 'edge'
+        new_df = pd.concat({f_state: self.raw_time_series['operation_state'] for f_state in self.energy_system.set_failures},
+                           names=['failure_state']).reorder_levels([loc, 'failure_state', 'time']).reset_index()
+        # create column with the allowed failure state, all others with be set to 1
+        new_df['allowed_failure'] = [f'{self.name}+{l}' for l in new_df[loc]]
+        new_df.loc[new_df['failure_state'] != new_df['allowed_failure'], 0] = 1
+        new_df.drop(['allowed_failure'], axis=1, inplace=True)
+        self.raw_time_series['operation_state'] = new_df.set_index([loc, 'failure_state', 'time'])[0].copy()
 
     def calculate_capex_of_capacities_existing(self, storage_energy=False):
         """ this method calculates the annualized capex of the existing capacities
@@ -372,9 +390,15 @@ class Technology(Element):
         if optimization_setup.system['load_lca_factors']:
             optimization_setup.parameters.add_parameter(name='technology_lca_factors', index_names=['set_technologies', 'set_location', 'set_lca_impact_categories', 'set_time_steps_yearly'],
                                                         doc='Parameters for the environmental impacts of each technology', calling_class=cls)
-
-        optimization_setup.parameters.add_parameter(name="operation_state_hannes", index_names=["set_technologies", "set_location", "set_time_steps_operation"],
-                                                    doc='Parameter which specifies the operation state of technology', calling_class=cls)
+        # if optimization_setup.system['n1_contingency']:
+        #     # failure rate
+        #     optimization_setup.parameters.add_parameter(name="failure_rate", index_names=["set_technologies", "set_location"], doc='Parameter which specifies the failure rate of each technology', calling_class=cls)
+        #     # downtime
+        #     optimization_setup.parameters.add_parameter(name="downtime", data=optimization_setup.energy_system.set_failures,
+        #                                                 doc="Set of failure states. Indexed by set_technologies", index_set="set_technologies")
+        if optimization_setup.system['n1_contingency']:
+            optimization_setup.parameters.add_parameter(name="operation_state", index_names=["set_technologies", "set_location", "set_failures", "set_time_steps_operation"],
+                                                        doc='Parameter which specifies the operation state of technology', calling_class=cls)
 
         # calculate additional existing parameters
         optimization_setup.parameters.add_parameter(name="existing_capacities", data=cls.get_existing_quantity(optimization_setup, type_existing_quantity="capacity"),
@@ -449,24 +473,21 @@ class Technology(Element):
         # total capex
         variables.add_variable(model, name="cost_capex_total", index_sets=sets["set_time_steps_yearly"],
             bounds=(0,np.inf), doc='total capex for installing all technologies in all locations at all times', unit_category={"money": 1})
-        # opex
-        if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
-            variables.add_variable(model, name="cost_opex", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_failure_states", "set_time_steps_operation"], optimization_setup),
-                bounds=(0,np.inf), doc="opex for operating technology at location l and time t", unit_category={"money": 1, "time": -1})
-        else:
-            variables.add_variable(model, name="cost_opex", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
-                bounds=(0,np.inf), doc="opex for operating technology at location l and time t", unit_category={"money": 1, "time": -1})
         # total opex
         variables.add_variable(model, name="cost_opex_total", index_sets=sets["set_time_steps_yearly"],
             bounds=(0,np.inf), doc="total opex all technologies and locations in year y", unit_category={"money": 1})
         # yearly opex
         variables.add_variable(model, name="opex_yearly", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_yearly"], optimization_setup),
             bounds=(0,np.inf), doc="yearly opex for operating technology at location l and year y", unit_category={"money": 1})
-        # carbon emissions
-        if optimization_setup.system['include_n1_contingency_transport'] or optimization_setup.system['include_n1_contingency_conversion']:
-            variables.add_variable(model, name="carbon_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_failure_states", "set_time_steps_operation"], optimization_setup),
+        # opex and carbon emissions
+        if optimization_setup.system['n1_contingency']:
+            variables.add_variable(model, name="cost_opex", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_failures", "set_time_steps_operation"], optimization_setup),
+                bounds=(0,np.inf), doc="opex for operating technology at location l and time t", unit_category={"money": 1, "time": -1})
+            variables.add_variable(model, name="carbon_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_failures", "set_time_steps_operation"], optimization_setup),
                 doc="carbon emissions for operating technology at location l and time t", unit_category={"emissions": 1, "time": -1})
         else:
+            variables.add_variable(model, name="cost_opex", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
+                bounds=(0,np.inf), doc="opex for operating technology at location l and time t", unit_category={"money": 1, "time": -1})
             variables.add_variable(model, name="carbon_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
                 doc="carbon emissions for operating technology at location l and time t", unit_category={"emissions": 1, "time": -1})
         # total carbon emissions technology
@@ -780,19 +801,6 @@ class TechnologyRules(GenericRule):
 
         :return: #TODO describe parameter/return
         """
-
-        # existing_capacities = self.parameters.existing_capacities
-        # m1 = (self.parameters.capacity_limit_super != np.inf)
-        # # mask for matching nodes with super_nodes:
-        # m_node = xr.DataArray(
-        #     [[node in self.sets['set_nodes_in_super_nodes'][s_node] for node in self.sets["set_nodes"]] for s_node in
-        #      self.sets["set_super_nodes"]],
-        #     dims=["set_super_nodes", "set_nodes"], coords=[self.sets["set_super_nodes"], self.sets["set_nodes"]])
-        #
-        # # idea: expand on the set super_locations by additionally indexing everything with the set_locations
-        # rhs = self.parameters.capacity_limit_super
-        # constraints = lhs <= rhs
-        # self.constraints.return_contraints("constraint_technology_capacity_limit_super", constraints)
 
         ### index sets
         index_names = ["set_technologies", "set_capacity_types", "set_super_location", "set_time_steps_yearly"]
@@ -1131,11 +1139,8 @@ class TechnologyRules(GenericRule):
         times = pd.concat(times, keys=times.keys())
         times.index.names = ["set_time_steps_yearly", "set_time_steps_operation"]
         times = times.to_xarray().broadcast_like(self.variables["cost_opex"].mask)
-        if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
-            m = xr.DataArray([s == "no_failure_technology: no_failure_location" for s in self.sets["set_failure_states"]],
-                             coords=self.sets["set_failure_states"], dims="set_failure_states")
-            term_opex_variable = ((self.variables["cost_opex"] * times).sum(["set_time_steps_operation", "set_failure_states"])
-                                  - (len(index.get_unique(["set_failure_states"])) - 1) * (self.variables["cost_opex"] * times).where(m, 0.0))
+        if self.system['n1_contingency']:
+            term_opex_variable = (self.variables["cost_opex"] * times).sum(["set_time_steps_operation", "set_failures"]) / len(self.sets["set_failures"])
         else:
             term_opex_variable = (self.variables["cost_opex"] * times).sum("set_time_steps_operation")
         term_opex_fixed = (self.parameters.opex_specific_fixed * self.variables["capacity"]).sum("set_capacity_types")
@@ -1154,11 +1159,9 @@ class TechnologyRules(GenericRule):
             \mathrm{if\ n-1\ contingency}\ E_y^{\mathcal{H}} = \sum_{t\in\mathcal{T}}\sum_{h\in\mathcal{H}} E_{h,p,f0,t} \\tau_{t} + \sum_{f\in F} E_{h,p,f,t} - E_{h,p,f0,t}
 
         """
-        if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
-            m = xr.DataArray([s == "no_failure_technology: no_failure_location" for s in self.sets["set_failure_states"]],
-                             coords=self.sets["set_failure_states"], dims="set_failure_states")
-            term_summed_carbon_emissions_technology = ((self.variables["carbon_emissions_technology"].sum(["set_failure_states"]) * self.get_year_time_step_duration_array())
-                                                       - (len(index.get_unique(["set_failure_states"]))-1) * self.variables["carbon_emissions_technology"].where(m, 0.0) * self.get_year_time_step_duration_array()).sum()
+        if self.system['n1_contingency']:
+            term_summed_carbon_emissions_technology = (self.variables["carbon_emissions_technology"] * self.get_year_time_step_duration_array()).sum(
+                ["set_technologies", "set_location", "set_failures", "set_time_steps_operation"]) / len(self.sets["set_failures"])
         else:
             term_summed_carbon_emissions_technology = (self.variables["carbon_emissions_technology"] * self.get_year_time_step_duration_array()).sum(
             ["set_technologies", "set_location", "set_time_steps_operation"])
@@ -1255,9 +1258,3 @@ class TechnologyRules(GenericRule):
             constraints[year] = lhs == rhs
 
         self.constraints.return_contraints('constraint_technology_lca_impacts_total', constraints)
-
-    def constraint_n1_contingency(self):
-
-        index_values, index_names = Element.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation", "set_failure_states"], self.optimization_setup)
-        index = ZenIndex(index_values, index_names)
-

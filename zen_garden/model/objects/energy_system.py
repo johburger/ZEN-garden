@@ -66,7 +66,7 @@ class EnergySystem:
         # initialize empty set_carriers list
         self.set_carriers = []
         # initialize empty set_failures list
-        self.set_failures = []
+        self.set_failures = [('no_failure_technology+no_failure_location')]
         #dict to save the parameter units (and save them in the results later on)
         self.units = {}
 
@@ -258,10 +258,8 @@ class EnergySystem:
         # storage time steps
         self.optimization_setup.sets.add_set(name="set_time_steps_storage",data=self.time_steps.time_steps_storage,doc="Set of storage level time steps")
         # failure states, only if flag to include n-1 contingency is True
-        if self.system['include_n1_contingency_transport'] or self.system['include_n1_contingency_conversion']:
-            self.optimization_setup.sets.add_set(name="set_failure_states",
-                                                 data=[f"{row[0]}: {row[1]}" for row in self.set_failure_technology_location],
-                                                 doc="Set of failure states in n-1 contingency")
+        if self.system['n1_contingency']:
+            self.optimization_setup.sets.add_set(name="set_failures", data=self.set_failures, doc="Set of failure states in n-1 contingency")
         ## impact categories for LCA, only if flag to include LCA categories is True
         if self.system['load_lca_factors']:
             self.optimization_setup.sets.add_set(name='set_lca_impact_categories', data=self.set_lca_impact_categories,
@@ -462,21 +460,6 @@ class EnergySystemRules(GenericRule):
         rhs = self.parameters.min_co2_stored.broadcast_like(lhs.const)
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_co2_stored", constraints)
-
-        # old stuff:
-        # year = 0
-        # min_co2_stored = self.parameters.min_co2_stored
-        # mask = min_co2_stored != 0
-        # if not mask.any():
-        #     return None
-        #
-        # ### formulate constraint
-        # assert 'co2_stored' in self.optimization_setup.sets['set_carriers'], "carrier 'co2_stored' not found in set_carriers"
-        # total_co2_stored = (self.variables['flow_export'].loc['co2_stored', :, year] * self.parameters.time_steps_operation_duration.loc[year]).sum()
-        # lhs = total_co2_stored
-        # rhs = self.parameters.min_co2_stored.loc[year].item()
-        # constraints = lhs >= rhs
-
 
     def constraint_carbon_emissions_budget(self):
         """ carbon emissions budget of entire time horizon from technologies and carriers.

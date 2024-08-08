@@ -62,8 +62,6 @@ class TransportTechnology(Technology):
             self.technology_lca_factors = self.technology_lca_factors * self.distance
         # get nominal flow and operation probability
         if self.optimization_setup.system['n1_contingency']:
-            # nominal flow probably not required
-            # self.raw_time_series["nominal_flow"] = self.data_input.extract_input_data("nominal_flow", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
             self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
             self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
             self.operation_probability = self.calculate_operation_probability()
@@ -194,6 +192,11 @@ class TransportTechnology(Technology):
         optimization_setup.parameters.add_parameter(name="transport_loss_factor_linear", index_names=["set_transport_technologies"], doc='linear carrier losses due to transport with transport technologies', calling_class=cls)
         optimization_setup.parameters.add_parameter(name="transport_loss_factor_exponential", index_names=["set_transport_technologies"], doc='exponential carrier losses due to transport with transport technologies', calling_class=cls)
 
+        # if optimization_setup.system['n1_contingency']:
+        #     # failure rate
+        #     optimization_setup.parameters.add_parameter(name="failure_rate", index_names=["set_edges"], doc='failure rate for transport technologies', calling_class=cls)
+        #     # downtime
+        #     optimization_setup.parameters.add_parameter(name="downtime", index_names=["set_edges"], doc='downtime for transport technologies whe failure occurs', calling_class=cls)
         # additional for N-1 contingency
         if optimization_setup.system['include_n1_contingency_transport']:
             # nominal flow
@@ -234,7 +237,7 @@ class TransportTechnology(Technology):
             :return bounds: bounds of carrier_flow"""
 
             # get the arrays
-            if optimization_setup.system['include_n1_contingency_transport']:
+            if optimization_setup.system['n1_contingency']:
                 tech_arr, edge_arr, failure_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
             else:
                 tech_arr, edge_arr, time_arr = sets.tuple_to_arr(index_values, index_list)
@@ -246,8 +249,8 @@ class TransportTechnology(Technology):
             return np.stack([lower, upper], axis=-1)
 
         # flow of carrier on edge
-        if optimization_setup.system['include_n1_contingency_transport']:
-            index_values, index_names = cls.create_custom_set(["set_transport_technologies", "set_edges", "set_failure_states", "set_time_steps_operation"], optimization_setup)
+        if optimization_setup.system['n1_contingency']:
+            index_values, index_names = cls.create_custom_set(["set_transport_technologies", "set_edges", "set_failures", "set_time_steps_operation"], optimization_setup)
         else:
             index_values, index_names = cls.create_custom_set(["set_transport_technologies", "set_edges", "set_time_steps_operation"], optimization_setup)
         bounds = flow_transport_bounds(index_values, index_names)
@@ -358,8 +361,11 @@ class TransportTechnologyRules(GenericRule):
                 self.parameters.max_load.loc[techs, "power", edges, :]
                 * self.variables["capacity"].loc[techs, "power", edges, time_step_year]
         ).rename({"set_technologies":"set_transport_technologies","set_location": "set_edges"})
-
-        lhs = term_capacity - self.variables["flow_transport"].loc[techs, edges, :]
+        if self.optimization_setup.system['n1_contingency']:
+            term_failure = self.parameters.operation_state.loc[techs, edges, :].rename({"set_technologies":"set_transport_technologies","set_location": "set_edges"})
+            lhs = term_capacity.where(term_failure, 0) - self.variables["flow_transport"]
+        else:
+            lhs = term_capacity - self.variables["flow_transport"].loc[techs, edges, :]
         rhs = 0
         constraints = lhs >= rhs
         ### return
