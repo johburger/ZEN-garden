@@ -66,7 +66,7 @@ class EnergySystem:
         # initialize empty set_carriers list
         self.set_carriers = []
         # initialize empty set_failures list
-        self.set_failures = [('no_failure_technology+no_failure_location')]
+        self.set_failures = []
         #dict to save the parameter units (and save them in the results later on)
         self.units = {}
 
@@ -131,11 +131,12 @@ class EnergySystem:
         # LCA impact categories
         self.set_lca_impact_categories = self.system['set_lca_impact_categories']
         # failure state: technology and location
-        self.set_failure_technology_location = np.empty((0, 2))
+        self.set_failures = self.fetch_set_failures()
+        # self.set_failure_technology_location = np.empty((0, 2))
         # Add a placeholder for no failure case
-        no_failure_entry = np.array([["no_failure_technology", "no_failure_location"]])
+        # no_failure_entry = np.array([["no_failure_technology", "no_failure_location"]])
         # Append this entry to your existing array
-        self.set_failure_technology_location = np.vstack((self.set_failure_technology_location, no_failure_entry))
+        # self.set_failure_technology_location = np.vstack((self.set_failure_technology_location, no_failure_entry))
 
     def calculate_edges_from_nodes(self):
         """ calculates set_nodes_on_edges from set_nodes
@@ -148,6 +149,14 @@ class EnergySystem:
         for edge in set_edges_input.index:
             set_nodes_on_edges[edge] = (set_edges_input.loc[edge, "node_from"], set_edges_input.loc[edge, "node_to"])
         return set_nodes_on_edges
+
+    def fetch_set_failures(self):
+        failures = self.data_input.read_input_csv('set_failure_states')['failure_state'].to_list()
+        # check whether the failure technologies and locations are actually in the model
+        failures = [f for f in failures if f.split('+')[0] in self.set_technologies and
+                    (f.split('+')[1] in self.set_edges or f.split('+')[1] in self.set_nodes)]
+        return failures
+
 
     def calculate_haversine_distances_from_nodes(self):
         """

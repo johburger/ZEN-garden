@@ -66,7 +66,7 @@ class TransportTechnology(Technology):
             self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
             self.operation_probability = self.calculate_operation_probability()
             # fill set_failures with potential technology installation locations
-            self.extract_failure_states()
+            # self.extract_failure_states()
         # get information for N-1 contingency
         if self.optimization_setup.system['include_n1_contingency_transport']:
             # get nominal flow transport
