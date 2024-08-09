@@ -218,12 +218,6 @@ class OptimizationSetup(object):
         if self.solver["recommend_base_units"]:
             self.energy_system.unit_handling.recommend_base_units(immutable_unit=self.solver["immutable_unit"],
                                                                   unit_exps=self.solver["range_unit_exponents"])
-        # if self.system["n1_contingency"]:
-        #     logging.info("\n--- Prepare operation state matrix for N-1 analysis ---\n")
-        #     for element in self.dict_elements["Element"]:
-        #         if "Technology" in element.__class__.__name__:
-        #             element.create_n1_contingency_matrix()
-
 
     def add_element(self, element_class, name):
         """

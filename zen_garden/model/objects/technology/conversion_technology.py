@@ -66,25 +66,14 @@ class ConversionTechnology(Technology):
         self.convert_to_fraction_of_capex()
 
         # get nominal flow and operation probability
-        if self.optimization_setup.system['n1_contingency']:
+        # if self.optimization_setup.system['n1_contingency']:
             # nominal flow probably not required
             # self.raw_time_series["nominal_flow"] = self.data_input.extract_input_data("nominal_flow", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
-            self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_nodes"], unit_category={'time': -1})
-            self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_nodes"], unit_category={'time': 1})
-            self.operation_probability = self.calculate_operation_probability()
+            # self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_nodes"], unit_category={'time': -1})
+            # self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_nodes"], unit_category={'time': 1})
+            # self.operation_probability = self.calculate_operation_probability()
             # fill set_failures with potential technology installation locations
-            self.extract_failure_states()
-
-        # get information for N-1 contingency
-        if self.optimization_setup.system['include_n1_contingency_conversion']:
-            # get nominal flow conversion input
-            # TODO change timestep from yearly to operation
-            self.nominal_flow_conversion_input = self.get_nominal_flow_conversion_input()
-            # get failure rate
-            self.failure_rate_conversion = self.data_input.extract_input_data("failure_rate", index_sets=["set_nodes"], unit_category={'time': -1})
-            # get downtime
-            self.downtime_conversion = self.data_input.extract_input_data("downtime", index_sets=["set_nodes"], unit_category={'time': 1})
-            # calculate operation probability
+            # self.extract_failure_states()
 
     def get_nominal_flow_conversion_input(self):
         """retrieves and stores nominal flow_conversion input """

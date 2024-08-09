@@ -61,21 +61,20 @@ class TransportTechnology(Technology):
             self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
             self.technology_lca_factors = self.technology_lca_factors * self.distance
         # get nominal flow and operation probability
-        if self.optimization_setup.system['n1_contingency']:
-            self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
-            self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
-            self.operation_probability = self.calculate_operation_probability()
+        # if self.optimization_setup.system['n1_contingency']:
+        #     self.failure_rate = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
+        #     self.downtime = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
+        #     self.operation_probability = self.calculate_operation_probability()
             # fill set_failures with potential technology installation locations
             # self.extract_failure_states()
         # get information for N-1 contingency
-        if self.optimization_setup.system['include_n1_contingency_transport']:
-            # get nominal flow transport
-            # TODO change timestep from yearly to operation
-            self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={'energy_quantity': 1, 'time': -1})
-            # get failure rate
-            self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
-            # get downtime
-            self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
+        # if self.optimization_setup.system['include_n1_contingency_transport']:
+        #     # get nominal flow transport
+        #     self.nominal_flow_transport = self.data_input.extract_input_data("nominal_flow_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={'energy_quantity': 1, 'time': -1})
+        #     # get failure rate
+        #     self.failure_rate_transport = self.data_input.extract_input_data("failure_rate", index_sets=["set_edges"], unit_category={'distance': -1, 'time': -1})
+        #     # get downtime
+        #     self.downtime_transport = self.data_input.extract_input_data("downtime", index_sets=["set_edges"], unit_category={'time': 1})
             # calculate operation probability
 
     def get_transport_loss_factor(self):
