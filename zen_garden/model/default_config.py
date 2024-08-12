@@ -125,7 +125,7 @@ class System(Subscriptable):
     include_n1_contingency_import_export: bool = False
     include_capture_minimum_equals_nominal_input_flow: bool = False
     # failure
-    operation_failure: bool = False
+    n1_contingency: bool = False
     # carbon emissions annual limit adjustment
     include_carbon_emissions_annual_limit_adjustment: bool = False
 

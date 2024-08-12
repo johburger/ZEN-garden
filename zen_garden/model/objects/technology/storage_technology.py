@@ -287,9 +287,12 @@ class StorageTechnologyRules(GenericRule):
                 self.parameters.max_load.loc[techs, "power", nodes, :]
                 * self.variables["capacity"].loc[techs, "power", nodes, time_step_year]
         ).rename({"set_technologies": "set_storage_technologies","set_location":"set_nodes"})
-
-        # TODO integrate level storage here as well
-        lhs = term_capacity - self.get_flow_expression_storage(rename=False)
+        if self.optimization_setup.system['n1_contingency']:
+            term_failure = self.parameters.operation_state.loc[techs, nodes, :].rename({"set_technologies": "set_storage_technologies", "set_location": "set_edges"})
+            lhs = term_capacity.where(term_failure, 0) - self.get_flow_expression_storage(rename=False)
+        else:
+            # TODO integrate level storage here as well
+            lhs = term_capacity - self.get_flow_expression_storage(rename=False)
         rhs = 0
         constraints = lhs >= rhs
         ### return

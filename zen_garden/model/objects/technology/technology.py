@@ -81,9 +81,8 @@ class Technology(Element):
         self.capacity_investment_existing = self.data_input.extract_input_data("capacity_investment_existing", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
         self.lifetime_existing = self.data_input.extract_lifetime_existing("capacity_existing", index_sets=[set_location, "set_technologies_existing"])
 
-        self.raw_time_series["operation_state"] = self.data_input.extract_input_data("operation_state", index_sets=[set_location, "set_failures", "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
-        if not self.optimization_setup.system['n1_contingency']:
-            self.raw_time_series["operation_state"][:] = 1
+        if self.optimization_setup.system['n1_contingency']:
+            self.raw_time_series["operation_state"] = self.data_input.extract_input_data("operation_state", index_sets=[set_location, "set_failures", "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
 
     def extract_failure_states(self):
         """ constructs all possible failure states for all locations from the locations where capacity_limit != 0 and
