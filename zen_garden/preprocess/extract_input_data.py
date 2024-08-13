@@ -147,17 +147,20 @@ class DataInput:
                 index_multi_index = pd.MultiIndex.from_product([index_list], names=[df_input.index.name])
             df_input = pd.Series(index=index_multi_index, data=df_input.to_list(),dtype=float)
         if file_name == 'operation_state':
-            t0 = time.time()#perf_counter()
-            tp0 = time.perf_counter()
-            tmp = df_input[df_input.index.get_level_values(1).isin(self.energy_system.set_failures)].copy()
-            df_output[df_input.index] = tmp
-            logging.info(f'time: {(time.time() - t0)}')
-            logging.info(f'Perftime: {(time.perf_counter() - tp0)}')
 
             t0 = time.time()  # perf_counter()
             tp0 = time.perf_counter()
             common_index = df_output.index.intersection(df_input.index)
             df_output.loc[common_index] = df_input.loc[common_index]
+            logging.info('index.intersection')
+            logging.info(f'time: {(time.time() - t0)}')
+            logging.info(f'Perftime: {(time.perf_counter() - tp0)}')
+
+            t0 = time.time()#perf_counter()
+            tp0 = time.perf_counter()
+            tmp = df_input[df_input.index.get_level_values(1).isin(self.energy_system.set_failures)].copy()
+            df_output[df_input.index] = tmp
+            logging.info('.get_level_values().isin()')
             logging.info(f'time: {(time.time() - t0)}')
             logging.info(f'Perftime: {(time.perf_counter() - tp0)}')
             print('done')
