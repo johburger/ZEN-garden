@@ -146,31 +146,9 @@ class DataInput:
             else:
                 index_multi_index = pd.MultiIndex.from_product([index_list], names=[df_input.index.name])
             df_input = pd.Series(index=index_multi_index, data=df_input.to_list(),dtype=float)
-        if file_name == 'operation_state' and self.element.name == 'train':
-
-            t0 = time.time()  # perf_counter()
-            tp0 = time.perf_counter()
-
-            common_index = df_output.index.intersection(df_input.index)
-            df_output.loc[common_index] = df_input.loc[common_index]
-
-            logging.info('index.intersection')
-            logging.info(f'time: {(time.time() - t0)}')
-            logging.info(f'Perftime: {(time.perf_counter() - tp0)}')
-        elif file_name == 'operation_state' and self.element.name == 'pipeline':
-            t0 = time.time()#perf_counter()
-            tp0 = time.perf_counter()
-
-            df_input = df_input[df_input.index.get_level_values(1).isin(self.energy_system.set_failures)].copy()
-            df_output[df_input.index] = df_input
-
-            logging.info('.get_level_values().isin()')
-            logging.info(f'time: {(time.time() - t0)}')
-            logging.info(f'Perftime: {(time.perf_counter() - tp0)}')
-        else:
-            common_index = df_output.index.intersection(df_input.index)
-            assert default_value is not None or len(common_index) == len(df_output.index), f"Input for {file_name} does not provide entire dataset and no default given in attributes.csv"
-            df_output.loc[common_index] = df_input.loc[common_index]
+        common_index = df_output.index.intersection(df_input.index)
+        assert default_value is not None or len(common_index) == len(df_output.index), f"Input for {file_name} does not provide entire dataset and no default given in attributes.csv"
+        df_output.loc[common_index] = df_input.loc[common_index]
         return df_output
 
     def read_input_csv(self, input_file_name):
