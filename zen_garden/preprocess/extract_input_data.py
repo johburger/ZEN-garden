@@ -159,18 +159,16 @@ class DataInput:
             t0 = time.time()#perf_counter()
             tp0 = time.perf_counter()
             tmp = df_input[df_input.index.get_level_values(1).isin(self.energy_system.set_failures)].copy()
-            df_output[df_input.index] = tmp
+            tmp_out = df_output.copy()
+            tmp_out[tmp.index] = tmp
             logging.info('.get_level_values().isin()')
             logging.info(f'time: {(time.time() - t0)}')
             logging.info(f'Perftime: {(time.perf_counter() - tp0)}')
             print('done')
         else:
-            t0 = time.perf_counter()
             common_index = df_output.index.intersection(df_input.index)
             assert default_value is not None or len(common_index) == len(df_output.index), f"Input for {file_name} does not provide entire dataset and no default given in attributes.csv"
             df_output.loc[common_index] = df_input.loc[common_index]
-            if file_name == 'operation_state':
-                logging.info(time.perf_counter() - t0)
         return df_output
 
     def read_input_csv(self, input_file_name):
