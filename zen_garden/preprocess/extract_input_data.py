@@ -15,6 +15,7 @@ import json
 import numpy as np
 import pandas as pd
 from scipy.stats import linregress
+import time
 
 from zen_garden.utils import InputDataChecks
 
@@ -145,9 +146,28 @@ class DataInput:
             else:
                 index_multi_index = pd.MultiIndex.from_product([index_list], names=[df_input.index.name])
             df_input = pd.Series(index=index_multi_index, data=df_input.to_list(),dtype=float)
-        common_index = df_output.index.intersection(df_input.index)
-        assert default_value is not None or len(common_index) == len(df_output.index), f"Input for {file_name} does not provide entire dataset and no default given in attributes.csv"
-        df_output.loc[common_index] = df_input.loc[common_index]
+        if file_name == 'operation_state':
+            t0 = time.time()#perf_counter()
+            tp0 = time.perf_counter()
+            tmp = df_input[df_input.index.get_level_values(1).isin(self.energy_system.set_failures)].copy()
+            df_output[df_input.index] = tmp
+            logging.info(f'time: {(time.time() - t0)}')
+            logging.info(f'Perftime: {(time.perf_counter() - tp0)}')
+
+            t0 = time.time()  # perf_counter()
+            tp0 = time.perf_counter()
+            common_index = df_output.index.intersection(df_input.index)
+            df_output.loc[common_index] = df_input.loc[common_index]
+            logging.info(f'time: {(time.time() - t0)}')
+            logging.info(f'Perftime: {(time.perf_counter() - tp0)}')
+            print('done')
+        else:
+            t0 = time.perf_counter()
+            common_index = df_output.index.intersection(df_input.index)
+            assert default_value is not None or len(common_index) == len(df_output.index), f"Input for {file_name} does not provide entire dataset and no default given in attributes.csv"
+            df_output.loc[common_index] = df_input.loc[common_index]
+            if file_name == 'operation_state':
+                logging.info(time.perf_counter() - t0)
         return df_output
 
     def read_input_csv(self, input_file_name):
