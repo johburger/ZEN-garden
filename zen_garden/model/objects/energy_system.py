@@ -132,11 +132,6 @@ class EnergySystem:
         self.set_lca_impact_categories = self.system['set_lca_impact_categories']
         # failure state: technology and location
         self.set_failures = self.fetch_set_failures()
-        # self.set_failure_technology_location = np.empty((0, 2))
-        # Add a placeholder for no failure case
-        # no_failure_entry = np.array([["no_failure_technology", "no_failure_location"]])
-        # Append this entry to your existing array
-        # self.set_failure_technology_location = np.vstack((self.set_failure_technology_location, no_failure_entry))
 
     def calculate_edges_from_nodes(self):
         """ calculates set_nodes_on_edges from set_nodes
@@ -155,7 +150,7 @@ class EnergySystem:
         # check whether the failure technologies and locations are actually in the model
         failures = [f for f in failures if f.split('+')[0] in self.set_technologies and
                     (f.split('+')[1] in self.set_edges or f.split('+')[1] in self.set_nodes)]
-        return failures
+        return ['no_failure_technology+no_failure_location', *failures]
 
 
     def calculate_haversine_distances_from_nodes(self):
