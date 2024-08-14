@@ -389,12 +389,7 @@ class Technology(Element):
         if optimization_setup.system['load_lca_factors']:
             optimization_setup.parameters.add_parameter(name='technology_lca_factors', index_names=['set_technologies', 'set_location', 'set_lca_impact_categories', 'set_time_steps_yearly'],
                                                         doc='Parameters for the environmental impacts of each technology', calling_class=cls)
-        # if optimization_setup.system['n1_contingency']:
-        #     # failure rate
-        #     optimization_setup.parameters.add_parameter(name="failure_rate", index_names=["set_technologies", "set_location"], doc='Parameter which specifies the failure rate of each technology', calling_class=cls)
-        #     # downtime
-        #     optimization_setup.parameters.add_parameter(name="downtime", data=optimization_setup.energy_system.set_failures,
-        #                                                 doc="Set of failure states. Indexed by set_technologies", index_set="set_technologies")
+        # operation state
         if optimization_setup.system['n1_contingency']:
             optimization_setup.parameters.add_parameter(name="operation_state", index_names=["set_technologies", "set_location", "set_failures", "set_time_steps_operation"],
                                                         doc='Parameter which specifies the operation state of technology', calling_class=cls)
