@@ -362,7 +362,9 @@ class TransportTechnologyRules(GenericRule):
         ).rename({"set_technologies":"set_transport_technologies","set_location": "set_edges"})
         if self.optimization_setup.system['n1_contingency']:
             term_failure = self.parameters.operation_state.loc[techs, edges, :].rename({"set_technologies":"set_transport_technologies","set_location": "set_edges"})
-            lhs = term_capacity.where(term_failure, 0) - self.variables["flow_transport"]
+            term_capacity_failure = term_capacity.broadcast_like(term_failure) * term_failure
+            term_flow = (1*self.variables["flow_transport"]).broadcast_like(term_capacity.const)
+            lhs = term_capacity_failure - term_flow
         else:
             lhs = term_capacity - self.variables["flow_transport"].loc[techs, edges, :]
         rhs = 0

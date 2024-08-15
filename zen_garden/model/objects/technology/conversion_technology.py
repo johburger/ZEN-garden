@@ -497,8 +497,11 @@ class ConversionTechnologyRules(GenericRule):
             ).rename({"set_technologies": "set_conversion_technologies","set_location": "set_nodes"})
         if self.optimization_setup.system['n1_contingency']:
             term_failure = self.parameters.operation_state.loc[techs, nodes, :].rename({"set_technologies":"set_conversion_technologies","set_location": "set_nodes"})
-            term_capacity = term_capacity.where(term_failure, 0)
-        term_reference_flow = self.get_flow_expression_conversion(techs,nodes)
+            term_capacity = term_capacity.broadcast_like(term_failure) * term_failure
+            # term_capacity = term_capacity.where(term_failure, 0)
+            term_reference_flow = self.get_flow_expression_conversion(techs, nodes).broadcast_like(term_capacity.const)
+        else:
+            term_reference_flow = self.get_flow_expression_conversion(techs, nodes)
         lhs = term_capacity + term_reference_flow
         rhs = 0
         constraints = lhs >= rhs

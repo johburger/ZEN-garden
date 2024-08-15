@@ -288,8 +288,13 @@ class StorageTechnologyRules(GenericRule):
                 * self.variables["capacity"].loc[techs, "power", nodes, time_step_year]
         ).rename({"set_technologies": "set_storage_technologies","set_location":"set_nodes"})
         if self.optimization_setup.system['n1_contingency']:
-            term_failure = self.parameters.operation_state.loc[techs, nodes, :].rename({"set_technologies": "set_storage_technologies", "set_location": "set_edges"})
-            lhs = term_capacity.where(term_failure, 0) - self.get_flow_expression_storage(rename=False)
+            term_failure = self.parameters.operation_state.loc[techs, nodes, :].rename({"set_technologies": "set_storage_technologies", "set_location": "set_nodes"})
+            term_capacity_failure = term_capacity.broadcast_like(term_failure) * term_failure
+            term_charge = (1 * self.variables["flow_storage_charge"]).broadcast_like(term_capacity.const)
+            term_discharge = (1 * self.variables["flow_storage_discharge"]).broadcast_like(term_capacity.const)
+
+            lhs = - term_capacity_failure - term_charge + (2 * term_capacity_failure - term_discharge)
+            # lhs = term_capacity.where(term_failure, 0) - self.get_flow_expression_storage(rename=False)
         else:
             # TODO integrate level storage here as well
             lhs = term_capacity - self.get_flow_expression_storage(rename=False)
