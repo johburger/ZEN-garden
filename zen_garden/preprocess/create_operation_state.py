@@ -13,8 +13,15 @@ import os
 import json
 import numpy as np
 import pandas as pd
-#from data.01_5_nodes_07_03.system import system
+from data.nodes_7_08_02.system import system
+#from data.CH_all_nodes_2035_2055_scenarios.system import system
 
+def convert_timesteps_inverse(df, years, timesteps_per_year):
+    new_time_indices = df['sorted_set_time_steps_operation']
+    original_time_indices = (new_time_indices % timesteps_per_year) * years + (new_time_indices // timesteps_per_year)
+    df['time_operation'] = original_time_indices
+    df = df.sort_values(by='time_operation')
+    return df
 
 def calculate_haversine_distances_from_nodes(nodes):
     """
@@ -24,14 +31,16 @@ def calculate_haversine_distances_from_nodes(nodes):
     """
     set_haversine_distances_of_edges = {}
     # read coords file
-    df_coords_input = pd.read_csv('F:\GitHub\ZEN-garden_new\data/01_5_nodes_07_03\energy_system\set_nodes.csv')
+    df_coords_input = pd.read_csv('F:\GitHub\ZEN-garden_new\data/nodes_7_08_02\energy_system\set_nodes.csv')
+    #df_coords_input = pd.read_csv('F:\GitHub\ZEN-garden_new\data/CH_resilience_all_nodes\energy_system\set_nodes.csv')
     df_coords_input = df_coords_input[df_coords_input["node"].isin(nodes)]
     # convert coords from decimal degrees to radians
     df_coords_input["lon"] = df_coords_input["lon"] * np.pi / 180
     df_coords_input["lat"] = df_coords_input["lat"] * np.pi / 180
     # Radius of the Earth in kilometers
     radius = 6371.0
-    edges = pd.read_csv('F:\GitHub\ZEN-garden_new\data/01_5_nodes_07_03\energy_system\set_edges.csv')
+    edges = pd.read_csv('F:\GitHub\ZEN-garden_new\data/nodes_7_08_02\energy_system\set_edges.csv')
+    #edges = pd.read_csv('F:\GitHub\ZEN-garden_new\data/CH_resilience_all_nodes\energy_system\set_edges.csv')
     edges = edges[(edges['node_from'].isin(nodes)) & (edges['node_to'].isin(nodes))].reset_index(drop=True)
     edge_dict = {f"{row['node_from']}-{row['node_to']}": (row['node_from'], row['node_to']) for _, row in edges.iterrows()}
     for edge, nodes in edge_dict.items():
@@ -51,7 +60,7 @@ def calculate_haversine_distances_from_nodes(nodes):
                                         set_haversine_distances_of_edges.items()}
     return set_haversine_distances_of_edges
 
-def simulate_operation(tech_type, locs, nodes, failure_rate_offset = 0.1):
+def simulate_operation(tech_type, locs, nodes, failure_rate_offset = 0.01):
     """
     Simulate the state of the system over one timestep.
 
@@ -66,22 +75,25 @@ def simulate_operation(tech_type, locs, nodes, failure_rate_offset = 0.1):
     - array: Updated state of the system represented as a numpy array.
     - downtime_counters: Updated array of remaining downtimes for each technology.
     """
-    #test = system['set_nodes']
+
     locs = locs[(locs['node_from'].isin(nodes)) & (locs['node_to'].isin(nodes))].reset_index(drop=True)
     locs = locs.drop(columns=['node_from', 'node_to'])
-    times = list(range(0, 3649))
+    times = list(range(system['unaggregated_time_steps_per_year'] * system['optimized_years']))
 
-    fraction_of_year = 365 / 8760
+    fraction_of_year = system['unaggregated_time_steps_per_year'] / 8760
 
     operation = pd.DataFrame(data=[[1] * len(locs)], columns=locs['edge'])
     downtime_counters = np.zeros(len(locs), dtype=int)
 
-    path = f'F:\GitHub\ZEN-garden_new\data/01_5_nodes_07_03\set_technologies\set_transport_technologies/{tech_type}/attributes.json'
+    path = f'F:\GitHub\ZEN-garden_new\data/nodes_7_08_02\set_technologies\set_transport_technologies/{tech_type}/attributes.json'
+    #path = f'F:\GitHub\ZEN-garden_new\data/CH_resilience_all_nodes\set_technologies\set_transport_technologies/{tech_type}/attributes.json'
     with open(path, 'r') as file:
         data = json.load(file)
         failure_rate = data.get('failure_rate', {}).get('default_value')
         downtime = data.get('downtime', {}).get('default_value') * fraction_of_year
-    distance = pd.read_csv(f'F:/GitHub/ZEN-garden_new/data/01_5_nodes_07_03/set_technologies/set_transport_technologies/{tech_type}/distance.csv')
+    distance = pd.read_csv(f'F:/GitHub/ZEN-garden_new/data/nodes_7_08_02/set_technologies/set_transport_technologies/{tech_type}/distance.csv')
+    #distance = pd.read_csv(
+        #f'F:/GitHub/ZEN-garden_new/data/CH_resilience_all_nodes/set_technologies/set_transport_technologies/{tech_type}/distance.csv')
     distance = distance[distance['edge'].isin(locs['edge'])]
 
     # Calculate the haversine distances and add missing edges to the DataFrame
@@ -91,7 +103,7 @@ def simulate_operation(tech_type, locs, nodes, failure_rate_offset = 0.1):
 
     distance = pd.concat([distance, missing_distances], ignore_index=True)
 
-    failure_probabilities = distance['distance'].multiply(failure_rate * fraction_of_year) + failure_rate_offset
+    failure_probabilities = distance['distance'].multiply(failure_rate / fraction_of_year / 8760) + failure_rate_offset
     failure_probabilities.index = distance['edge']
 
     # TODO keine Failures back to back zulassen
@@ -117,29 +129,34 @@ def simulate_operation(tech_type, locs, nodes, failure_rate_offset = 0.1):
         #operation = np.vstack([operation, new_row])
         operation = pd.concat([operation, pd.DataFrame([new_row], columns=locs['edge'])], ignore_index=True)
 
-    #TODO als csv speichern
+    sorted_operation = operation.reset_index().rename(columns={'index': 'sorted_set_time_steps_operation'})
+    sorted_operation = convert_timesteps_inverse(sorted_operation, years=system['optimized_years'], timesteps_per_year=system['unaggregated_time_steps_per_year'])
+    sorted_operation = sorted_operation.drop(columns='sorted_set_time_steps_operation').set_index('time_operation')
+    sorted_operation_series = sorted_operation.T.stack()
+    sorted_operation_series.index.names = ['edge', 'time']
+
     operation_series = operation.T.stack()
     operation_series.index.names = ['edge', 'time']
 
-    return operation_series
+    return sorted_operation_series
 
-locs = pd.read_csv('F:/GitHub/ZEN-garden_new/data/01_5_nodes_07_03/energy_system/set_edges.csv')
-nodes = [
-    'waste_278_CH',
-    'waste_410_CH',
-    'cement_179_CH',
-    'cement_178_CH',
-    'basel_export_CH'
-]
+locs = pd.read_csv('F:/GitHub/ZEN-garden_new/data/nodes_7_08_02/energy_system/set_edges.csv')
+#locs = pd.read_csv('F:/GitHub/ZEN-garden_new/data/CH_resilience_all_nodes/energy_system/set_edges.csv')
+nodes = system['set_nodes']
+#nodes = pd.read_csv('F:/GitHub/ZEN-garden_new/data/CH_resilience_all_nodes/energy_system/set_nodes.csv')['node']
+techs = system['set_transport_technologies']
 
-for i in range(2):
-    operation_series_truck = simulate_operation('truck', locs, nodes)
-    operation_series_truck.to_csv(f'F:/GitHub/ZEN-garden_new/data/01_5_nodes_07_03/set_technologies/set_transport_technologies/truck/operation_state_{i}.csv')
-    operation_series_pipeline = simulate_operation('pipeline_lin', locs, nodes)
-    operation_series_pipeline.to_csv(f'F:/GitHub/ZEN-garden_new/data/01_5_nodes_07_03/set_technologies/set_transport_technologies/pipeline_lin/operation_state_{i}.csv')
-
-#operation_series_truck = simulate_operation('truck')
-#operation_series_truck.to_csv('F:/GitHub/ZEN-garden_new/data/operation_state/operation_state.csv')
-
-#operation_series_pipeline = simulate_operation('pipeline_lin')
-#operation_series_pipeline.to_csv('F:/GitHub/ZEN-garden_new/data/operation_state/operation_state_pipeline.csv')
+#operation_series_truck = simulate_operation('truck', locs, nodes)
+#operation_series_truck.to_csv('F:/GitHub/ZEN-garden_new/data/nodes_7_08_02/set_technologies/set_transport_technologies/truck/operation_state_hannes.csv')
+#operation_series_pipeline = simulate_operation('pipeline_lin', locs, nodes)
+#operation_series_pipeline.to_csv('F:/GitHub/ZEN-garden_new/data/nodes_7_08_02/set_technologies/set_transport_technologies/pipeline_lin/operation_state_hannes.csv')
+for tech in techs:
+    #operation_series = simulate_operation(tech, locs, nodes)
+    #operation_series.to_csv(
+        #f'F:/GitHub/ZEN-garden_new/data/CH_resilience_all_nodes/set_technologies/set_transport_technologies/{tech}/operation_state_0.csv')
+    #print(f'{tech} done')
+    for i in range(1):
+        operation_series = simulate_operation(tech, locs, nodes)
+        #operation_series.to_csv(f'F:/GitHub/ZEN-garden_new/data/CH_all_nodes_2035_2055_scenarios/set_technologies/set_transport_technologies/{tech}/operation_state_0.csv')
+        operation_series.to_csv(f'F:/GitHub/ZEN-garden_new/data/nodes_7_08_02/set_technologies/set_transport_technologies/{tech}/operation_state_0.csv')
+    print(f'{tech} done')
