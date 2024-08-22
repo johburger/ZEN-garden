@@ -557,43 +557,11 @@ class TransportTechnologyRules(GenericRule):
 
     def constraint_no_flow_transport(self):
 
-        def convert_timesteps(df, years, timesteps_per_year):
-            """Convert the time indices of a DataFrame that are indexed with 'set_time_steps_operation' to a new
-            chronological order based on years and timesteps per year
-
-            Parameters
-            ----------
-            df : pd.DataFrame
-                DataFrame containing the original time indices
-            years : int
-                Number of years in the optimization horizon
-            timesteps_per_year : int
-                Number of time steps per year
-
-            Returns
-            -------
-            pd.DataFrame
-                DataFrame with and additional column containing the new time indices
-            """
-
-            # Extract the original time indices
-            time_indices = df['set_time_steps_operation']
-            # Convert to new time indices that reflect the chronological order
-            new_time_indices = (time_indices // years) + (time_indices % years) * timesteps_per_year
-            # Assign the new time indices to a new column
-            df['sorted_set_time_steps_operation'] = new_time_indices
-            # Sort the DataFrame based on the new time indices
-            df = df.sort_values(by='sorted_set_time_steps_operation')
-            return df
-
         ### index sets
         index_values, index_names = Element.create_custom_set(
             ["set_transport_technologies", "set_edges", "set_time_steps_operation"],
             self.optimization_setup)
         index = ZenIndex(index_values, index_names)
-
-        years = self.system["optimized_years"]
-        time_steps_per_year = self.system["unaggregated_time_steps_per_year"]
 
         constraints = {}
         for tech in index.get_unique(["set_transport_technologies"]):
@@ -607,39 +575,12 @@ class TransportTechnologyRules(GenericRule):
                 {'set_time_steps_yearly': times}).rename({"set_time_steps_yearly": "set_time_steps_operation", "set_location": "set_edges"})
             term_flow = self.variables["flow_transport"].loc[tech, :, times]
 
-            df_cap_limit = term_capacity_limit.to_dataframe(name='capacity_limit').reset_index()
-            sorted_cap_limit = convert_timesteps(df_cap_limit, years=years, timesteps_per_year=time_steps_per_year)
-
-            # Set the index for the sorted DataFrame for alignment
-            sorted_cap_limit.set_index(['set_edges', 'sorted_set_time_steps_operation'], inplace=True)
-
             operation = self.parameters.operation_state_array.loc[tech, :, :]
 
-            # Align the DataFrame and DataArray for multiplication
-            operation_df = operation.to_dataframe(name='operation_state').reset_index()
-            operation_df['set_edges'] = operation_df['set_edges'].astype(str)  # Ensure matching types for merge
-            # Merge DataFrames on matching columns
-            sorted_cap_limit = pd.merge(sorted_cap_limit.reset_index(), operation_df,
-                                 left_on=['set_edges', 'sorted_set_time_steps_operation'],
-                                 right_on=['set_edges', 'set_time_steps_operation'])
+            cap_limit = operation * term_capacity_limit
 
-            sorted_cap_limit['result'] = sorted_cap_limit['capacity_limit'] * sorted_cap_limit['operation_state']
-            sorted_cap_limit = sorted_cap_limit.drop(columns=['sorted_set_time_steps_operation', 'operation_state',
-                                                              'capacity_limit', 'set_transport_technologies',
-                                                              'set_time_steps_operation_y'])
-            sorted_cap_limit = sorted_cap_limit.rename(columns={'set_time_steps_operation_x': 'set_time_steps_operation',
-                                                                'result': 'capacity_limit'})
-            sorted_cap_limit.set_index(['set_technologies', 'set_capacity_types', 'set_edges', 'set_time_steps_operation'], inplace=True)
-            sorted_cap_limit = sorted_cap_limit.to_xarray()
-            sorted_cap_limit = sorted_cap_limit.capacity_limit.loc[tech, 'power', :, :]
-            sorted_cap_limit.name = None
             lhs = term_flow
-            rhs = sorted_cap_limit
+            rhs = cap_limit
             constraints[tech] = lhs <= rhs
-
-            # idea: Currently, the failures change each run and thus also the resulting resilient system.
-            #   Consequently, the results have to be run multiple times in a Monte-carlo style simulation.
-            #   This can also be done by computing the failure times before the optimization and giving them as input.
-            #   The failure computation can then be done in a Monte-Carlo style simulation outside the optimization.
 
         self.constraints.add_constraint("constraint_no_flow_transport", constraints)
