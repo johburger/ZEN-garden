@@ -31,26 +31,31 @@ from ..utils import ScenarioDict, IISConstraintParser, StringUtils
 
 
 class OptimizationSetup(object):
-    """setup optimization setup """
+    """ Class defining the optimization model.
+    The class takes as inputs the properties of the optimization problem. The properties are saved in the
+    dictionaries analysis and system which are passed to the class. After initializing the model, the
+    class adds carriers and technologies to the model and returns it.
+    The class also includes a method to solve the optimization problem.
+    """
     # dict of element classes, this dict is filled in the __init__ of the package
     dict_element_classes = {}
 
     def __init__(self, config, scenario_dict: dict, input_data_checks):
-        """setup Pyomo Concrete Model
+        """setup optimization setup of the energy system
 
         :param config: config object used to extract the analysis, system and solver dictionaries
         :param scenario_dict: dictionary defining the scenario
         :param input_data_checks: input data checks object
         """
-        self.analysis = config.analysis
-        self.system = config.system
-        self.solver = config.solver
+        self.analysis = copy.deepcopy(config.analysis)
+        self.system = copy.deepcopy(config.system)
+        self.solver = copy.deepcopy(config.solver)
         self.input_data_checks = input_data_checks
         self.input_data_checks.optimization_setup = self
         # create a dictionary with the paths to access the model inputs and check if input data exists
         self.create_paths()
         # dict to update elements according to scenario
-        self.scenario_dict = ScenarioDict(scenario_dict, config, self.paths)
+        self.scenario_dict = ScenarioDict(scenario_dict, self, self.paths)
         # check if all needed data inputs for the chosen technologies exist and remove non-existent
         self.input_data_checks.check_existing_technology_data()
         # empty dict of elements (will be filled with class_name: instance_list)
@@ -62,7 +67,6 @@ class OptimizationSetup(object):
         self.parameters = None
         self.constraints = None
         self.sets = None
-
 
         # sorted list of class names
         element_classes = self.dict_element_classes.keys()
@@ -429,11 +433,11 @@ class OptimizationSetup(object):
         """ returns list of optimization horizon steps """
         # if using rolling horizon
         if self.system.use_rolling_horizon:
-            assert self.system.years_in_rolling_horizon >= self.system.interval_between_optimizations, f"There must be more years in the rolling horizon than the interval between optimizations. years_in_rolling_horizon ({self.system.years_in_rolling_horizon}) < interval_between_optimizations ({self.system.interval_between_optimizations})"
+            assert self.system.years_in_rolling_horizon >= self.system.years_in_decision_horizon, f"There must be at least the same number of years in the rolling horizon as the decision horizon. years_in_rolling_horizon ({self.system.years_in_rolling_horizon}) < years_in_decision_horizon ({self.system.years_in_decision_horizon})"
             self.years_in_horizon = self.system.years_in_rolling_horizon
             time_steps_yearly = self.energy_system.set_time_steps_yearly
-            # skip interval_between_optimizations years
-            self.optimized_time_steps = [year for year in time_steps_yearly if (year % self.system.interval_between_optimizations == 0 or year == time_steps_yearly[-1])]
+            # skip years_in_decision_horizon years
+            self.optimized_time_steps = [year for year in time_steps_yearly if (year % self.system.years_in_decision_horizon == 0 or year == time_steps_yearly[-1])]
             self.steps_horizon = {year: list(range(year, min(year + self.years_in_horizon, max(time_steps_yearly) + 1))) for year in self.optimized_time_steps}
         # if no rolling horizon
         else:

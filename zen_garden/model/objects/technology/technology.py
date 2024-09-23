@@ -321,19 +321,19 @@ class Technology(Element):
 
         # conversion technologies
         optimization_setup.sets.add_set(name="set_conversion_technologies", data=energy_system.set_conversion_technologies,
-                                        doc="Set of conversion technologies. Indexed by set_technologies")
+                                        doc="Set of conversion technologies")
         # retrofitting technologies
         optimization_setup.sets.add_set(name="set_retrofitting_technologies", data=energy_system.set_retrofitting_technologies,
-                                        doc="Set of retrofitting technologies. Indexed by set_conversion_technologies")
+                                        doc="Set of retrofitting technologies")
         # transport technologies
         optimization_setup.sets.add_set(name="set_transport_technologies", data=energy_system.set_transport_technologies,
-                                        doc="Set of transport technologies. Indexed by set_technologies")
+                                        doc="Set of transport technologies")
         # storage technologies
         optimization_setup.sets.add_set(name="set_storage_technologies", data=energy_system.set_storage_technologies,
-                                        doc="Set of storage technologies. Indexed by set_technologies")
+                                        doc="Set of storage technologies")
         # existing installed technologies
         optimization_setup.sets.add_set(name="set_technologies_existing", data=optimization_setup.get_attribute_of_all_elements(cls, "set_technologies_existing"),
-                                        doc="Set of existing technologies. Indexed by set_technologies",
+                                        doc="Set of existing technologies",
                                         index_set="set_technologies")
         # reference carriers
         optimization_setup.sets.add_set(name="set_reference_carriers", data=optimization_setup.get_attribute_of_all_elements(cls, "reference_carrier"),
@@ -471,7 +471,7 @@ class Technology(Element):
         variables.add_variable(model, name="cost_opex_total", index_sets=sets["set_time_steps_yearly"],
             bounds=(0,np.inf), doc="total opex all technologies and locations in year y", unit_category={"money": 1})
         # yearly opex
-        variables.add_variable(model, name="opex_yearly", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_yearly"], optimization_setup),
+        variables.add_variable(model, name="cost_opex_yearly", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_yearly"], optimization_setup),
             bounds=(0,np.inf), doc="yearly opex for operating technology at location l and year y", unit_category={"money": 1})
         # opex and carbon emissions
         if optimization_setup.system['n1_contingency']:
@@ -570,7 +570,7 @@ class Technology(Element):
         rules.constraint_cost_capex_total()
 
         # yearly opex
-        rules.constraint_opex_yearly()
+        rules.constraint_cost_opex_yearly()
 
         # total opex of all technologies
         rules.constraint_cost_opex_total()
@@ -753,7 +753,7 @@ class TechnologyRules(GenericRule):
             OPEX_y = \sum_{h\in\mathcal{H}}\sum_{p\in\mathcal{P}} OPEX_{h,p,y}
 
         """
-        lhs = self.variables["cost_opex_total"] - self.variables["opex_yearly"].sum(["set_technologies","set_location"])
+        lhs = self.variables["cost_opex_total"] - self.variables["cost_opex_yearly"].sum(["set_technologies","set_location"])
         rhs = 0
         constraints = lhs == rhs
 
@@ -888,7 +888,7 @@ class TechnologyRules(GenericRule):
 
         # get investment time step
         investment_time = pd.Series(
-            {(t, y,Technology.get_investment_time_step(self.optimization_setup, t, y)): 1 for t, y in itertools.product(self.sets["set_technologies"], self.sets["set_time_steps_yearly"])})
+            {(t, y, Technology.get_investment_time_step(self.optimization_setup, t, y)): 1 for t, y in itertools.product(self.sets["set_technologies"], self.sets["set_time_steps_yearly"])})
         investment_time.index.names = ["set_technologies", "set_time_steps_yearly","set_time_steps_construction"]
 
         # select masks
@@ -1114,7 +1114,7 @@ class TechnologyRules(GenericRule):
         ### return
         self.constraints.add_constraint("constraint_capex_yearly",constraints)
 
-    def constraint_opex_yearly(self):
+    def constraint_cost_opex_yearly(self):
         """ yearly opex for a technology at a location in each year
 
         .. math::
@@ -1138,12 +1138,12 @@ class TechnologyRules(GenericRule):
         else:
             term_opex_variable = (self.variables["cost_opex"] * times).sum("set_time_steps_operation")
         term_opex_fixed = (self.parameters.opex_specific_fixed * self.variables["capacity"]).sum("set_capacity_types")
-        lhs = self.variables["opex_yearly"] - term_opex_variable - term_opex_fixed
+        lhs = self.variables["cost_opex_yearly"] - term_opex_variable - term_opex_fixed
         rhs = 0
         constraints = lhs == rhs
 
         ### return
-        self.constraints.add_constraint("constraint_opex_yearly",constraints)
+        self.constraints.add_constraint("constraint_cost_opex_yearly",constraints)
 
     def constraint_carbon_emissions_technology_total(self):
         """ calculate total carbon emissions of each technology

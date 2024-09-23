@@ -149,7 +149,8 @@ class Results:
             hours_of_year = list(
                 range(year * _total_hours_per_year, (year + 1) * _total_hours_per_year)
             )
-
+            if output_df.empty:
+                return pd.DataFrame(index=[],columns=hours_of_year)
             output_df = output_df[hours_of_year]
         return output_df
 
@@ -382,16 +383,16 @@ class Results:
 
     def get_dual(
         self,
-        constraint: str,
+        component_name: str,
         scenario_name: Optional[str] = None,
         element_name: Optional[str] = None,
         year: Optional[int] = None,
         discount_to_first_step: bool = True,
         keep_raw: Optional[bool] = False,
     ) -> Optional["pd.DataFrame | pd.Series[Any]"]:
-        """extracts the dual variables of a constraint
+        """extracts the dual variables of a component
 
-        :param constraint: Name of dal
+        :param component: Name of dal
         :param scenario_name: Scenario Name
         :param element_name: Name of Element
         :param year: Year
@@ -402,20 +403,20 @@ class Results:
             logging.warning("Duals are not calculated. Skip.")
             return None
 
-        component = self.solution_loader.components[constraint]
+        component = self.solution_loader.components[component_name]
         assert (
             component.component_type is ComponentType.dual
-        ), "Given constraint name is not of type Dual."
+        ), f"Given component {component} is not of type Dual."
 
-        _duals = self.get_full_ts(
-            component_name=constraint,
+        duals = self.get_full_ts(
+            component_name=component_name,
             scenario_name=scenario_name,
             element_name=element_name,
             year=year,
             discount_to_first_step=discount_to_first_step,
             keep_raw=keep_raw,
         )
-        return _duals
+        return duals
 
     def get_unit(
         self,
@@ -640,7 +641,8 @@ class Results:
                 transport_loss = self.get_full_ts(
                     "flow_transport_loss", scenario_name=scenario_name, year=year
                 )
-
+                if full_ts.empty or transport_loss.empty:
+                    continue
                 full_ts = self.edit_carrier_flows(
                     full_ts - transport_loss, node, "in", scenario_name
                 )
@@ -648,11 +650,18 @@ class Results:
                 full_ts = self.get_full_ts(
                     "flow_transport", scenario_name=scenario_name, year=year
                 )
+                if full_ts.empty:
+                    continue
                 full_ts = self.edit_carrier_flows(full_ts, node, "out", scenario_name)
             else:
-                full_ts = self.get_full_ts(
-                    component, scenario_name=scenario_name, year=year
-                )
+                try:
+                    full_ts = self.get_full_ts(
+                        component, scenario_name=scenario_name, year=year
+                    )
+                    if full_ts.empty:
+                        continue
+                except KeyError:
+                    continue
             carrier_df = self.extract_carrier(full_ts, carrier, scenario_name)
             if carrier_df is not None:
                 if "node" in carrier_df.index.names:
@@ -661,6 +670,14 @@ class Results:
 
         return ans
 
+    def get_component_names(self, component_type:str) -> list[str]:
+        """ Returns the names of all components of a given type
+
+        :param component_type: Type of the component
+        :return: List of component names
+        """
+        assert component_type in ComponentType.get_component_type_names(), f"Invalid component type: {component_type}. Valid types are: {ComponentType.get_component_type_names()}"
+        return [component for component in self.solution_loader.components if self.solution_loader.components[component].component_type.name == component_type]
 
 if __name__ == "__main__":
     try:
@@ -670,7 +687,7 @@ if __name__ == "__main__":
         config = module.config
     except FileNotFoundError:
         with open("config.json") as f:
-            config = Config(json.load(f))
+            config = Config(**json.load(f))
 
     model_name = os.path.basename(config.analysis["dataset"])
     if os.path.exists(
