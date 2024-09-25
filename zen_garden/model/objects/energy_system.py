@@ -131,7 +131,8 @@ class EnergySystem:
         # LCA impact categories
         self.set_lca_impact_categories = self.system['set_lca_impact_categories']
         # failure state: technology and location
-        self.set_failures = self.fetch_set_failures()
+        if self.system['n1_contingency']:
+            self.set_failures = self.fetch_set_failures()
 
     def calculate_edges_from_nodes(self):
         """ calculates set_nodes_on_edges from set_nodes
