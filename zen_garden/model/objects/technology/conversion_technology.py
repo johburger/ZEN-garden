@@ -274,7 +274,6 @@ class ConversionTechnology(Technology):
             # get the sets
             if optimization_setup.system['n1_contingency']:
                 technology_set, carrier_set, node_set, failure_set, timestep_set = [sets[name] for name in index_names]
-
                 for tech in technology_set:
                     for state in failure_set:
                         for carrier in carrier_set[tech]:
@@ -290,22 +289,21 @@ class ConversionTechnology(Technology):
 
             else:
                 technology_set, carrier_set, node_set, timestep_set = [sets[name] for name in index_names]
+                for tech in technology_set:
+                    for carrier in carrier_set[tech]:
+                        time_step_year = [energy_system.time_steps.convert_time_step_operation2year(t) for t in timestep_set]
+                        if carrier == sets["set_reference_carriers"][tech][0]:
+                            conversion_factor_lower = 1
+                            conversion_factor_upper = 1
+                        else:
+                            conversion_factor_lower = params.conversion_factor.loc[tech, carrier, node_set].min().data
+                            conversion_factor_upper = params.conversion_factor.loc[tech, carrier, node_set].max().data
+                            if 0 in conversion_factor_upper:
+                                _rounding_tsa = optimization_setup.solver.rounding_decimal_points_tsa
+                                raise ValueError(f"Maximum conversion factor of {tech} for carrier {carrier} is 0.\nOne reason might be that the conversion factor is too small (1e-{_rounding_tsa}), so that it is rounded to 0 after the time series aggregation.")
 
-            for tech in technology_set:
-                for carrier in carrier_set[tech]:
-                    time_step_year = [energy_system.time_steps.convert_time_step_operation2year(t) for t in timestep_set]
-                    if carrier == sets["set_reference_carriers"][tech][0]:
-                        conversion_factor_lower = 1
-                        conversion_factor_upper = 1
-                    else:
-                        conversion_factor_lower = params.conversion_factor.loc[tech, carrier, node_set].min().data
-                        conversion_factor_upper = params.conversion_factor.loc[tech, carrier, node_set].max().data
-                        if 0 in conversion_factor_upper:
-                            _rounding_tsa = optimization_setup.solver.rounding_decimal_points_tsa
-                            raise ValueError(f"Maximum conversion factor of {tech} for carrier {carrier} is 0.\nOne reason might be that the conversion factor is too small (1e-{_rounding_tsa}), so that it is rounded to 0 after the time series aggregation.")
-
-                        lower.loc[tech, carrier, ...] = model.variables["capacity"].lower.loc[tech, "power", node_set, time_step_year].data * conversion_factor_lower
-                        upper.loc[tech, carrier, ...] = model.variables["capacity"].upper.loc[tech, "power", node_set, time_step_year].data * conversion_factor_upper
+                            lower.loc[tech, carrier, ...] = model.variables["capacity"].lower.loc[tech, "power", node_set, time_step_year].data * conversion_factor_lower
+                            upper.loc[tech, carrier, ...] = model.variables["capacity"].upper.loc[tech, "power", node_set, time_step_year].data * conversion_factor_upper
 
             # make sure lower is never below 0
             return (lower, upper)
