@@ -23,6 +23,7 @@ from numpy import string_
 from copy import deepcopy
 from pathlib import Path
 
+
 def setup_logger(level=logging.INFO):
     """ set up logger
 
@@ -30,6 +31,7 @@ def setup_logger(level=logging.INFO):
     """
     logging.basicConfig(stream=sys.stdout, level=level,format="%(message)s",datefmt='%Y-%m-%d %H:%M:%S')
     logging.captureWarnings(True)
+
 
 def get_inheritors(klass):
     """
@@ -48,6 +50,7 @@ def get_inheritors(klass):
                 subclasses.add(child)
                 work.append(child)
     return subclasses
+
 
 def copy_dataset_example(example):
     """ copies a dataset example to the current working directory
@@ -113,10 +116,11 @@ def copy_dataset_example(example):
     if not notebook_found:
         logging.warning("Example jupyter notebook could not be downloaded from the dataset examples!")
     logging.info(f"Example dataset {example} downloaded to {local_example_path}")
-    return local_example_path,os.path.join(local_dataset_path, "config.json")
+    return local_example_path, os.path.join(local_dataset_path, "config.json")
 
 # This functionality is for the IIS constraints
 # ---------------------------------------------
+
 
 class IISConstraintParser(object):
     """
@@ -144,7 +148,7 @@ class IISConstraintParser(object):
         # write gurobi IIS to file
         self.write_gurobi_iis()
         # get the labels
-        self.constraint_labels,self.var_labels, self.var_lines = self.read_labels()
+        self.constraint_labels, self.var_labels, self.var_lines = self.read_labels()
         # enable logger again
         logging.disable(logging.NOTSET)
 
@@ -316,7 +320,7 @@ class ScenarioDict(dict):
     """
 
     _param_dict_keys = {"file", "file_op", "default", "default_op"}
-    _special_elements = ["system", "analysis","solver", "base_scenario", "sub_folder", "param_map"]
+    _special_elements = ["system", "analysis", "solver", "base_scenario", "sub_folder", "param_map"]
 
     def __init__(self, init_dict, optimization_setup, paths):
         """Initializes the dictionary from a normal dictionary
@@ -565,6 +569,7 @@ class ScenarioDict(dict):
             default_f_name = param_dict.get("default", default_f_name)
             default_f_name = self.validate_file_name(default_f_name)
             default_factor = param_dict.get("default_op", default_factor)
+            self._check_if_numeric_default_factor(default_factor,element=element,param=param,default_f_name=default_f_name,op_type="default_op")
 
         return default_f_name, default_factor
 
@@ -586,9 +591,17 @@ class ScenarioDict(dict):
             default_f_name = param_dict.get("file", default_f_name)
             default_f_name = self.validate_file_name(default_f_name)
             default_factor = param_dict.get("file_op", default_factor)
+            self._check_if_numeric_default_factor(default_factor,element=element,param=param,default_f_name=default_f_name,op_type="file_op")
 
         return default_f_name, default_factor
 
+    def _check_if_numeric_default_factor(self, default_factor,element,param,default_f_name,op_type):
+        """Check if the default factor is numeric
+
+        :param default_factor: The default factor to check
+        """
+        if not isinstance(default_factor, (int, float)):
+            raise ValueError(f"Default factor {default_factor} of type {type(default_factor)} in {op_type} ({element} -> {param} -> {default_f_name}) is not numeric!")
 
 # linopy helpers
 # --------------
@@ -610,28 +623,32 @@ def lp_sum(exprs, dim='_term'):
     # normal sum
     return lp.expressions.merge(exprs, dim=dim)
 
-def align_like(da, other,fillna=0.0,astype=None):
+
+def align_like(da, other, fillna=0.0, astype=None):
     """Aligns a data array like another data array
 
     :param da: The data array to align
     :param other: The data array to align to
+    :param fillna: The value to fill na values with
+    :param astype: The type to cast the data array to
     :return: The aligned data array
     """
-    if isinstance(other,lp.Variable):
+    if isinstance(other, lp.Variable):
         other = other.lower
-    elif isinstance(other,lp.LinearExpression):
+    elif isinstance(other, lp.LinearExpression):
         other = other.const
-    elif isinstance(other,xr.DataArray):
+    elif isinstance(other, xr.DataArray):
         other = other
     else:
         raise TypeError(f"other must be a Variable, LinearExpression or DataArray, not {type(other)}")
-    da = xr.align(da, other,join="right")[0]
+    da = xr.align(da, other, join="right")[0]
     da = da.broadcast_like(other)
     if fillna is not None:
         da = da.fillna(fillna)
     if astype is not None:
         da = da.astype(astype)
     return da
+
 
 def linexpr_from_tuple_np(tuples, coords, model):
     """Transforms tuples of (coeff, var) into a linopy linear expression, but uses numpy broadcasting
@@ -690,7 +707,7 @@ def xr_like(fill_value, dtype, other, dims):
 # This is to lazy load h5 file most of it is taken from the hdfdict package
 ###########################################################################
 
-class HDFPandasSerializer():
+class HDFPandasSerializer:
     """
     This class saves dictionaries with a pandas store as a hdf file.
     """
@@ -725,7 +742,7 @@ class HDFPandasSerializer():
                 # make a proper multi index to save memory
                 store.put(key, value)
                 store.get_storer(key).attrs.type = "pandas"
-            elif isinstance(value, (float,str,int)) or value is None:
+            elif isinstance(value, (float, str, int)) or value is None:
                 store.put(key, pd.Series([], dtype=int))
                 store.get_storer(key).attrs.value = value
                 store.get_storer(key).attrs.type = "scalar"
@@ -866,8 +883,8 @@ class InputDataChecks:
         """
         dataset = os.path.basename(self.analysis.dataset)
         dirname = os.path.dirname(self.analysis.dataset)
-        assert os.path.exists(dirname),f"Requested folder {dirname} is not a valid path"
-        assert os.path.exists(self.analysis.dataset),f"The chosen dataset {dataset} does not exist at {self.analysis.dataset} as it is specified in the config"
+        assert os.path.exists(dirname), f"Requested folder {dirname} is not a valid path"
+        assert os.path.exists(self.analysis.dataset), f"The chosen dataset {dataset} does not exist at {self.analysis.dataset} as it is specified in the config"
         # check if any character in the dataset name is prohibited
         for char in self.PROHIBITED_DATASET_CHARACTERS:
             if char in dataset:
@@ -954,6 +971,7 @@ class InputDataChecks:
             system = module.system
         config.system.update(system)
 
+
 class StringUtils:
     """
     This class handles some strings for logging and filenames to tidy up scripts
@@ -963,7 +981,7 @@ class StringUtils:
         pass
 
     @classmethod
-    def print_optimization_progress(cls,scenario, steps_horizon,step,system):
+    def print_optimization_progress(cls, scenario, steps_horizon, step, system):
         """ prints the current optimization progress
 
         :param scenario: string of scenario name
@@ -980,7 +998,7 @@ class StringUtils:
                 f"\n--- Conduct optimization for rolling horizon step for {corresponding_year} ({steps_horizon.index(step) + 1} of {len(steps_horizon)}) {scenario_string}--- \n")
 
     @classmethod
-    def generate_folder_path(cls,config,scenario,scenario_dict,steps_horizon, step):
+    def generate_folder_path(cls, config, scenario, scenario_dict, steps_horizon, step):
         """ generates the folder path for the results
 
         :param config: config of optimization
@@ -1018,10 +1036,10 @@ class StringUtils:
             else:
                 subfolder = Path(mf_f_string)
 
-        return scenario_name,subfolder,param_map
+        return scenario_name, subfolder, param_map
 
     @classmethod
-    def setup_model_folder(cls,analysis,system):
+    def setup_model_folder(cls, analysis, system):
         """return model name while conducting some tests
 
         :param analysis: analysis of optimization
@@ -1030,11 +1048,11 @@ class StringUtils:
         :return: output folder
         """
         model_name = os.path.basename(analysis.dataset)
-        out_folder = cls.setup_output_folder(analysis,system)
-        return model_name,out_folder
+        out_folder = cls.setup_output_folder(analysis, system)
+        return model_name, out_folder
 
     @classmethod
-    def setup_output_folder(cls,analysis,system):
+    def setup_output_folder(cls, analysis, system):
         """return model name while conducting some tests
 
         :param analysis: analysis of optimization
@@ -1042,7 +1060,10 @@ class StringUtils:
         :return: output folder
         """
         if not os.path.exists(analysis.folder_output):
-            os.mkdir(analysis.folder_output)
+            try:
+                os.mkdir(analysis.folder_output)
+            except FileExistsError:
+                pass
         out_folder = cls.get_output_folder(analysis)
         if not os.path.exists(out_folder):
             os.mkdir(out_folder)
@@ -1070,6 +1091,7 @@ class StringUtils:
         model_name = os.path.basename(analysis.dataset)
         out_folder = os.path.join(analysis.folder_output, model_name)
         return out_folder
+
 
 class ScenarioUtils:
     """
@@ -1123,7 +1145,7 @@ class ScenarioUtils:
                             os.remove(sub_folder_path)
 
     @staticmethod
-    def get_scenarios(config,job_index):
+    def get_scenarios(config, job_index):
         """ retrieves and overwrites the scenario dicts
 
         :param config: config of optimization
@@ -1172,6 +1194,7 @@ class ScenarioUtils:
             elements = [{}]
         return scenarios, elements
 
+
 class OptimizationError(RuntimeError):
     """
     Exception raised when the optimization problem is infeasible
@@ -1181,7 +1204,7 @@ class OptimizationError(RuntimeError):
         """
         Initializes the class
 
-        :param message: The message to display
+        :param status: The message to display
         """
         self.message = f"The termination condition was {status}"
         super().__init__(self.message)
