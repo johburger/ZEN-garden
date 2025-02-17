@@ -8,23 +8,27 @@
     "unit": "GW"
   },
   "energy_to_power_ratio_min": {
-    "default_value": 0,
+    "default_value": 700.0,
     "unit": "h"
   },
   "energy_to_power_ratio_max": {
-    "default_value": "inf",
+    "default_value": 700.0,
     "unit": "h"
   },
   "capacity_existing": {
     "default_value": 0.0,
     "unit": "GW"
   },
+  "flow_storage_inflow": {
+    "default_value": 0.0,
+    "unit": "GW"
+  },
   "capacity_limit": {
-    "default_value": 150,
+    "default_value": "inf",
     "unit": "GW"
   },
   "min_load": {
-    "default_value": 0.2,
+    "default_value": 0.0,
     "unit": "1"
   },
   "max_load": {
@@ -57,7 +61,7 @@
     "unit": "GW"
   },
   "opex_specific_fixed": {
-    "default_value": 0.0,
+    "default_value": 135.74,
     "unit": "kiloEuro/GW"
   },
   "max_diffusion_rate": {
@@ -65,11 +69,11 @@
     "unit": "1"
   },
   "efficiency_charge": {
-    "default_value": 0.97,
+    "default_value": 0.9746794344808963,
     "unit": "1"
   },
   "efficiency_discharge": {
-    "default_value": 0.97,
+    "default_value": 0.9746794344808963,
     "unit": "1"
   },
   "self_discharge": {
@@ -77,7 +81,7 @@
     "unit": "1"
   },
   "capex_specific_storage": {
-    "default_value": 100,
+    "default_value": 238.68,
     "unit": "Euro/kW"
   },
   "capacity_addition_min_energy": {
@@ -93,7 +97,7 @@
     "unit": "GWh"
   },
   "capacity_limit_energy": {
-    "default_value": 150,
+    "default_value": "inf",
     "unit": "GWh"
   },
   "min_load_energy": {
@@ -109,18 +113,14 @@
     "unit": "GWh"
   },
   "opex_specific_fixed_energy": {
-    "default_value": 0.0,
-    "unit": "kiloEuro/GWh"
+    "default_value": 55.54,
+    "unit": "Euro/MWh"
   },
   "capex_specific_storage_energy": {
-    "default_value": 100,
+    "default_value": 3.43,
     "unit": "Euro/kWh"
   },
   "capacity_addition_unbounded": {
-    "default_value": 0.0,
-    "unit": "GW"
-  },
-  "flow_storage_inflow": {
     "default_value": 0.0,
     "unit": "GW"
   }
