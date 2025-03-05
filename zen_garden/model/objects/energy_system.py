@@ -73,6 +73,7 @@ class EnergySystem:
         self.set_nodes_on_edges = self.calculate_edges_from_nodes()
         self.set_edges = list(self.set_nodes_on_edges.keys())
         self.set_haversine_distances_edges = self.calculate_haversine_distances_from_nodes()
+        self.area_of_nodes = self.data_input.extract_input_data("area_of_nodes", index_sets=['set_nodes'], unit_category={'distance': 2})
         self.set_technologies = self.system.set_technologies
         # base time steps
         self.set_base_time_steps = list(range(0, self.system.unaggregated_time_steps_per_year * self.system.optimized_years))
@@ -236,6 +237,8 @@ class EnergySystem:
         parameters.add_parameter(name="time_steps_storage_duration", set_time_steps="set_time_steps_storage", doc="Parameter which specifies the duration of each storage time step", calling_class=cls)
         # discount rate
         parameters.add_parameter(name="discount_rate", doc='Parameter which specifies the discount rate of the energy system', calling_class=cls)
+        # area requirements of nodes
+        parameters.add_parameter(name="area_of_nodes", doc="Parameter which specifies the area requirements of nodes", calling_class=cls)
         # carbon emissions limit
         parameters.add_parameter(name="carbon_emissions_annual_limit", set_time_steps="set_time_steps_yearly", doc='Parameter which specifies the total limit on carbon emissions', calling_class=cls)
         # carbon emissions budget
