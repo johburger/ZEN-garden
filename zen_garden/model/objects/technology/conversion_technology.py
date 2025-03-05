@@ -58,7 +58,7 @@ class ConversionTechnology(Technology):
         self.get_conversion_factor()
         self.opex_specific_fixed = self.data_input.extract_input_data("opex_specific_fixed", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "time": 1})
         self.min_full_load_hours_fraction = self.data_input.extract_input_data("min_full_load_hours_fraction", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={})
-        self.area_occupation = self.data_input.extract_input_data("area_occupation", index_sets=["set_nodes"], unit_category={"distance": 2, "energy_quantity": -1, "time": 1})
+        self.area_requirement = self.data_input.extract_input_data("area_requirement", index_sets=["set_nodes"], unit_category={"distance": 2, "energy_quantity": -1, "time": 1})
         self.convert_to_fraction_of_capex()
 
     def get_conversion_factor(self):
@@ -194,7 +194,7 @@ class ConversionTechnology(Technology):
         optimization_setup.parameters.add_parameter(name="min_full_load_hours_fraction", index_names=["set_conversion_technologies", "set_nodes", "set_time_steps_yearly"],
             doc="Minimum full load hours as a fraction of the total hours per planning period", calling_class=cls)
         # area of capacity
-        optimization_setup.parameters.add_parameter(name="area_occupation", index_names=["set_conversion_technologies", "set_nodes"],
+        optimization_setup.parameters.add_parameter(name="area_requirement", index_names=["set_conversion_technologies", "set_nodes"],
             doc="Parameter which specifies the area occupation per installed capacity", calling_class=cls)
 
         # add params of the child classes
@@ -283,8 +283,8 @@ class ConversionTechnology(Technology):
         rules.constraint_carrier_conversion()
         # minimum average annual capacity factor
         rules.constraint_minimum_full_load_hours()
-        # area occupation
-        rules.constraint_area_occupation()
+        # area requirement
+        rules.constraint_area_requirement()
 
         # capex
         set_pwa_capex = cls.create_custom_set(["set_conversion_technologies", "set_capex_pwa", "set_nodes", "set_time_steps_yearly"], optimization_setup)
@@ -599,8 +599,20 @@ class ConversionTechnologyRules(GenericRule):
 
         self.constraints.add_constraint("constraint_carrier_conversion", constraints)
 
-    def constraint_area_occupation(self):
+    def constraint_area_requirement(self):
 
-        # get the mask for area occupation which is zero
-        mask = self.parameters.area_occupation == 0
+        # get the mask for area requirements which is zero
+        mask_occupation = self.parameters.area_requirement == 0
+        mask_area = self.parameters.area_of_nodes == np.inf
+        if mask_occupation.all() or mask_area.all():
+            return
 
+        techs = self.sets["set_conversion_technologies"]
+        nodes = self.sets["set_nodes"]
+        term_capacity = self.variables["capacity"].loc[techs, "power", nodes].rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"})
+        term_capacity *= self.parameters.area_requirement.broadcast_like(term_capacity.lower)
+        lhs = term_capacity.sum("set_conversion_technologies")
+        rhs = self.parameters.area_of_nodes.broadcast_like(lhs.const)
+        constraints = lhs <= rhs
+
+        self.constraints.add_constraint("constraint_area_requirement", constraints)
