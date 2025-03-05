@@ -238,7 +238,7 @@ class EnergySystem:
         # discount rate
         parameters.add_parameter(name="discount_rate", doc='Parameter which specifies the discount rate of the energy system', calling_class=cls)
         # area requirements of nodes
-        parameters.add_parameter(name="area_of_nodes", doc="Parameter which specifies the area requirements of nodes", calling_class=cls)
+        parameters.add_parameter(name="area_of_nodes", index_names=["set_nodes"], doc="Parameter which specifies the area requirements of nodes", calling_class=cls)
         # carbon emissions limit
         parameters.add_parameter(name="carbon_emissions_annual_limit", set_time_steps="set_time_steps_yearly", doc='Parameter which specifies the total limit on carbon emissions', calling_class=cls)
         # carbon emissions budget
