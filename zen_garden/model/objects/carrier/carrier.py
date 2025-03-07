@@ -414,7 +414,7 @@ class CarrierRules(GenericRule):
         """node-dependent carrier availability to export to outside the system boundaries summed over entire optimization horizon
 
         .. math::
-           a_{c,n}^\mathrm{export} \geq \\sum_{y\\in\mathcal{Y}} \\sum_{t\\in\mathcal{T_y}}\\tau_t V_{c,n,t}
+           a_{c,n}^\\mathrm{export} \\geq \\sum_{y\\in\\mathcal{Y}} \\sum_{t\\in\\mathcal{T_y}}\\tau_t V_{c,n,t}
 
         :return: constraints
         """
@@ -800,9 +800,9 @@ class CarrierRules(GenericRule):
 
         .. math::
             0 = -(d_{c,n,t}-D_{c,n,t})
-            + \\sum_{i\\in\mathcal{I}}(\\overline{G}_{c,i,n,f,t}-\\underline{G}_{c,i,n,f,t})
-            + \\sum_{j\\in\mathcal{J}}\\sum_{e\\in\\underline{\mathcal{E}}}F_{j,e,f,t}-F^\mathrm{l}_{j,e,f,t})-\\sum_{e'\\in\\overline{\mathcal{E}}}F_{j,e',f,t})
-            + \\sum_{k\\in\mathcal{K}}(\\overline{H}_{k,n,t}-\\underline{H}_{k,n,t})
+            + \\sum_{i\\in\\mathcal{I}}(\\overline{G}_{c,i,n,f,t}-\\underline{G}_{c,i,n,f,t})
+            + \\sum_{j\\in\\mathcal{J}}\\sum_{e\\in\\underline{\\mathcal{E}}}F_{j,e,f,t}-F^\\mathrm{l}_{j,e,f,t})-\\sum_{e'\\in\\overline{\\mathcal{E}}}F_{j,e',f,t})
+            + \\sum_{k\\in\\mathcal{K}}(\\overline{H}_{k,n,t}-\\underline{H}_{k,n,t})
             + U_{c,n,f,t} - V_{c,n,f,t}
 
         :return: #TODO describe parameter/return

@@ -738,9 +738,9 @@ class TechnologyRules(GenericRule):
         """limited capacity_limit of technology for super locations
 
         .. math::
-            \mathrm{if\ existing\ capacities\ < capacity\ limit}\ s^\mathrm{max}_{h,sp} \geq \sum_{p \in \script{SP}_sp} S_{h,p,y}
+            \\mathrm{if\\ existing\\ capacities\\ < capacity\\ limit}\\ s^\\mathrm{max}_{h,sp} \\geq \\sum_{p \\in \\script{SP}_sp} S_{h,p,y}
         .. math::
-            \mathrm{else}\ 0 \geq \sum_{p \in \script{SP}_sp} \Delta S_{h,p,y}
+            \\mathrm{else}\\ 0 \geq \\sum_{p \\in \\script{SP}_sp} \\Delta S_{h,p,y}
 
         :return: #TODO describe parameter/return
         """
