@@ -5,6 +5,9 @@ channels:
 dependencies:
   - pip
   - python=3.12
+  - utm
+  - openpyxl
+  - geopandas
   - pip:
       - -e .[dev,vis,gurobipy,docs]
 
