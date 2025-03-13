@@ -59,15 +59,10 @@ class Technology(Element):
         self.raw_time_series["opex_specific_variable"] = self.data_input.extract_input_data("opex_specific_variable", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1})
         # non-time series input data
         self.capacity_limit = self.data_input.extract_input_data("capacity_limit", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
-        self.capacity_limit_super = self.data_input.extract_input_data("capacity_limit_super",
-                                                                       index_sets=[set_location_super,
-                                                                                   "set_time_steps_yearly"],
-                                                                       time_steps="set_time_steps_yearly",
-                                                                       unit_category={"energy_quantity": 1, "time": -1})
-        self.carbon_intensity_technology = self.data_input.extract_input_data("carbon_intensity_technology",
-                                                                              index_sets=[set_location],
-                                                                              unit_category={"emissions": 1,
-                                                                                             "energy_quantity": -1})
+        self.capacity_limit_super = self.data_input.extract_input_data("capacity_limit_super", index_sets=[set_location_super, "set_time_steps_yearly"],
+                                                                       time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
+        self.carbon_intensity_technology = self.data_input.extract_input_data("carbon_intensity_technology", index_sets=[set_location],
+                                                                              unit_category={"emissions": 1, "energy_quantity": -1})
         # extract existing capacity
         self.set_technologies_existing = self.data_input.extract_set_technologies_existing()
         self.capacity_existing = self.data_input.extract_input_data("capacity_existing", index_sets=[set_location, "set_technologies_existing"], unit_category={"energy_quantity": 1, "time": -1})
@@ -321,6 +316,9 @@ class Technology(Element):
         # transport technologies
         optimization_setup.sets.add_set(name="set_transport_technologies", data=energy_system.set_transport_technologies,
                                         doc="Set of transport technologies")
+        # flexible transport technologies
+        optimization_setup.sets.add_set(name="set_flexible_transport_technologies", data=energy_system.set_flexible_transport_technologies,
+                                        doc="Set of flexible transport technologies")
         # storage technologies
         optimization_setup.sets.add_set(name="set_storage_technologies", data=energy_system.set_storage_technologies,
                                         doc="Set of storage technologies")
@@ -1289,10 +1287,6 @@ class TechnologyRules(GenericRule):
             constraints[tech] = lhs == rhs
 
         self.constraints.return_contraints('constraint_technology_lca_impacts', constraints)
-        ### return
-        # return self.constraints.return_contraints(constraints, model=self.model,
-        #                                           index_values=index.get_unique(["set_technologies"]),
-        #                                           index_names=["set_technologies"])
 
     def constraint_technology_lca_impacts_total_block(self):
         """ calculate total lca impacts of each technology """

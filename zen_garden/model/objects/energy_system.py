@@ -97,6 +97,7 @@ class EnergySystem:
         # technology-specific
         self.set_conversion_technologies = self.system.set_conversion_technologies
         self.set_transport_technologies = self.system.set_transport_technologies
+        self.set_flexible_transport_technologies = self.system.set_flexible_transport_technologies
         self.set_storage_technologies = self.system.set_storage_technologies
         self.set_retrofitting_technologies= self.system.set_retrofitting_technologies
         # discount rate
@@ -452,7 +453,7 @@ class EnergySystemRules(GenericRule):
         """ semi-hardcoded minimum boundary on CO2 stored in the system.
         The emergency_storage technology is used as option for the optimizer to breach the limit at a high cost.
         .. math::
-            \\sum_{t\\in\\mathcal{T}} \\sum_{n\\in\\mathcal{N}} \\tau_t a_{c,n,t}^\\mathrm{export} \\geq a_{y}^\\mathrm{min_{CO2}}, c=CO2-stored
+            \\sum_{t\\in\\mathcal{T}} \\sum_{n\\in\\mathcal{N}} \\tau_t a_{c,n,y}^\\mathrm{export} \\geq a_{y}^\\mathrm{min_{CO2}}, c=CO2-stored
 
         """
         m = xr.DataArray([carrier == 'co2_stored' for carrier in self.energy_system.set_carriers],

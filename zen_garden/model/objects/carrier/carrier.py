@@ -198,6 +198,7 @@ class Carrier(Element):
         # carbon emissions carrier
         rules.constraint_carbon_emissions_carrier_total()
 
+        # energy balance
         rules.constraint_nodal_energy_balance()
         # LCA
         if optimization_setup.system['load_lca_factors']:
@@ -380,74 +381,6 @@ class CarrierRules(GenericRule):
 
         self.constraints.add_constraint("constraint_availability_import_total", constraints_imp)
         self.constraints.add_constraint("constraint_availability_export_total", constraints_exp)
-        # old stuff:
-        # ### index sets
-        # index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes"], self.optimization_setup)
-        # index = ZenIndex(index_values, index_names)
-        #
-        # ### masks
-        # # The constraint is only bounded if the availability is finite
-        # mask = self.parameters.availability_import_total != np.inf
-        #
-        # ### index loop
-        # # this loop vectorizes over the nodes
-        # constraints = {}
-        # for carrier in index.get_unique(["set_carriers"]):
-        #     ### auxiliary calculations
-        #     term_summed_import_flow = (self.variables["flow_import"].loc[carrier, :, :]
-        #                                * self.parameters.time_steps_operation_duration.loc[:]).sum(
-        #         "set_time_steps_operation")
-        #
-        #     ### formulate constraint
-        #     lhs = term_summed_import_flow
-        #     rhs = self.parameters.availability_import_total.loc[carrier, :]
-        #     constraints[carrier] = lhs <= rhs
-        #
-        # ### return
-        # # return self.constraints.return_constraints(constraints,
-        # #                                           model=self.model,
-        # #                                           mask=mask,
-        # #                                           index_values=index.get_unique(["set_carriers"]),
-        # #                                           index_names=["set_carriers"])
-
-    def constraint_availability_export_total_block(self):
-        """node-dependent carrier availability to export to outside the system boundaries summed over entire optimization horizon
-
-        .. math::
-           a_{c,n}^\\mathrm{export} \\geq \\sum_{y\\in\\mathcal{Y}} \\sum_{t\\in\\mathcal{T_y}}\\tau_t V_{c,n,t}
-
-        :return: constraints
-        """
-
-        ### index sets
-        index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes"], self.optimization_setup)
-        index = ZenIndex(index_values, index_names)
-
-        ### masks
-        # The constraint is only bounded if the availability is finite
-        mask = self.parameters.availability_export_total != np.inf
-
-        ### index loop
-        # this loop vectorizes over the nodes
-        constraints = {}
-        for carrier in index.get_unique(["set_carriers"]):
-            ### auxiliary calculations
-            term_summed_export_flow = (self.variables["flow_export"].loc[carrier, :, :]
-                                       * self.parameters.time_steps_operation_duration.loc[:]).sum(
-                "set_time_steps_operation")
-
-            ### formulate constraint
-            lhs = term_summed_export_flow
-            rhs = self.parameters.availability_export_total.loc[carrier, :]
-            constraints[carrier] = lhs <= rhs
-
-        ### return
-        self.constraints.add_constraint("constraint_availability_export_total", constraints)
-        # return self.constraints.return_constraints(constraints,
-        #                                           model=self.model,
-        #                                           mask=mask,
-        #                                           index_values=index.get_unique(["set_carriers"]),
-        #                                           index_names=["set_carriers"])
 
     def constraint_cost_carrier(self):
         """ cost of importing and exporting carrier
@@ -547,9 +480,7 @@ class CarrierRules(GenericRule):
         """ lca impacts of importing and exporting carrier"""
 
         ### index sets
-        index_values, index_names = Element.create_custom_set(
-            ["set_carriers", "set_nodes", "set_lca_impact_categories", "set_time_steps_operation"],
-            self.optimization_setup)
+        index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_lca_impact_categories", "set_time_steps_operation"], self.optimization_setup)
         index = ZenIndex(index_values, index_names)
         times = index.get_unique(["set_time_steps_operation"])
 

@@ -78,6 +78,7 @@ class HeaderDataInputs(Subscriptable):
     set_elements: str = "element"
     set_conversion_technologies: str = "technology"
     set_transport_technologies: str = "technology"
+    set_flexible_transport_technologies: str = "technology"
     set_transport_technologies_loss_exponential: str = "technology"
     set_storage_technologies: str = "technology"
     set_technologies: str = "technology"

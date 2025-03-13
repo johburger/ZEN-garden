@@ -9,7 +9,6 @@ import json
 import numpy as np
 import pandas as pd
 from scipy.stats import linregress
-import time
 
 from zen_garden.utils import InputDataChecks
 
@@ -424,23 +423,24 @@ class DataInput:
                 assert len(super_locations) == len(set_super_locations_config), "Not all super sets are defined."
             # drop super locations if nodes are not in set nodes
             if extract_nodes:
-                bool_set_super_locations = set_super_locations_input[loc].isin(self.system.set_nodes)
+                bool_set_super_locations = set_super_locations_input[loc].isin(self.system["set_nodes"])
             else:
-                bool_set_super_locations = set_super_locations_input["super_node_from"].isin(self.system.set_super_nodes) & \
-                                           set_super_locations_input["super_node_to"].isin(self.system.set_super_nodes)
+                bool_set_super_locations = set_super_locations_input[loc].isin(self.energy_system.set_edges)
             if not bool_set_super_locations.all():
                 logging.warning(f"The following {super_loc} are dropped from the super sets as they are not in the set of nodes: \n {set_super_locations_input[~bool_set_super_locations]}")
                 set_super_locations_input = set_super_locations_input[bool_set_super_locations]
             self.system[set_super_locations] = list(set_super_locations_input.index.unique())
             # create dict assigning locations to super locations
             super_locations_dict = dict()
-            for l in set_super_locations_input.index.unique():
-                if isinstance(set_super_locations_input.loc[l, loc], pd.Series):
-                    super_locations_dict[l] = set_super_locations_input.loc[l, loc]
-                elif pd.isna(set_super_locations_input.loc[l, loc]):
-                    super_locations_dict[l] = []
+            for s_loc in set_super_locations_input.index.unique():
+                if isinstance(set_super_locations_input.loc[s_loc, loc], pd.Series):
+                    super_locations_dict[s_loc] = set_super_locations_input.loc[s_loc, loc]
+                elif isinstance(set_super_locations_input.loc[s_loc, loc], str):
+                    super_locations_dict[s_loc] = pd.Series(set_super_locations_input.loc[s_loc, loc], name=loc, index=pd.Index([s_loc], name=super_loc))
+                elif pd.isna(set_super_locations_input.loc[s_loc, loc]):
+                    super_locations_dict[s_loc] = []
                 else:
-                    super_locations_dict[l] = [set_super_locations_input.loc[l, loc]]
+                    super_locations_dict[s_loc] = [set_super_locations_input.loc[s_loc, loc]]
             return super_locations_dict
         elif extract_nodes:
             set_nodes_config = self.system.set_nodes
