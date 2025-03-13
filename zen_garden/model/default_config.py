@@ -99,6 +99,7 @@ class System(Subscriptable):
     storage_periodicity: bool = True
     multiyear_periodicity: bool = False
     set_transport_technologies: list[str] = []
+    set_flexible_transport_technologies: list[str] = []
     set_transport_technologies_loss_exponential: list[str] = []
     double_capex_transport: bool = False
     set_nodes: list[str] = []
