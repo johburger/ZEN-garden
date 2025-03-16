@@ -71,6 +71,7 @@ class Technology(Element):
 
         if self.optimization_setup.system['n1_contingency']:
             self.raw_time_series["operation_state"] = self.data_input.extract_input_data("operation_state", index_sets=[set_location, "set_failures", "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
+            # self.create_n1_contingency_matrix()
 
     def extract_failure_states(self):
         """ constructs all possible failure states for all locations from the locations where capacity_limit != 0 and
@@ -86,16 +87,13 @@ class Technology(Element):
 
     def create_n1_contingency_matrix(self):
         """ Adjusts the operation_state matrix to include all failure states as index """
-
-        # add all failure states as additional index level
-        loc = 'node' if self.location_type == 'set_nodes' else 'edge'
-        new_df = pd.concat({f_state: self.raw_time_series['operation_state'] for f_state in self.energy_system.set_failures},
-                           names=['failure_state']).reorder_levels([loc, 'failure_state', 'time']).reset_index()
-        # create column with the allowed failure state, all others with be set to 1
-        new_df['allowed_failure'] = [f'{self.name}+{l}' for l in new_df[loc]]
-        new_df.loc[new_df['failure_state'] != new_df['allowed_failure'], 0] = 1
-        new_df.drop(['allowed_failure'], axis=1, inplace=True)
-        self.raw_time_series['operation_state'] = new_df.set_index([loc, 'failure_state', 'time'])[0].copy()
+        self.downtime = self.data_input.extract_input_data("downtime", index_sets=[], unit_category={})
+        if self.downtime.values[0] > 0:
+            loc = self.location_type.split('_')[1].split('s')[0]
+            df = self.raw_time_series['operation_state'].copy().reset_index()
+            df['op_state'] = df.apply(lambda x: 0 if (x['failure_state'] == f'{self.name}+{x[loc]}' and
+                                          (4380 <= x['time'] <= (4380 + self.downtime))) else 1, axis=1)
+            self.raw_time_series['operation_state'] = df['op_state']
 
     def calculate_capex_of_capacities_existing(self, storage_energy=False):
         """ this method calculates the annualized capex of the existing capacities
