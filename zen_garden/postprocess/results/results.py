@@ -1,6 +1,8 @@
 """
 This module contains the Results class, which is used to extract and process the results of a model run.
 """
+from pandas import Series
+
 from zen_garden.postprocess.results.solution_loader import (
     SolutionLoader,
     Scenario,
@@ -134,11 +136,9 @@ class Results:
                 time_steps = self.solution_loader.get_timesteps_of_years(scenario, component.timestep_type,tuple(years)).values
                 index = index + (f"{component.timestep_type.value} in [{', '.join(time_steps.astype(str))}]",)
                 select_year_time_steps = True
-
         series = self.solution_loader.get_component_data(
             scenario, component, keep_raw=keep_raw, index=index
         )
-
         if isinstance(series.index, pd.MultiIndex):
             series = series.unstack(component.timestep_name)
 
@@ -184,8 +184,9 @@ class Results:
                 # for storage components, the last timestep is the final state, linear interpolation is used
                 last_occurrences = sequence_timesteps.groupby(sequence_timesteps).apply(lambda x: x.index[-1])
                 first_occurrences = sequence_timesteps.groupby(sequence_timesteps).apply(lambda x: x.index[0])
-                output_df = pd.DataFrame(columns=sequence_timesteps.index,index=series.index,dtype=float)
-                output_df[last_occurrences.values] = series[last_occurrences.index]
+                output_df = series[last_occurrences.index].rename(last_occurrences,axis=1)
+                # fill missing ts with nan
+                output_df = output_df.reindex(columns=sequence_timesteps.index)
                 time_steps_start_end = self.solution_loader.get_time_steps_storage_level_startend_year(scenario)
                 for tstart,tend in time_steps_start_end.items():
                     tstart_reconstructed = first_occurrences[tstart]
@@ -442,6 +443,7 @@ class Results:
         year: Optional[int] = None,
         discount_to_first_step: bool = True,
         keep_raw: Optional[bool] = False,
+        index: Optional[Union[NestedTuple, NestedDict, list[str], str, float, int]] = None,
     ) -> Optional["pd.DataFrame | pd.Series[Any]"]:
         """extracts the dual variables of a component
 
@@ -450,6 +452,7 @@ class Results:
         :param year: Year
         :param discount_to_first_step: apply annuity to first year of interval or entire interval
         :param keep_raw: Keep the raw values of the rolling horizon optimization
+        :param index: slicing index of the resulting dataframe
         :return: Duals of the component
         """
         if not self.get_solver(scenario_name=scenario_name).save_duals:
@@ -467,6 +470,7 @@ class Results:
             year=year,
             discount_to_first_step=discount_to_first_step,
             keep_raw=keep_raw,
+            index=index,
         )
         return duals
 
@@ -476,7 +480,7 @@ class Results:
         scenario_name: Optional[str] = None,
         droplevel: bool = True,
         is_total: bool = True,
-    ) -> Optional[dict[str, "pd.DataFrame | pd.Series[Any]"]]:
+    ) -> None | Series | str:
         """
         Extracts the unit of a given Component. If no scenario is given, a random one is taken.
 
@@ -508,22 +512,35 @@ class Results:
                 units.index = units.index.droplevel(drop_idx.to_list())
                 units = units[~units.index.duplicated()]
         # convert to pint units
-        for i in units.index:
-            try:
-                u = units[i]
-                u = self.ureg.parse_expression(u)
-                if is_total and self.solution_loader.components[component_name].timestep_type is TimestepType.operational:
-                    u = u * self.ureg.h
-                units[i] = f"{u.u:~D}"
-            # if the unit is not in the pint registry, change the string manually (normally, when the unit_definition.txt is not saved)
-            except Exception:
-                if is_total and self.solution_loader.components[component_name].timestep_type is TimestepType.operational:
-                    if units[i].endswith(" / hour"):
-                        units[i] = units[i].replace(" / hour", "")
-                    else:
-                        units[i] = f"{units[i]} * hour"
+        if isinstance(units, pd.Series):
+            for i in units.index:
+                units[i] = self._convert_to_pint_units(units[i], is_total, component_name)
+        elif isinstance(units, str):
+            units = self._convert_to_pint_units(units, is_total, component_name)
+        else:
+            raise TypeError(f"Invalid units type: {type(units)}")
 
         return units
+
+    def _convert_to_pint_units(self,u: str,is_total: bool, component_name: str) -> str:
+        """
+        Converts a string to a pint unit.
+        """
+        try:
+            u = self.ureg.parse_expression(u)
+            if is_total and self.solution_loader.components[component_name].timestep_type is TimestepType.operational:
+                u = u * self.ureg.h
+            u_return = f"{u.u:~D}"
+        # if the unit is not in the pint registry, change the string manually (normally, when the unit_definition.txt is not saved)
+        except Exception:
+            if is_total and self.solution_loader.components[component_name].timestep_type is TimestepType.operational:
+                if u.endswith(" / hour"):
+                    u_return = u.replace(" / hour", "")
+                else:
+                    u_return = f"{u} * hour"
+            else:
+                u_return = u
+        return u_return
 
     def get_system(self, scenario_name: Optional[str] = None) -> System:
         """
