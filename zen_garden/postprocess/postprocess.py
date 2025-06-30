@@ -315,13 +315,19 @@ class Postprocess:
         # dataframe serialization
         data_frames = {}
         for name, arr in self.model.dual.items():
+            if self.solver.selected_saved_duals and name not in self.solver.selected_saved_duals:
+                continue
             if name in self.constraints.docs:
                 doc = self.constraints.docs[name]
                 index_list = self.get_index_list(doc)
             else:
                 index_list = []
                 doc = None
-
+            # rescale
+            if self.solver.use_scaling:
+                cons_labels = self.model.constraints[name].labels.data
+                scaling_factor = self.optimization_setup.scaling.D_r_inv[cons_labels]
+                arr = arr * scaling_factor
             # create dataframe
             if len(arr.shape) > 0:
                 df = arr.to_series().dropna()
@@ -341,10 +347,6 @@ class Postprocess:
         """
         Saves the system dict as json
         """
-        if hasattr(self.system,"fix_keys"):
-            del self.system.fix_keys
-        if hasattr(self.system,"i"):
-            del self.system.i
         if self.system.use_rolling_horizon:
             fname = self.name_dir.parent.joinpath('system')
         else:
@@ -355,10 +357,6 @@ class Postprocess:
         """
         Saves the analysis dict as json
         """
-        if hasattr(self.analysis,"fix_keys"):
-            del self.analysis.fix_keys
-        if hasattr(self.analysis,"i"):
-            del self.analysis.i
         if self.system.use_rolling_horizon:
             fname = self.name_dir.parent.joinpath('analysis')
         else:
@@ -373,10 +371,6 @@ class Postprocess:
         """
         Saves the solver dict as json
         """
-        if hasattr(self.solver,"fix_keys"):
-            del self.solver.fix_keys
-        if hasattr(self.solver,"i"):
-            del self.solver.i
         # This we only need to save once
         if self.system.use_rolling_horizon:
             fname = self.name_dir.parent.joinpath('solver')
