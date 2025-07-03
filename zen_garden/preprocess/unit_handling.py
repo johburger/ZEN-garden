@@ -650,11 +650,11 @@ class UnitHandling:
 
     @staticmethod
     def check_pos_neg_boolean(array, axis=None):
-        """ checks if the array has only positive or negative booleans (-1,0,1)
+        """ checks if the array has only positive or negative booleans (-1,0,1).
 
         :param array: numeric numpy array
         :param axis: axis of dataframe
-        :return is_pos_neg_boolean """
+        :return is_pos_neg_boolean: """
         if axis:
             is_pos_neg_boolean = np.apply_along_axis(lambda row: np.array_equal(np.abs(row), np.abs(row).astype(bool)), 1, array).any()
         else:
@@ -676,7 +676,7 @@ class Scaling:
         :param include_rhs: bool whether to include the right hand side in the scaling
 
         """
-        #optimization model to perform scaling on
+        # optimization model to perform scaling on
         if algorithm is None:
             algorithm = ["geom"]
         elif type(algorithm) == str:
@@ -685,10 +685,10 @@ class Scaling:
         self.model = model
         self.algorithm = algorithm
         self.include_rhs = include_rhs
-        #For Numerical Range Improvement
+        # For Numerical Range Improvement
         self.last_lhs_range = 0
         self.last_rhs_range = 0
-        #For benchmarking
+        # For benchmarking
         self.scaling_time = 0
 
     def initiate_A_matrix(self):
@@ -727,7 +727,7 @@ class Scaling:
         """
         Analyzes the numerics of the optimization model
         """
-        #print numerics if no scaling is activated
+        # print numerics if no scaling is activated
         self.initiate_A_matrix()
         self.A_matrix.eliminate_zeros()
         self.print_numerics(0,True)
@@ -787,7 +787,7 @@ class Scaling:
         """
         Adjusts the column scaling factors corresponding to variables that are part of rows that are skipped.
         If the scaling factors are not adjusted, the problem cannot be rescaled to the original problem.
-l
+
         :param name: name of the constraint for which the scaling factors are adjusted
         """
         constraint = self.model.constraints[name]
@@ -834,7 +834,7 @@ l
                 continue
             else:
                 self.replace_data(name_con)
-        #overwrite objective
+        # overwrite objective
         vars = self.model.objective.vars.data
         scale_factors = self.D_c_inv[vars]
         self.model.objective.coeffs.data = self.model.objective.coeffs.data * scale_factors

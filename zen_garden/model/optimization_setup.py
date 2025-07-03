@@ -84,6 +84,9 @@ class OptimizationSetup(object):
         # add Elements to optimization
         self.add_elements()
 
+        # check if all elements from the scenario_dict are in the model
+        ScenarioDict.check_if_all_elements_in_model(self.scenario_dict, self.dict_elements)
+
         # The time series aggregation
         self.time_series_aggregation = None
 
@@ -98,7 +101,6 @@ class OptimizationSetup(object):
 
         # conduct time series aggregation
         self.time_series_aggregation = TimeSeriesAggregation(energy_system=self.energy_system)
-
 
     def create_paths(self):
         """
@@ -239,17 +241,19 @@ class OptimizationSetup(object):
                 self.dict_elements[cls.__name__].append(instance)
 
     def get_all_elements(self, cls):
-        """ get all elements of the class in the enrgysystem.
+        """ get all elements of the class in the energy system.
 
-        :param cls: class of the elements to return
-        :return list of elements in this class """
+
+        
+        """
         return self.dict_elements[cls.__name__]
 
     def get_all_names_of_elements(self, cls):
         """ get all names of elements in class.
 
         :param cls: class of the elements to return
-        :return names_of_elements: list of names of elements in this class """
+        :return names_of_elements: list of elements in this class
+        """
         _elements_in_class = self.get_all_elements(cls=cls)
         names_of_elements = []
         for _element in _elements_in_class:
@@ -495,7 +499,7 @@ class OptimizationSetup(object):
         """Create model instance by assigning parameter values and instantiating the sets """
         solver_name = self.solver.name
         # remove options that are None
-        solver_options = {key: self.solver.solver_options[key] for key in self.solver.solver_options if ((self.solver.solver_options[key] is not None) & (key not in ['fix_keys', 'i']))}
+        solver_options = {key: self.solver.solver_options[key] for key in self.solver.solver_options if self.solver.solver_options[key] is not None}
 
         logging.info(f"\n--- Solve model instance using {solver_name} ---\n")
         # disable logger temporarily
