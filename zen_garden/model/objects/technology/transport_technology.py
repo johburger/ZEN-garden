@@ -44,8 +44,30 @@ class TransportTechnology(Technology):
         # set attributes for parameters of child class <TransportTechnology>
         self.distance = self.data_input.extract_input_data("distance", index_sets=["set_edges"], unit_category={"distance": 1})
         if '/ kilometer' in str(self.units['carbon_intensity_technology']['unit_in_base_units'].units):
-            self.carbon_intensity_technology = self.data_input.extract_input_data("carbon_intensity_technology", index_sets=["set_edges"], unit_category={"emissions": 1, "energy_quantity": -1, "distance": -1})
-            self.carbon_intensity_technology *= self.distance
+            self.carbon_intensity_technology = self.data_input.extract_input_data(
+                "carbon_intensity_technology", index_sets=["set_edges"],
+                unit_category={"emissions": 1, "energy_quantity": -1, "distance": -1}) * self.distance
+
+        if '/ kilometer' in str(self.units['biodiversity_intensity_technology']['unit_in_base_units'].units):
+            self.biodiversity_intensity_technology = self.data_input.extract_input_data(
+                "biodiversity_intensity_technology", index_sets=["set_edges"],
+                unit_category={"biodiversity": 1, "energy_quantity": -1, "distance": -1}) * self.distance
+
+        if '/ kilometer' in str(self.units['gwp100_intensity_technology']['unit_in_base_units'].units):
+            self.gwp100_intensity_technology = self.data_input.extract_input_data(
+                "gwp100_intensity_technology", index_sets=["set_edges"],
+                unit_category={"emissions": 1, "energy_quantity": -1, "distance": -1}) * self.distance
+
+        if '/ kilometer' in str(self.units['methane_intensity_technology']['unit_in_base_units'].units):
+            self.methane_intensity_technology = self.data_input.extract_input_data(
+                "methane_intensity_technology", index_sets=["set_edges"],
+                unit_category={"emissions": 1, "energy_quantity": -1, "distance": -1}) * self.distance
+
+        if '/ kilometer' in str(self.units['nitrous_intensity_technology']['unit_in_base_units'].units):
+            self.nitrous_intensity_technology = self.data_input.extract_input_data(
+                "nitrous_intensity_technology", index_sets=["set_edges"],
+                unit_category={"emissions": 1, "energy_quantity": -1, "distance": -1}) * self.distance
+
         # get transport loss factor
         self.get_transport_loss_factor()
         # get capex of transport technology
