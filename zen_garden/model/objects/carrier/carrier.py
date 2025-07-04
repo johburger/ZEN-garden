@@ -249,6 +249,16 @@ class Carrier(Element):
         # energy balance
         rules.constraint_nodal_energy_balance()
 
+        # newly added impacts: biodiversity, gwp100, methane, nitrous oxide
+        rules.constraint_biodiversity_emissions_carrier()
+        rules.constraint_biodiversity_emissions_carrier_total()
+        rules.constraint_gwp100_emissions_carrier()
+        rules.constraint_gwp100_emissions_carrier_total()
+        rules.constraint_methane_emissions_carrier()
+        rules.constraint_methane_emissions_carrier_total()
+        rules.constraint_nitrous_emissions_carrier()
+        rules.constraint_nitrous_emissions_carrier_total()
+
         # add pe.Sets of the child classes
         for subclass in cls.__subclasses__():
             if len(optimization_setup.system[subclass.label]) > 0:
@@ -624,3 +634,183 @@ class CarrierRules(GenericRule):
 
         ### return
         self.constraints.add_constraint("constraint_nodal_energy_balance",constraints)
+
+    def constraint_biodiversity_emissions_carrier(self):
+        """ biodiversity impact of importing and exporting carrier
+
+        .. math::
+           \\kappa_{c,n,t}^{\\mathrm{biodiversity,carrier}} = \\underline{\\epsilon_c} \\underline{U}_{c,n,t} - \\overline{\\epsilon_c} \\overline{U}_{c,n,t}
+
+        :math:`\\kappa_{c,n,t}^{\\mathrm{biodiversity,carrier}}`: biodiversity impact of importing and exporting carrier :math:`c` at node :math:`n` and time step :math:`t`\n
+        :math:`\\underline{\\epsilon_c}`: biodiversity intensity of carrier import :math:`c`\n
+        :math:`\\overline{\\epsilon_c}`: biodiversity intensity of carrier export :math:`c`\n
+        :math:`\\underline{U}_{c,n,t}`: flow of carrier :math:`c` imported at node :math:`n` and time step :math:`t`\n
+        :math:`\\overline{U}_{c,n,t}`: flow of carrier :math:`c` exported at node :math:`n` and time step :math:`t`
+
+        """
+        # create times xarray with 1 where the operation time step is in the year
+        times = self.get_year_time_step_array()
+        # convert the carbon intensity carrier from yearly to operation time steps
+        biodiversity_intensity_carrier_import = (self.parameters.biodiversity_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        biodiversity_intensity_carrier_export = (self.parameters.biodiversity_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        lhs = (self.variables["biodiversity_emissions_carrier"]
+               - (self.variables["flow_import"]*biodiversity_intensity_carrier_import
+               - self.variables["flow_export"]*biodiversity_intensity_carrier_export))
+        rhs = 0
+        constraints = lhs == rhs
+
+        self.constraints.add_constraint("constraint_biodiversity_emissions_carrier",constraints)
+
+    def constraint_biodiversity_emissions_carrier_total(self):
+        """ total biodiversity impact of importing and exporting carrier
+
+        .. math::
+            E_y^{\\mathcal{C}} = \\sum_{c\\in\\mathcal{C}}\\sum_{n\\in\\mathcal{N}}\\sum_{t\\in\\mathcal{T}} \\tau_t \\kappa_{c,n,t}^{\\mathrm{biodiversity,carrier}}
+
+        :math:`\\kappa_{c,n,t}^{\\mathrm{biodiversity,carrier}}`: biodiversity impact of importing and exporting carrier :math:`c` at node :math:`n` and time step :math:`t`\n
+        :math:`\\tau_t`: duration of time step :math:`t`
+
+        """
+        term_summed_biodiversity_emissions_carrier = (
+                self.variables["biodiversity_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
+            ["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = self.variables["biodiversity_emissions_carrier_total"] - term_summed_biodiversity_emissions_carrier
+        rhs = 0
+        constraints = lhs == rhs
+
+        self.constraints.add_constraint("constraint_biodiversity_emissions_carrier_total",constraints)
+
+    def constraint_gwp100_emissions_carrier(self):
+        """ gwp100 emissions of importing and exporting carrier
+
+        .. math::
+           \\kappa_{c,n,t}^{\\mathrm{gwp100,carrier}} = \\underline{\\epsilon_c} \\underline{U}_{c,n,t} - \\overline{\\epsilon_c} \\overline{U}_{c,n,t}
+
+        :math:`\\kappa_{c,n,t}^{\\mathrm{gwp100,carrier}}`: gwp100 emissions of importing and exporting carrier :math:`c` at node :math:`n` and time step :math:`t`\n
+        :math:`\\underline{\\epsilon_c}`: gwp100 intensity of carrier import :math:`c`\n
+        :math:`\\overline{\\epsilon_c}`: gwp100 intensity of carrier export :math:`c`\n
+        :math:`\\underline{U}_{c,n,t}`: flow of carrier :math:`c` imported at node :math:`n` and time step :math:`t`\n
+        :math:`\\overline{U}_{c,n,t}`: flow of carrier :math:`c` exported at node :math:`n` and time step :math:`t`
+
+        """
+        # create times xarray with 1 where the operation time step is in the year
+        times = self.get_year_time_step_array()
+        # convert the gwp100 intensity carrier from yearly to operation time steps
+        gwp100_intensity_carrier_import = (self.parameters.gwp100_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        gwp100_intensity_carrier_export = (self.parameters.gwp100_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        lhs = (self.variables["gwp100_emissions_carrier"]
+               - (self.variables["flow_import"]*gwp100_intensity_carrier_import
+               - self.variables["flow_export"]*gwp100_intensity_carrier_export))
+        rhs = 0
+        constraints = lhs == rhs
+
+        self.constraints.add_constraint("constraint_gwp100_emissions_carrier",constraints)
+
+    def constraint_gwp100_emissions_carrier_total(self):
+        """ total gwp100 emissions of importing and exporting carrier
+
+        .. math::
+            E_y^{\\mathcal{C}} = \\sum_{c\\in\\mathcal{C}}\\sum_{n\\in\\mathcal{N}}\\sum_{t\\in\\mathcal{T}} \\tau_t \\kappa_{c,n,t}^{\\mathrm{gwp100,carrier}}
+
+        :math:`\\kappa_{c,n,t}^{\\mathrm{gwp100,carrier}}`: gwp100 emissions of importing and exporting carrier :math:`c` at node :math:`n` and time step :math:`t`\n
+        :math:`\\tau_t`: duration of time step :math:`t`
+
+        """
+        term_summed_gwp100_emissions_carrier = (
+                self.variables["gwp100_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
+            ["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = self.variables["gwp100_emissions_carrier_total"] - term_summed_gwp100_emissions_carrier
+        rhs = 0
+        constraints = lhs == rhs
+
+        self.constraints.add_constraint("constraint_gwp100_emissions_carrier_total",constraints)
+
+    def constraint_methane_emissions_carrier(self):
+        """ methane emissions of importing and exporting carrier
+
+        .. math::
+           \\kappa_{c,n,t}^{\\mathrm{methane,carrier}} = \\underline{\\epsilon_c} \\underline{U}_{c,n,t} - \\overline{\\epsilon_c} \\overline{U}_{c,n,t}
+
+        :math:`\\kappa_{c,n,t}^{\\mathrm{methane,carrier}}`: methane emissions of importing and exporting carrier :math:`c` at node :math:`n` and time step :math:`t`\n
+        :math:`\\underline{\\epsilon_c}`: methane intensity of carrier import :math:`c`\n
+        :math:`\\overline{\\epsilon_c}`: methane intensity of carrier export :math:`c`\n
+        :math:`\\underline{U}_{c,n,t}`: flow of carrier :math:`c` imported at node :math:`n` and time step :math:`t`\n
+        :math:`\\overline{U}_{c,n,t}`: flow of carrier :math:`c` exported at node :math:`n` and time step :math:`t`
+
+        """
+        # create times xarray with 1 where the operation time step is in the year
+        times = self.get_year_time_step_array()
+        # convert the methane intensity carrier from yearly to operation time steps
+        methane_intensity_carrier_import = (self.parameters.methane_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        methane_intensity_carrier_export = (self.parameters.methane_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        lhs = (self.variables["methane_emissions_carrier"]
+               - (self.variables["flow_import"]*methane_intensity_carrier_import
+               - self.variables["flow_export"]*methane_intensity_carrier_export))
+        rhs = 0
+        constraints = lhs == rhs
+
+        self.constraints.add_constraint("constraint_methane_emissions_carrier",constraints)
+
+    def constraint_methane_emissions_carrier_total(self):
+        """ total methane emissions of importing and exporting carrier
+
+        .. math::
+            E_y^{\\mathcal{C}} = \\sum_{c\\in\\mathcal{C}}\\sum_{n\\in\\mathcal{N}}\\sum_{t\\in\\mathcal{T}} \\tau_t \\kappa_{c,n,t}^{\\mathrm{methane,carrier}}
+
+        :math:`\\kappa_{c,n,t}^{\\mathrm{methane,carrier}}`: methane emissions of importing and exporting carrier :math:`c` at node :math:`n` and time step :math:`t`\n
+        :math:`\\tau_t`: duration of time step :math:`t`
+
+        """
+        term_summed_methane_emissions_carrier = (
+                self.variables["methane_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
+            ["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = self.variables["methane_emissions_carrier_total"] - term_summed_methane_emissions_carrier
+        rhs = 0
+        constraints = lhs == rhs
+
+        self.constraints.add_constraint("constraint_methane_emissions_carrier_total",constraints)
+
+    def constraint_nitrous_emissions_carrier(self):
+        """ nitrous emissions of importing and exporting carrier
+
+        .. math::
+           \\kappa_{c,n,t}^{\\mathrm{nitrous,carrier}} = \\underline{\\epsilon_c} \\underline{U}_{c,n,t} - \\overline{\\epsilon_c} \\overline{U}_{c,n,t}
+
+        :math:`\\kappa_{c,n,t}^{\\mathrm{nitrous,carrier}}`: nitrous emissions of importing and exporting carrier :math:`c` at node :math:`n` and time step :math:`t`\n
+        :math:`\\underline{\\epsilon_c}`: nitrous intensity of carrier import :math:`c`\n
+        :math:`\\overline{\\epsilon_c}`: nitrous intensity of carrier export :math:`c`\n
+        :math:`\\underline{U}_{c,n,t}`: flow of carrier :math:`c` imported at node :math:`n` and time step :math:`t`\n
+        :math:`\\overline{U}_{c,n,t}`: flow of carrier :math:`c` exported at node :math:`n` and time step :math:`t`
+
+        """
+        # create times xarray with 1 where the operation time step is in the year
+        times = self.get_year_time_step_array()
+        # convert the nitrous intensity carrier from yearly to operation time steps
+        nitrous_intensity_carrier_import = (self.parameters.nitrous_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        nitrous_intensity_carrier_export = (self.parameters.nitrous_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
+        lhs = (self.variables["nitrous_emissions_carrier"]
+               - (self.variables["flow_import"]*nitrous_intensity_carrier_import
+               - self.variables["flow_export"]*nitrous_intensity_carrier_export))
+        rhs = 0
+        constraints = lhs == rhs
+
+        self.constraints.add_constraint("constraint_nitrous_emissions_carrier",constraints)
+
+    def constraint_nitrous_emissions_carrier_total(self):
+        """ total nitrous emissions of importing and exporting carrier
+
+        .. math::
+            E_y^{\\mathcal{C}} = \\sum_{c\\in\\mathcal{C}}\\sum_{n\\in\\mathcal{N}}\\sum_{t\\in\\mathcal{T}} \\tau_t \\kappa_{c,n,t}^{\\mathrm{nitrous,carrier}}
+
+        :math:`\\kappa_{c,n,t}^{\\mathrm{nitrous,carrier}}`: nitrous emissions of importing and exporting carrier :math:`c` at node :math:`n` and time step :math:`t`\n
+        :math:`\\tau_t`: duration of time step :math:`t`
+
+        """
+        term_summed_nitrous_emissions_carrier = (
+                self.variables["nitrous_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
+            ["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = self.variables["nitrous_emissions_carrier_total"] - term_summed_nitrous_emissions_carrier
+        rhs = 0
+        constraints = lhs == rhs
+
+        self.constraints.add_constraint("constraint_nitrous_emissions_carrier_total",constraints)

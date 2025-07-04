@@ -220,7 +220,7 @@ class TransportTechnology(Technology):
         # limit flow by capacity and max load
         rules.constraint_capacity_factor_transport()
 
-        # opex and emissions constraint for transport technologies
+        # opex and all impact emissions constraint for transport technologies
         rules.constraint_opex_emissions_technology_transport()
 
         # carrier flow Losses
@@ -293,14 +293,44 @@ class TransportTechnologyRules(GenericRule):
                - (self.parameters.opex_specific_variable*self.variables["flow_transport"].rename({"set_transport_technologies":"set_technologies","set_edges":"set_location"})).sel({"set_technologies":techs,"set_location":edges}))
         lhs_emissions = (self.variables["carbon_emissions_technology"].loc[techs,edges,:]
                - (self.parameters.carbon_intensity_technology*self.variables["flow_transport"].rename({"set_transport_technologies":"set_technologies","set_edges":"set_location"})).sel({"set_technologies":techs,"set_location":edges}))
+        lhs_biodiversity = (self.variables["biodiversity_emissions_technology"].loc[techs, edges, :]
+               - (self.parameters.biodiversity_intensity_technology *
+                  self.variables["flow_transport"].rename({"set_transport_technologies": "set_technologies", "set_edges": "set_location"})
+                  ).sel({"set_technologies": techs, "set_location": edges}))
+        lhs_gwp100 = (self.variables["gwp100_emissions_technology"].loc[techs, edges, :]
+                      - (self.parameters.gwp100_intensity_technology *
+                         self.variables["flow_transport"].rename({"set_transport_technologies": "set_technologies", "set_edges": "set_location"})
+                         ).sel({"set_technologies": techs, "set_location": edges}))
+        lhs_methane = (self.variables["methane_emissions_technology"].loc[techs, edges, :]
+                       - (self.parameters.methane_intensity_technology *
+                          self.variables["flow_transport"].rename({"set_transport_technologies": "set_technologies", "set_edges": "set_location"})
+                          ).sel({"set_technologies": techs, "set_location": edges}))
+        lhs_nitrous = (self.variables["nitrous_emissions_technology"].loc[techs, edges, :]
+                       - (self.parameters.nitrous_intensity_technology *
+                          self.variables["flow_transport"].rename({"set_transport_technologies": "set_technologies", "set_edges": "set_location"})
+                          ).sel({"set_technologies": techs, "set_location": edges}))
+
+
         lhs_opex = lhs_opex.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
         lhs_emissions = lhs_emissions.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
+        lhs_biodiversity = lhs_biodiversity.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
+        lhs_gwp100 = lhs_gwp100.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
+        lhs_methane = lhs_methane.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
+        lhs_nitrous = lhs_nitrous.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
         rhs = 0
         constraints_opex = lhs_opex == rhs
         constraints_emissions = lhs_emissions == rhs
+        constraints_biodiversity = lhs_biodiversity == rhs
+        constraints_gwp100 = lhs_gwp100 == rhs
+        constraints_methane = lhs_methane == rhs
+        constraints_nitrous = lhs_nitrous == rhs
         ### return
         self.constraints.add_constraint("constraint_opex_technology_transport",constraints_opex)
         self.constraints.add_constraint("constraint_carbon_emissions_technology_transport",constraints_emissions)
+        self.constraints.add_constraint("constraint_biodiversity_emissions_technology_transport", constraints_biodiversity)
+        self.constraints.add_constraint("constraint_gwp100_emissions_technology_transport", constraints_gwp100)
+        self.constraints.add_constraint("constraint_methane_emissions_technology_transport", constraints_methane)
+        self.constraints.add_constraint("constraint_nitrous_emissions_technology_transport", constraints_nitrous)
 
     def constraint_transport_technology_losses_flow(self):
         r"""compute the flow losses for a carrier through a transport technology
