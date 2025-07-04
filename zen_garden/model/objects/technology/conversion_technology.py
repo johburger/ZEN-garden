@@ -273,7 +273,7 @@ class ConversionTechnology(Technology):
         rules = ConversionTechnologyRules(optimization_setup)
         # capacity factor constraint
         rules.constraint_capacity_factor_conversion()
-        # opex and emissions constraint for conversion technologies
+        # opex and all impact emissions constraint for conversion technologies
         rules.constraint_opex_emissions_technology_conversion()
         # conversion factor
         rules.constraint_carrier_conversion()
@@ -369,17 +369,20 @@ class ConversionTechnologyRules(GenericRule):
         self.constraints.add_constraint("constraint_capacity_factor_conversion", constraints)
 
     def constraint_opex_emissions_technology_conversion(self):
-        """ calculate opex and carbon emissions of each technology
+        """ calculate opex and carbon emissions of each technology plus additional impact categories
 
         .. math::
             O_{h,p,t}^\\mathrm{t} = \\beta_{h,p,t} G_{i,n,t}^\\mathrm{r} \n
-            \\theta_{h,p,t} = \\epsilon_h G_{i,n,t}^\\mathrm{r}
+            \\theta_{h,p,t} = \\epsilon_h G_{i,n,t}^\\mathrm{r} \n
+            \\kappa_{h,p,t}^{impact} = \\epsilon_h^{impact} G_{i,n,t}^\\mathrm{r}
 
         :math:`O_{h,p,t}^\\mathrm{t}`: variable opex of the technology :math:`h` at node :math:`p` in time step :math:`t` \n
         :math:`\\beta_{h,p,t}`: specific variable opex of the technology :math:`h` at node :math:`p` in time step :math:`t` \n
         :math:`G_{i,n,t}^\\mathrm{r}`: reference carrier flow of the technology :math:`i` at node :math:`n` in time step :math:`t` \n
         :math:`\\theta^{\\mathrm{tech}}_{h,p,t}`: carbon emissions of operating the technology :math:`h` at node :math:`p` in time step :math:`t` \n
-        :math:`\\epsilon_h`: carbon intensity of the reference carrier of technology :math:`h`
+        :math:`\\epsilon_h`: carbon intensity of the reference carrier of technology :math:`h` \n
+        :math:`\\kappa_{h,p,t}^{impact}`: emissions of category `impact' of operating the technology :math:`h` at node :math:`p` in time step :math:`t` \n
+        :math:`\\epsilon_h^{impact}`: intensity of category `impact' of the reference carrier of technology :math:`h` \n
 
 
         """
@@ -389,14 +392,36 @@ class ConversionTechnologyRules(GenericRule):
         nodes = self.sets["set_nodes"]
         term_reference_flow_opex = self.get_flow_expression_conversion(techs, nodes, factor=self.parameters.opex_specific_variable.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
         term_reference_flow_emissions = self.get_flow_expression_conversion(techs, nodes, factor=self.parameters.carbon_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+        # additional impact categories
+        term_reference_flow_biodiversity_emissions = self.get_flow_expression_conversion(techs, nodes,
+            factor=self.parameters.biodiversity_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+        term_reference_flow_gwp100_emissions = self.get_flow_expression_conversion(techs, nodes,
+            factor=self.parameters.gwp100_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+        term_reference_flow_methane_emissions = self.get_flow_expression_conversion(techs, nodes,
+            factor=self.parameters.methane_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+        term_reference_flow_nitrous_emissions = self.get_flow_expression_conversion(techs, nodes,
+            factor=self.parameters.nitrous_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+
         lhs_opex = ((1*self.variables["cost_opex_variable"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_opex)
         lhs_emissions = ((1*self.variables["carbon_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_emissions)
+        lhs_biodiversity_emissions = ((1*self.variables["biodiversity_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_biodiversity_emissions)
+        lhs_gwp100_emissions = ((1*self.variables["gwp100_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_gwp100_emissions)
+        lhs_methane_emissions = ((1*self.variables["methane_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_methane_emissions)
+        lhs_nitrous_emissions = ((1*self.variables["nitrous_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_nitrous_emissions)
         rhs = 0
         constraints_opex = lhs_opex == rhs
         constraints_emissions = lhs_emissions == rhs
+        constraints_biodiversity_emissions = lhs_biodiversity_emissions == rhs
+        constraints_gwp100_emissions = lhs_gwp100_emissions == rhs
+        constraints_methane_emissions = lhs_methane_emissions == rhs
+        constraints_nitrous_emissions = lhs_nitrous_emissions == rhs
 
         self.constraints.add_constraint("constraint_opex_technology_conversion", constraints_opex)
         self.constraints.add_constraint("constraint_carbon_emissions_technology_conversion", constraints_emissions)
+        self.constraints.add_constraint("constraint_biodiversity_emissions_technology_conversion", constraints_biodiversity_emissions)
+        self.constraints.add_constraint("constraint_gwp100_emissions_technology_conversion", constraints_gwp100_emissions)
+        self.constraints.add_constraint("constraint_methane_emissions_technology_conversion", constraints_methane_emissions)
+        self.constraints.add_constraint("constraint_nitrous_emissions_technology_conversion", constraints_nitrous_emissions)
 
     def constraint_linear_capex(self):
         """ if capacity and capex have a linear relationship
