@@ -63,6 +63,14 @@ class Technology(Element):
         # non-time series input data
         self.capacity_limit = self.data_input.extract_input_data("capacity_limit", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
         self.carbon_intensity_technology = self.data_input.extract_input_data("carbon_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
+        self.biodiversity_intensity_technology = self.data_input.extract_input_data(
+            "biodiversity_intensity_technology", index_sets=[set_location], unit_category={"biodiversity": 1, "energy_quantity": -1})
+        self.gwp100_intensity_technology = self.data_input.extract_input_data(
+            "gwp100_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
+        self.methane_intensity_technology = self.data_input.extract_input_data(
+            "methane_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
+        self.nitrous_intensity_technology = self.data_input.extract_input_data(
+            "nitrous_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
         # extract existing capacity
         self.set_technologies_existing = self.data_input.extract_set_technologies_existing()
         self.capacity_existing = self.data_input.extract_input_data("capacity_existing", index_sets=[set_location, "set_technologies_existing"], unit_category={"energy_quantity": 1, "time": -1})
@@ -351,6 +359,18 @@ class Technology(Element):
         optimization_setup.parameters.add_parameter(name="max_load", index_names=["set_technologies", "set_location", "set_time_steps_operation"], doc='Parameter which specifies the maximum load of technology relative to installed capacity', calling_class=cls)
         # carbon intensity
         optimization_setup.parameters.add_parameter(name="carbon_intensity_technology", index_names=["set_technologies", "set_location"], doc='Parameter which specifies the carbon intensity of each technology', calling_class=cls)
+        # carbon intensity
+        optimization_setup.parameters.add_parameter(name="biodiversity_intensity_technology", index_names=["set_technologies", "set_location"],
+                                                    doc='Parameter which specifies the  biodiversity impact of each technology', calling_class=cls)
+        # GWP100 impact
+        optimization_setup.parameters.add_parameter(name="gwp100_intensity_technology", index_names=["set_technologies", "set_location"],
+                                                    doc='Parameter which specifies the GWP100 (all GHG) intensity of each technology', calling_class=cls)
+        # methane emission intensity
+        optimization_setup.parameters.add_parameter(name="methane_intensity_technology", index_names=["set_technologies", "set_location"],
+                                                    doc='Parameter which specifies the methane emissions of each technology', calling_class=cls)
+        # nitrous oxide emission intensity
+        optimization_setup.parameters.add_parameter(name="nitrous_intensity_technology", index_names=["set_technologies", "set_location"],
+                                                    doc='Parameter which specifies the nitrous oxide emissions of each technology', calling_class=cls)
         # calculate additional existing parameters
         optimization_setup.parameters.add_parameter(name="existing_capacities", data=cls.get_existing_quantity(optimization_setup, type_existing_quantity="capacity"),
                                                     doc="Parameter which specifies the total available capacity of existing technologies at the beginning of the optimization", calling_class=cls)
@@ -440,6 +460,30 @@ class Technology(Element):
         # total carbon emissions technology
         variables.add_variable(model, name="carbon_emissions_technology_total", index_sets=sets["set_time_steps_yearly"],
             doc="total carbon emissions for operating technology at location l and time t", unit_category={"emissions": 1})
+        # biodiversity impact
+        variables.add_variable(model, name="biodiversity_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
+            doc="biodiversity impact for operating technology at location l and time t", unit_category={"biodiversity": 1, "time": -1})
+        # total biodiversity impact technology
+        variables.add_variable(model, name="biodiversity_emissions_technology_total", index_sets=sets["set_time_steps_yearly"],
+            doc="total biodiversity impact for operating technology at location l and time t", unit_category={"biodiversity": 1})
+        # GWP100 impact
+        variables.add_variable(model, name="gwp100_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
+            doc="GWP100 impact for operating technology at location l and time t", unit_category={"emissions": 1, "time": -1})
+        # total GWP100 impact technology
+        variables.add_variable(model, name="gwp100_emissions_technology_total", index_sets=sets["set_time_steps_yearly"],
+            doc="total GWP100 impact for operating technology at location l and time t", unit_category={"emissions": 1})
+        # methane emissions
+        variables.add_variable(model, name="methane_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
+            doc="methane emissions for operating technology at location l and time t", unit_category={"emissions": 1, "time": -1})
+        # total methane emissions technology
+        variables.add_variable(model, name="methane_emissions_technology_total", index_sets=sets["set_time_steps_yearly"],
+            doc="total methane emissions for operating technology at location l and time t", unit_category={"emissions": 1})
+        # nitrous oxide emissions
+        variables.add_variable(model, name="nitrous_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
+            doc="nitrous oxide emissions for operating technology at location l and time t", unit_category={"emissions": 1, "time": -1})
+        # total nitrous oxide emissions technology
+        variables.add_variable(model, name="nitrous_emissions_technology_total", index_sets=sets["set_time_steps_yearly"],
+            doc="total nitrous oxide emissions for operating technology at location l and time t", unit_category={"emissions": 1})
 
         # install technology
         # Note: binary variables are written into the lp file by linopy even if they are not relevant for the optimization,
