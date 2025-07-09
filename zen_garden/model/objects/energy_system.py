@@ -357,8 +357,10 @@ class EnergySystem:
             objective = self.rules.objective_total_cost(self.optimization_setup.model)
         elif self.optimization_setup.analysis.objective == "total_carbon_emissions":
             objective = self.rules.objective_total_carbon_emissions(self.optimization_setup.model)
-        elif self.optimization_setup.analysis.objective in ["biodiversity_emissions", "gwp100_emissions", "methane_emissions", "nitrous_emissions"]:
-            objective = self.rules.objective_additional_impact_emissions(self.optimization_setup.model, self.optimization_setup.analysis.objective)
+        elif self.optimization_setup.analysis.objective == "total_energy":
+            objective = self.rules.objective_total_energy(self.optimization_setup.model)
+        elif self.optimization_setup.analysis.objective == "total_food":
+            objective = self.rules.objective_total_food(self.optimization_setup.model)
         else:
             raise KeyError(f"Objective type {self.optimization_setup.analysis.objective} not known")
 
@@ -729,17 +731,30 @@ class EnergySystemRules(GenericRule):
         sets = self.sets
         return model.variables["carbon_emissions_cumulative"][sets["set_time_steps_yearly"][-1]].to_linexpr()
 
-    def objective_additional_impact_emissions(self, model, objective):
-        """objective function to minimize additional impact emissions
+    def objective_total_energy(self, model):
+        """objective function to maximize energy, i.e., electricity production
 
         .. math::
-            J = E^{\\mathrm{cum}}_Y
+            J = \\sum_{n\\in\\mathcal{N}} \\sum_{t\\in\\mathcal{T}}\\tau_t \\overline{U}_{electricity,n,t}
 
-        :math:`E^{\\mathrm{cum}}_Y`: cumulative additional impact emissions at the end of the time horizon
-
+        :math:`\\tau_t`: is the duration of time step :math:`t`\n
+        :math:`\\overline{U}_{electricity,n,t}`: flow of carrier electricity exported at node :math:`n` at time step :math:`t`
         :param model: optimization model
-        :param objective: type of additional impact emissions, e.g., biodiversity, gwp100, methane, nitrous
-        :return: additional impact emissions objective function
+        :return: Total power production over all nodes, timesteps, and years
         """
-        sets = self.sets
-        return model.variables[f"{objective}_emissions_cumulative"][sets["set_time_steps_yearly"][-1]].to_linexpr()
+        return (model.variables["flow_export"].sel({'set_carriers': 'electricity'}) * self.get_year_time_step_duration_array()
+               ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+
+    def objective_total_food(self, model):
+        """ objective function to maximize food production
+
+       .. math::
+            J = \\sum_{n\\in\\mathcal{N}} \\sum_{t\\in\\mathcal{T}}\\tau_t \\overline{U}_{food,n,t}
+
+        :math:`\\tau_t`: is the duration of time step :math:`t`\n
+        :math:`\\overline{U}_{food,n,t}`: flow of carrier food exported at node :math:`n` at time step :math:`t`
+        :param model: optimization model
+        :return: Total food production over all nodes, timesteps, and years
+        """
+        return (model.variables["flow_export"].sel({'set_carriers': 'beef'}) * self.get_year_time_step_duration_array()
+               ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
