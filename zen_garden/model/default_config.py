@@ -4,10 +4,12 @@ Default configuration.
 Changes from the default values are specified in config.py (folders data/tests) and system.py (individual datasets)
 """
 
-from pydantic import BaseModel,ConfigDict
-from typing import Any, Optional, Union
+from pydantic import BaseModel,ConfigDict, create_model
+from typing import Any, Optional, Union, get_type_hints
 
-class Subscriptable(BaseModel, extra="forbid"):
+
+class Subscriptable(BaseModel):
+    model_config = ConfigDict(extra="allow")
 
     def __getitem__(self, __name: str) -> Any:
         return getattr(self, __name)
@@ -18,25 +20,11 @@ class Subscriptable(BaseModel, extra="forbid"):
     def keys(self) -> Any:
         return self.model_dump().keys()
 
-    def update(self, new_values: dict[Any, Any]) -> None:
-        for key, val in new_values.items():
-            if isinstance(val, dict):
-                getattr(self, key).update(val)
-            else:
-                setattr(self, key, val)
-
     def items(self) -> Any:
         return self.model_dump().items()
 
     def values(self) -> Any:
         return self.model_dump().values()
-
-    @classmethod
-    def result_config(cls):
-        """ creates a loose model configuration that allows for extra fields """
-        class Model(cls):
-            model_config = ConfigDict(extra="allow")
-        return Model
 
 class Subsets(Subscriptable):
     set_carriers: list[str] = []
@@ -78,6 +66,7 @@ class HeaderDataInputs(Subscriptable):
     set_lca_impact_categories: str = "lca_impact_category"
     set_failure_states: str = "failure_state"
 
+
 class System(Subscriptable):
     """
     Class which contains the system configuration. This defines for example the set of carriers, technologies, etc.
@@ -117,6 +106,8 @@ class System(Subscriptable):
     load_lca_factors: bool = False
     set_lca_impact_categories: list[str] = []
     allow_investment: bool = True
+    storage_charge_discharge_binary: bool = False
+
 
 class Solver(Subscriptable):
     """
@@ -130,9 +121,9 @@ class Solver(Subscriptable):
     io_api: str = "lp"
     save_duals: bool = False
     save_parameters: bool = True
-    selected_saved_parameters: list = [] # if empty, all parameters are saved
-    selected_saved_variables: list = [] # if empty, all variables are saved
-    selected_saved_duals: list = [] # if empty, all duals are saved (if save_duals is True)
+    selected_saved_parameters: list = []  # if empty, all parameters are saved
+    selected_saved_variables: list = []  # if empty, all variables are saved
+    selected_saved_duals: list = []  # if empty, all duals are saved (if save_duals is True)
     linear_regression_check: dict[str, float] = {
         "eps_intercept": 0.1,
         "epsRvalue": 1 - (1e-5),
@@ -145,21 +136,21 @@ class Solver(Subscriptable):
     run_diagnostics: bool = False
     use_scaling: bool = True
     scaling_include_rhs: bool = True
-    scaling_algorithm: Union[list[str],str] = ["geom","geom","geom"]
+    scaling_algorithm: Union[list[str], str] = ["geom", "geom", "geom"]
 
 
 class TimeSeriesAggregation(Subscriptable):
     """
     Class which contains the time series aggregation configuration. This defines for example the clustering method, etc.
     """
-    slv: Solver = Solver()
     clusterMethod: str = "hierarchical"
-    solver: str = slv.name
-    hoursPerPeriod: int = 1 # keep this at 1
+    solver: str = "highs"
+    hoursPerPeriod: int = 1  # keep this at 1
     extremePeriodMethod: Optional[str] = "None"
     rescaleClusterPeriods: bool = False
     representationMethod: str = "meanRepresentation"
     resolution: int = 1
+
 
 class Analysis(Subscriptable):
     """
@@ -176,6 +167,7 @@ class Analysis(Subscriptable):
     output_format: str = "h5"
     earliest_year_of_data: int = 1900
     zen_garden_version: str = None
+
 
 class Config(Subscriptable):
     """
