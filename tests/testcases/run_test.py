@@ -214,6 +214,15 @@ def test_1g(config, folder_path):
     res = Results(os.path.join("outputs", data_set_name))
     compare_variables_results(data_set_name, res, folder_path)
 
+def test_1h(config, folder_path):
+    # run the test
+    data_set_name = "test_1h"
+    main(config=config, dataset_path=os.path.join(folder_path, data_set_name))
+
+    # read the results and check again
+    res = Results(os.path.join("outputs", data_set_name))
+    compare_variables_results(data_set_name, res, folder_path)
+
 
 def test_2a(config, folder_path):
     # run the test
@@ -524,10 +533,20 @@ def test_9a(config, folder_path):
             config=config, dataset_path=os.path.join(folder_path, data_set_name)
         )
 
+def test_10a(config, folder_path):
+    # run the test
+    data_set_name = "test_10a"
+    main(
+        config=config, dataset_path=os.path.join(folder_path, data_set_name)
+    )
+    # read the results and check again
+    res = Results(os.path.join("outputs", data_set_name))
+    compare_variables_results(data_set_name, res, folder_path)
+
 
 if __name__ == "__main__":
     from config import config
 
     config.solver.keep_files = False
     folder_path = os.path.dirname(__file__)
-    test_4a(config, folder_path)
+    test_3f(config, folder_path)

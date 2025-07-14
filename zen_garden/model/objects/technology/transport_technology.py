@@ -320,7 +320,7 @@ class TransportTechnologyRules(GenericRule):
         mask_flexible_techs[mask_flexible_techs.index.isin(self.sets["set_flexible_transport_technologies"])] = True
         mask_flexible_techs = mask_flexible_techs.to_xarray()
         term_capacity = (
-                self.parameters.max_load.loc[techs, "power", edges, :]
+                self.parameters.max_load.loc[techs, edges, :]
                 * self.variables["capacity"].loc[techs, "power", edges, time_step_year]
         ).rename({"set_technologies":"set_transport_technologies","set_location": "set_edges"})
         if self.optimization_setup.system['n1_contingency']:
