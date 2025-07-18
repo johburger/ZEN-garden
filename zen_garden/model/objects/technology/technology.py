@@ -1141,7 +1141,7 @@ class TechnologyRules(GenericRule):
         capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr), 0)
         # build constraints for all nodes summed ("sn")
         capacity_addition_super = capacity_addition.broadcast_like(super_loc).where(super_loc).sum("set_location")
-        lhs_sn = lp.merge(1 * capacity_addition_super, -1 * term_knowledge_no_spillover, compat="broadcast_equals").sum("set_super_location")
+        lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover], compat="broadcast_equals").sum("set_super_location")
         rhs_sn = (tdr * capacity_existing_total_nosr_super + capacity_addition_unbounded_super).sum("set_super_location")
         rhs_sn = rhs_sn.broadcast_like(lhs_sn.const)
         # mask for tdr == inf
@@ -1159,7 +1159,7 @@ class TechnologyRules(GenericRule):
             capacity_existing_total_kdr = capacity_existing_kdr + spillover_rate * capacity_existing_kdr_sr
             capacity_existing_total_kdr = capacity_existing_total_kdr.broadcast_like(super_loc).where(super_loc).sum("set_location")
 
-            lhs_an = lp.merge(1 * capacity_addition_super, -1 * term_knowledge, compat="broadcast_equals")
+            lhs_an = lp.merge([1 * capacity_addition_super, -1 * term_knowledge], compat="broadcast_equals")
             rhs_an = tdr * capacity_existing_total_kdr + capacity_addition_unbounded_super
             rhs_an = rhs_an.broadcast_like(lhs_an.const)
             # mask for tdr == inf
