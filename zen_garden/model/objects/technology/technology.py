@@ -1126,12 +1126,28 @@ class TechnologyRules(GenericRule):
                 term_knowledge = capacity_addition_years.sum("set_location") + sr * term_spillover
                 term_knowledge = tdr * (term_knowledge * kdr).sum("set_time_steps_yearly_prev")
 
+        capacity_previous = self.variables["capacity_previous"]
+        market_share_unbounded = {
+            (t, ot): self.parameters.market_share_unbounded if (t in self.sets['set_transport_technologies'] and
+                                                                ot in self.sets['set_transport_technologies']) else 0
+            for t in self.sets["set_technologies"]
+            for ot in self.optimization_setup.get_class_set_of_element(t, Technology)
+        }
+        market_share_unbounded = pd.Series(market_share_unbounded)
+        market_share_unbounded.index.names = ["set_technologies", "set_other_technologies"]
+        market_share_unbounded = market_share_unbounded.to_xarray().broadcast_like(capacity_previous.lower).fillna(0)
+        mask_market_share_unbounded = market_share_unbounded != 0
+        capacity_previous_super_loc = capacity_previous.broadcast_like(super_loc).rename({"set_technologies": "set_other_technologies"})
+        market_share_unbounded_super_loc = market_share_unbounded.broadcast_like(super_loc)
+        term_unbounded_addition = (market_share_unbounded_super_loc * capacity_previous_super_loc).where(mask_market_share_unbounded).sum(
+            "set_other_technologies").where(super_loc).sum("set_location")
+        # term_unbounded_addition = term_unbounded_addition.broadcast_like(super_loc).where(super_loc).sum("set_location")
+
         # existing capacities
         delta_years = interval_between_years * (capacity_addition.coords["set_time_steps_yearly"] - 1 - self.energy_system.set_time_steps_yearly[0])
         lifetime_existing = self.parameters.lifetime_existing
         lifetime = self.parameters.lifetime
         kdr_existing = (1 - knowledge_depreciation_rate) ** (delta_years + lifetime - lifetime_existing)
-
         capacity_existing_total_nosr = capacity_existing
         capacity_existing_total_nosr = (capacity_existing_total_nosr * kdr_existing).sum("set_technologies_existing")
         capacity_existing_total_nosr_super = capacity_existing_total_nosr.broadcast_like(super_loc).where(super_loc).sum("set_location")
@@ -1141,7 +1157,8 @@ class TechnologyRules(GenericRule):
         capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr), 0)
         # build constraints for all nodes summed ("sn")
         capacity_addition_super = capacity_addition.broadcast_like(super_loc).where(super_loc).sum("set_location")
-        lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover], compat="broadcast_equals").sum("set_super_location")
+        lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover,
+                           -1 * term_unbounded_addition], compat="broadcast_equals").sum("set_super_location")
         rhs_sn = (tdr * capacity_existing_total_nosr_super + capacity_addition_unbounded_super).sum("set_super_location")
         rhs_sn = rhs_sn.broadcast_like(lhs_sn.const)
         # mask for tdr == inf
@@ -1159,7 +1176,7 @@ class TechnologyRules(GenericRule):
             capacity_existing_total_kdr = capacity_existing_kdr + spillover_rate * capacity_existing_kdr_sr
             capacity_existing_total_kdr = capacity_existing_total_kdr.broadcast_like(super_loc).where(super_loc).sum("set_location")
 
-            lhs_an = lp.merge([1 * capacity_addition_super, -1 * term_knowledge], compat="broadcast_equals")
+            lhs_an = lp.merge([1 * capacity_addition_super, -1 * term_knowledge, -1 * term_unbounded_addition], compat="broadcast_equals")
             rhs_an = tdr * capacity_existing_total_kdr + capacity_addition_unbounded_super
             rhs_an = rhs_an.broadcast_like(lhs_an.const)
             # mask for tdr == inf
