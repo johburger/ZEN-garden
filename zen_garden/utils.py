@@ -676,7 +676,7 @@ class ScenarioDict(dict):
                         exclude_list = []
 
                     # expand the sets
-                    for element in self.paths[current_set].keys():
+                    for element in self.system[current_set]:
                         if element != "folder" and element not in exclude_list:
                             # create dicts if necessary
                             if element not in new_dict:
