@@ -5,6 +5,7 @@ constraints that hold for all technologies.
 """
 import itertools
 import logging
+import warnings
 
 import linopy as lp
 import numpy as np
@@ -1104,11 +1105,22 @@ class TechnologyRules(GenericRule):
             # expand and sum capacity addition over all nodes for spillover
             capacity_addition_years = capacity_addition.rename(
                 {"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
+            broadcast_dummy = capacity_addition.rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years).broadcast_like(super_loc)
+            if self.system.transport_diffusion_type == 'distance' and 'technology_installation' in self.variables:
+                logging.info("Transport diffusion limit is distance dependent.")
+                tech_installation = self.variables["technology_installation"]
+                distance = self.parameters.distance.rename(
+                    {'set_transport_technologies': 'set_technologies', 'set_edges': 'set_location'}).broadcast_like(
+                    tech_installation.lower).fillna(1)
+                broadcast_dummy = capacity_addition.where(tech_installation.isnull()).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years).broadcast_like(super_loc)
+                # Only transport techs with binary installation variables can be used for distance dependent diffusion limit
+                capacity_addition_years = (capacity_addition.where(tech_installation.isnull()).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
+                                           + tech_installation.rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
+                                           * distance.reindex_like(tech_installation.lower).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years))
 
             # calculate the capacity addition for all locations within the super locations
-            capacity_addition_years = capacity_addition_years.broadcast_like(super_loc).where(super_loc)
-            kdr = kdr.broadcast_like(capacity_addition_years.lower)
-
+            capacity_addition_years = capacity_addition_years.where(super_loc)
+            kdr = kdr.broadcast_like(broadcast_dummy.lower)
             term_knowledge_no_spillover = tdr * (capacity_addition_years * kdr).sum("set_time_steps_yearly_prev").sum("set_location")
             # if spillover rate is not inf, calculate term knowledge with spillover
             if spillover_rate != np.inf:
@@ -1116,8 +1128,9 @@ class TechnologyRules(GenericRule):
                     [capacity_addition_years.coords["set_super_location"].values,
                      capacity_addition_years.coords["set_super_location"].values],
                     names=["set_super_location", "set_super_location_temp"])).to_xarray()
-                capacity_addition_location = capacity_addition_years.rename({"set_super_location": "set_super_location_temp"}).broadcast_like(
-                    super_location_index).sum("set_location").sel({"set_super_location_temp": self.sets["set_super_nodes"]}).sum("set_super_location_temp")
+                # Only the nodes are selected since the spatial spillover is assumed to be 0 for transport techs.
+                capacity_addition_location = capacity_addition_years.rename({"set_super_location": "set_super_location_temp"}).where(
+                    super_location_index != 'dummy').sum("set_location").sel({"set_super_location_temp": self.sets["set_super_nodes"]}).sum("set_super_location_temp")
                 # calculate term spillover
                 term_spillover = capacity_addition_location - capacity_addition_years.sum("set_location")
                 sr = xr.full_like(term_spillover.const, spillover_rate)
@@ -1128,6 +1141,7 @@ class TechnologyRules(GenericRule):
                 term_knowledge = tdr * (term_knowledge * kdr).sum("set_time_steps_yearly_prev")
 
         capacity_previous = self.variables["capacity_previous"]
+        # only instantiate the market_share if the techs are transport techs
         market_share_unbounded = {
             (t, ot): self.parameters.market_share_unbounded if (t in self.sets['set_transport_technologies'] and
                                                                 ot in self.sets['set_transport_technologies']) else 0
@@ -1138,11 +1152,16 @@ class TechnologyRules(GenericRule):
         market_share_unbounded.index.names = ["set_technologies", "set_other_technologies"]
         market_share_unbounded = market_share_unbounded.to_xarray().broadcast_like(capacity_previous.lower).fillna(0)
         mask_market_share_unbounded = market_share_unbounded != 0
+        if mask_market_share_unbounded.any() and transport_diff_type == 'distance':
+            warnings.warn('Distance dependent transport diffusion limit is set but there is also technology spillover. This is not implemented at the moment!')
+        # not included yet: create a mask based on the tech installation variables
+        #  then use the mask to set the term_unbounded_addition to 0 where there are tech installation variables present
+        #  Last step: create a separate rhs with the distances that are already built. In order to get the installed technologies for the rhs
+        #  a new variable has to be created which is equal to the distance that is actually present at the previous time step
         capacity_previous_super_loc = capacity_previous.broadcast_like(super_loc).rename({"set_technologies": "set_other_technologies"})
         market_share_unbounded_super_loc = market_share_unbounded.broadcast_like(super_loc)
         term_unbounded_addition = (market_share_unbounded_super_loc * capacity_previous_super_loc).where(mask_market_share_unbounded).sum(
             "set_other_technologies").where(super_loc).sum("set_location")
-        # term_unbounded_addition = term_unbounded_addition.broadcast_like(super_loc).where(super_loc).sum("set_location")
 
         # existing capacities
         delta_years = interval_between_years * (capacity_addition.coords["set_time_steps_yearly"] - 1 - self.energy_system.set_time_steps_yearly[0])
@@ -1154,10 +1173,23 @@ class TechnologyRules(GenericRule):
         capacity_existing_total_nosr_super = capacity_existing_total_nosr.broadcast_like(super_loc).where(super_loc).sum("set_location")
         # capacity addition unbounded
         capacity_addition_unbounded_super = self.parameters.capacity_addition_unbounded_super
-        capacity_addition_unbounded_super = capacity_addition_unbounded_super.broadcast_like(tdr)
         capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr), 0)
         # build constraints for all nodes summed ("sn")
         capacity_addition_super = capacity_addition.broadcast_like(super_loc).where(super_loc).sum("set_location")
+
+        if self.system.transport_diffusion_type == 'distance' and 'technology_installation' in self.variables:
+            mask_technology_installation = self.variables.technology_installation.isnull() == False
+            distance_super = (tech_installation * distance).where(super_loc).sum("set_location")
+            capacity_addition_super = capacity_addition.where(tech_installation.isnull()).where(super_loc).sum('set_location')
+            capacity_addition_super = capacity_addition_super + distance_super
+
+            # set cap addition to zero where there are distance limits in place
+            distance_addition_unbounded_super = self.parameters.distance_addition_unbounded_super.rename(
+                {'set_transport_technologies': 'set_technologies'}).broadcast_like(tdr)
+            distance_addition_unbounded_super = distance_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr), np.nan)
+            capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(distance_addition_unbounded_super.isnull(), 0)
+            capacity_addition_unbounded_super += distance_addition_unbounded_super.fillna(0)
+
         lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover,
                            -1 * term_unbounded_addition], compat="broadcast_equals").sum("set_super_location")
         rhs_sn = (tdr * capacity_existing_total_nosr_super + capacity_addition_unbounded_super).sum("set_super_location")

@@ -47,6 +47,7 @@ class TransportTechnology(Technology):
         if '/ kilometer' in str(self.units['carbon_intensity_technology']['unit_in_base_units'].units):
             self.carbon_intensity_technology = self.data_input.extract_input_data("carbon_intensity_technology", index_sets=["set_edges"], unit_category={"emissions": 1, "energy_quantity": -1, "distance": -1})
             self.carbon_intensity_technology *= self.distance
+        self.distance_addition_unbounded_super = self.data_input.extract_input_data("distance_addition_unbounded_super", index_sets=[], unit_category={"distance": 1})
         # get transport loss factor
         self.get_transport_loss_factor()
         # get capex of transport technology
@@ -160,6 +161,9 @@ class TransportTechnology(Technology):
 
         # distance between nodes
         optimization_setup.parameters.add_parameter(name="distance", index_names=["set_transport_technologies", "set_edges"], doc='distance between two nodes for transport technologies', calling_class=cls)
+        optimization_setup.parameters.add_parameter(name="distance_addition_unbounded_super", index_names=["set_transport_technologies"],
+                                                    doc='Parameter which specifies the unbounded distance that can be added each year per super node (only for delayed technology deployment)',
+                                                    calling_class=cls)
         # capital cost per unit
         optimization_setup.parameters.add_parameter(name="capex_specific_transport", index_names=["set_transport_technologies", "set_edges", "set_time_steps_yearly"], doc='capex per unit for transport technologies', calling_class=cls)
         # capital cost per distance
