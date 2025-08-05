@@ -74,6 +74,8 @@ class EnergySystem:
         self.set_edges = list(self.set_nodes_on_edges.keys())
         self.set_haversine_distances_edges = self.calculate_haversine_distances_from_nodes()
         self.area_of_nodes = self.data_input.extract_input_data("area_of_nodes", index_sets=['set_nodes'], unit_category={'distance': 2})
+        self.activity_change_limit = self.data_input.extract_input_data("activity_change_limit", index_sets=[], unit_category={})
+        self.supplementary_activity_limit = self.data_input.extract_input_data("supplementary_activity_limit", index_sets=[], unit_category={})
         self.set_technologies = self.system.set_technologies
         # base time steps
         self.set_base_time_steps = list(range(0, self.system.unaggregated_time_steps_per_year * self.system.optimized_years))
@@ -244,6 +246,9 @@ class EnergySystem:
         parameters.add_parameter(name="discount_rate", doc='Parameter which specifies the discount rate of the energy system', calling_class=cls)
         # area requirements of nodes
         parameters.add_parameter(name="area_of_nodes", index_names=["set_nodes"], doc="Parameter which specifies the area requirements of nodes", calling_class=cls)
+        # social cost
+        parameters.add_parameter(name="activity_change_limit", index_names=["set_nodes"], doc="Parameter specifying the limit for activity_change for agriculture model", calling_class=cls)
+        parameters.add_parameter(name="supplementary_activity_limit", index_names=["set_nodes"], doc="Parameter specifying the limit for supplementary_activity for agriculture model", calling_class=cls)
         # carbon emissions limit
         parameters.add_parameter(name="carbon_emissions_annual_limit", set_time_steps="set_time_steps_yearly", doc='Parameter which specifies the total limit on carbon emissions', calling_class=cls)
         # carbon emissions budget

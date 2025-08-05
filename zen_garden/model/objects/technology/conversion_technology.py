@@ -59,6 +59,8 @@ class ConversionTechnology(Technology):
         self.opex_specific_fixed = self.data_input.extract_input_data("opex_specific_fixed", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "time": 1})
         self.min_full_load_hours_fraction = self.data_input.extract_input_data("min_full_load_hours_fraction", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={})
         self.area_requirement = self.data_input.extract_input_data("area_requirement", index_sets=["set_nodes"], unit_category={"distance": 2, "energy_quantity": -1, "time": 1})
+        self.cost_activity_change = self.data_input.extract_input_data("cost_activity_change", index_sets=["set_nodes"], unit_category={"energy_quantity": -1, "time": 1})
+        self.cost_supplementary_activity = self.data_input.extract_input_data("cost_supplementary_activity", index_sets=["set_nodes"], unit_category={"energy_quantity": -1, "time": 1})
         self.convert_to_fraction_of_capex()
 
     def get_conversion_factor(self):
@@ -196,6 +198,11 @@ class ConversionTechnology(Technology):
         # area of capacity
         optimization_setup.parameters.add_parameter(name="area_requirement", index_names=["set_conversion_technologies", "set_nodes"],
             doc="Parameter which specifies the area occupation per installed capacity", calling_class=cls)
+        # social cost for agriculture model
+        optimization_setup.parameters.add_parameter(name="cost_activity_change", index_names=["set_conversion_technologies", "set_nodes"],
+            doc="Parameters specifying social cost for activity_change for agriculture model.", calling_class=cls)
+        optimization_setup.parameters.add_parameter(name="cost_supplementary_activity", index_names=["set_conversion_technologies", "set_nodes"],
+            doc="Parameters specifying social cost for supplementary_activity for agriculture model.", calling_class=cls)
 
         # add params of the child classes
         for subclass in cls.__subclasses__():
@@ -285,6 +292,8 @@ class ConversionTechnology(Technology):
         rules.constraint_minimum_full_load_hours()
         # area requirement
         rules.constraint_area_requirement()
+        # social cost
+        rules.constraint_social_cost()
 
         # capex
         set_pwa_capex = cls.create_custom_set(["set_conversion_technologies", "set_capex_pwa", "set_nodes", "set_time_steps_yearly"], optimization_setup)
@@ -641,3 +650,27 @@ class ConversionTechnologyRules(GenericRule):
         constraints = lhs <= rhs
 
         self.constraints.add_constraint("constraint_area_requirement", constraints)
+
+    def constraint_social_cost(self):
+
+        mask_technology_type = pd.Series(index=xr.DataArray(self.sets["set_technologies"]), data=0)
+        mask_technology_type.index.name = "set_technologies"
+        mask_technology_type[mask_technology_type.index.isin(self.sets["set_conversion_technologies"])] = 1
+        mask_technology_type = mask_technology_type.to_xarray()
+
+        capacity_addition = self.variables['capacity_addition'].where(mask_technology_type)
+        cost_activity_change = self.parameters.cost_activity_change.rename(
+            {'set_conversion_technologies': 'set_technologies', 'set_nodes': 'set_location'}).broadcast_like(capacity_addition.lower)
+        cost_supplementary_activity = self.parameters.cost_supplementary_activity.rename(
+            {'set_conversion_technologies': 'set_technologies', 'set_nodes': 'set_location'}).broadcast_like(capacity_addition.lower)
+        lhs_ac = (capacity_addition * cost_activity_change).sum('set_technologies').sum('set_location')
+        rhs_ac = self.parameters.activity_change_limit
+        lhs_sa = (capacity_addition * cost_supplementary_activity).sum('set_technologies').sum('set_location')
+        rhs_sa = self.parameters.supplementary_activity_limit
+
+        if not ((self.parameters.cost_activity_change == 0).all() or (self.parameters.activity_change_limit == np.inf)):
+            constraints_ac = lhs_ac <= rhs_ac
+            self.constraints.add_constraint("constraint_activity_change", constraints_ac)
+        if not ((self.parameters.cost_supplementary_activity == 0).all() or (self.parameters.supplementary_activity_limit == np.inf)):
+            constraints_sa = lhs_sa <= rhs_sa
+            self.constraints.add_constraint("constraint_supplementary_activity", constraints_sa)
