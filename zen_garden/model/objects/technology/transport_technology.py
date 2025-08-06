@@ -278,9 +278,9 @@ class TransportTechnologyRules(GenericRule):
             super_edges = pd.concat(self.energy_system.set_edges_in_super_edges.values())
             super_loc_index = pd.MultiIndex.from_frame(super_edges.reset_index().rename({'super_edge': 'set_super_edges', 'edge': 'set_location'}, axis=1))
             super_loc = pd.Series(1, index=super_loc_index).unstack(fill_value=0).stack().to_xarray()
-            term_capacity_flexible = (self.parameters.max_load.loc[techs, edges, :].broadcast_like(super_loc).where(super_loc).fillna(0)
-                                      * self.variables["capacity"].loc[techs, "power", edges, time_step_year].broadcast_like(super_loc)).sum('set_location').rename({"set_technologies": "set_transport_technologies"})
-            term_flow_transport = self.variables["flow_transport"].rename({'set_edges': 'set_location'}).loc[techs, edges, :].where(mask_flexible_techs).broadcast_like(super_loc).where(super_loc).sum('set_location')
+            term_capacity_flexible = (self.parameters.max_load.loc[flexible_techs, edges, :].where(super_loc).fillna(0)
+                                      * self.variables["capacity"].loc[flexible_techs, "power", edges, time_step_year].where(super_loc)).sum('set_location').rename({"set_technologies": "set_transport_technologies"})
+            term_flow_transport = self.variables["flow_transport"].rename({'set_edges': 'set_location'}).loc[flexible_techs, edges, :].where(super_loc).sum('set_location')
             lhs = term_capacity_flexible - term_flow_transport
             rhs = 0
             constraints_flexible = lhs >= rhs

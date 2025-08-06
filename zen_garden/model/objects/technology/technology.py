@@ -1175,20 +1175,21 @@ class TechnologyRules(GenericRule):
         capacity_addition_unbounded_super = self.parameters.capacity_addition_unbounded_super
         capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr), 0)
         # build constraints for all nodes summed ("sn")
-        capacity_addition_super = capacity_addition.broadcast_like(super_loc).where(super_loc).sum("set_location")
+        capacity_addition_super = capacity_addition.where(super_loc).sum("set_location")
 
         if self.system.transport_diffusion_type == 'distance' and 'technology_installation' in self.variables:
             mask_technology_installation = self.variables.technology_installation.isnull() == False
             distance_super = (tech_installation * distance).where(super_loc).sum("set_location")
             capacity_addition_super = capacity_addition.where(tech_installation.isnull()).where(super_loc).sum('set_location')
-            capacity_addition_super = capacity_addition_super + distance_super
+            capacity_addition_super = lp.merge([1 * capacity_addition_super, 1 * distance_super], compat='broadcast_equals')
 
             # set cap addition to zero where there are distance limits in place
             distance_addition_unbounded_super = self.parameters.distance_addition_unbounded_super.rename(
                 {'set_transport_technologies': 'set_technologies'}).broadcast_like(tdr)
-            distance_addition_unbounded_super = distance_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr), np.nan)
-            capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(distance_addition_unbounded_super.isnull(), 0)
-            capacity_addition_unbounded_super += distance_addition_unbounded_super.fillna(0)
+            # remove distance additions where techs cannot be installed (e.g. conv techs on edges)
+            distance_addition_unbounded_super = distance_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr))
+            capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(distance_addition_unbounded_super.isnull())
+            capacity_addition_unbounded_super = capacity_addition_unbounded_super + distance_addition_unbounded_super.fillna(0)
 
         lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover,
                            -1 * term_unbounded_addition], compat="broadcast_equals").sum("set_super_location")
