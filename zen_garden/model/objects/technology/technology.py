@@ -1086,8 +1086,7 @@ class TechnologyRules(GenericRule):
         # create xarray for previous years
         years = pd.MultiIndex.from_tuples(
             [(y, py) for y, py in
-             itertools.product(self.sets["set_time_steps_yearly"], self.sets["set_time_steps_yearly"])
-             if py < y],
+             itertools.product(self.sets["set_time_steps_yearly"], self.sets["set_time_steps_yearly"]) if py < y],
             names=["set_time_steps_yearly", "set_time_steps_yearly_prev"])
         # only formulate term_knowledge if there are previous years
         term_knowledge_no_spillover = capacity_addition.where(False)  # dummy term
@@ -1131,7 +1130,7 @@ class TechnologyRules(GenericRule):
                 # Only the nodes are selected since the spatial spillover is assumed to be 0 for transport techs.
                 capacity_addition_location = capacity_addition_years.rename({"set_super_location": "set_super_location_temp"}).where(
                     super_location_index != 'dummy').sum("set_location").sel({"set_super_location_temp": self.sets["set_super_nodes"]}).sum("set_super_location_temp")
-                # calculate term spillover
+                # calculate term spillover, sums capacities at all super nodes minus the capacities at the actual super node
                 term_spillover = capacity_addition_location - capacity_addition_years.sum("set_location")
                 sr = xr.full_like(term_spillover.const, spillover_rate)
                 sr = sr.where(mask_technology_type, 0).where(mask_super_location).fillna(0)
