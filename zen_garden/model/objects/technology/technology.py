@@ -1187,7 +1187,8 @@ class TechnologyRules(GenericRule):
                 {'set_transport_technologies': 'set_technologies'}).broadcast_like(tdr)
             # remove distance additions where techs cannot be installed (e.g. conv techs on edges)
             distance_addition_unbounded_super = distance_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr))
-            capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(distance_addition_unbounded_super.isnull(), 0)
+            capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(
+                distance_addition_unbounded_super.reindex_like(capacity_addition_unbounded_super).isnull(), 0)
             capacity_addition_unbounded_super = capacity_addition_unbounded_super + distance_addition_unbounded_super.fillna(0)
 
         lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover,
