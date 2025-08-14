@@ -724,8 +724,6 @@ class TechnologyRules(GenericRule):
         index_values, index_names = Element.create_custom_set(index_names, self.optimization_setup)
         index = ZenIndex(index_values, index_names)
 
-        ### masks
-        # used within index loop
 
         ### index loop
         constraints = {}
@@ -737,11 +735,13 @@ class TechnologyRules(GenericRule):
                 set_loc_in_super_loc = self.sets["set_nodes_in_super_nodes"][super_loc]
             elif super_loc in self.sets["set_super_edges"]:
                 set_loc_in_super_loc = self.sets["set_edges_in_super_edges"][super_loc]
+            else:
+                continue
             if not set_loc_in_super_loc:
                 continue
             existing_capacities = sum(self.parameters.existing_capacities.loc[:, :, loc, :] for loc in set_loc_in_super_loc)
-            if not (isinstance(existing_capacities, float) or isinstance(existing_capacities, int)):
-                existing_capacities = existing_capacities.where(existing_capacities == np.nan, 0.0)
+            if not (isinstance(existing_capacities, int) or isinstance(existing_capacities, float)):
+                existing_capacities = existing_capacities.fillna(0.0)
             # masks to formulate constraints
             m1 = (capacity_limit_super.loc[:, :, super_loc, :] != np.inf) & (existing_capacities < capacity_limit_super.loc[:, :, super_loc, :])
             m2 = (capacity_limit_super.loc[:, :, super_loc, :] != np.inf) & ~(existing_capacities < capacity_limit_super.loc[:, :, super_loc, :])
@@ -1119,7 +1119,7 @@ class TechnologyRules(GenericRule):
 
             # calculate the capacity addition for all locations within the super locations
             capacity_addition_years = capacity_addition_years.where(super_loc)
-            kdr = kdr.broadcast_like(broadcast_dummy.lower)
+            kdr = kdr.broadcast_like(broadcast_dummy.lower).fillna(0)
             term_knowledge_no_spillover = tdr * (capacity_addition_years * kdr).sum("set_time_steps_yearly_prev").sum("set_location")
             # if spillover rate is not inf, calculate term knowledge with spillover
             if spillover_rate != np.inf:
@@ -1187,12 +1187,12 @@ class TechnologyRules(GenericRule):
                 {'set_transport_technologies': 'set_technologies'}).broadcast_like(tdr)
             # remove distance additions where techs cannot be installed (e.g. conv techs on edges)
             distance_addition_unbounded_super = distance_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr))
-            capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(distance_addition_unbounded_super.isnull())
+            capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(distance_addition_unbounded_super.isnull(), 0)
             capacity_addition_unbounded_super = capacity_addition_unbounded_super + distance_addition_unbounded_super.fillna(0)
 
         lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover,
                            -1 * term_unbounded_addition], compat="broadcast_equals").sum("set_super_location")
-        rhs_sn = (tdr * capacity_existing_total_nosr_super + capacity_addition_unbounded_super).sum("set_super_location")
+        rhs_sn = ((tdr * capacity_existing_total_nosr_super).fillna(0) + capacity_addition_unbounded_super).sum("set_super_location")
         rhs_sn = rhs_sn.broadcast_like(lhs_sn.const)
         # mask for tdr == inf
         lhs_sn = self.align_and_mask(lhs_sn, mask_inf_tdr_sum)
