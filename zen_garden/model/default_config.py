@@ -72,6 +72,8 @@ class System(Subscriptable):
     set_conversion_technologies: list[str] = []
     set_storage_technologies: list[str] = []
     set_retrofitting_technologies: list[str] = []
+    set_food_carriers: list[str] = []
+    set_protein_carriers: list[str] = []
     storage_periodicity: bool = True
     multiyear_periodicity: bool = False
     set_transport_technologies: list[str] = []
