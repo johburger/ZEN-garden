@@ -761,5 +761,5 @@ class EnergySystemRules(GenericRule):
         :param model: optimization model
         :return: Total food production over all nodes, timesteps, and years
         """
-        return (model.variables["flow_export"].sel({'set_carriers': 'beef'}) * self.get_year_time_step_duration_array()
-               ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+        return (model.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) * self.get_year_time_step_duration_array()
+               ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
