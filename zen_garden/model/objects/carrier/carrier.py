@@ -49,6 +49,8 @@ class Carrier(Element):
         self.availability_export_yearly = self.data_input.extract_input_data("availability_export_yearly", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1})
         self.carbon_intensity_carrier_import = self.data_input.extract_input_data("carbon_intensity_carrier_import", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"emissions": 1, "energy_quantity": -1})
         self.carbon_intensity_carrier_export = self.data_input.extract_input_data("carbon_intensity_carrier_export", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly",  unit_category={"emissions": 1, "energy_quantity": -1})
+        self.min_energy_production = self.data_input.extract_input_data("min_energy_production", index_sets=[],
+                                                                        unit_category={"energy_quantitiy": 1})
         # specifically added impact parameters for agriculture study
         self.biodiversity_intensity_carrier_import = self.data_input.extract_input_data(
             "biodiversity_intensity_carrier_import", index_sets=["set_nodes", "set_time_steps_yearly"],
@@ -118,6 +120,7 @@ class Carrier(Element):
         optimization_setup.parameters.add_parameter(name="carbon_intensity_carrier_import", index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"], doc='Parameter which specifies the carbon intensity of carrier import', calling_class=cls)
         # carbon intensity carrier exmport
         optimization_setup.parameters.add_parameter(name="carbon_intensity_carrier_export", index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"], doc='Parameter which specifies the carbon intensity of carrier export', calling_class=cls)
+        optimization_setup.parameters.add_parameter(name="min_energy_production", index_names=["set_carriers"], doc='Parameter which specifies the minimum energy production of carrier', calling_class=cls)
         # biodiversity impact carrier import and export
         optimization_setup.parameters.add_parameter(name="biodiversity_intensity_carrier_import",
                                                     index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
@@ -248,6 +251,8 @@ class Carrier(Element):
 
         # energy balance
         rules.constraint_nodal_energy_balance()
+        # mininum energy production
+        rules.constraint_min_energy_production()
 
         # newly added impacts: biodiversity, gwp100, methane, nitrous oxide
         rules.constraint_biodiversity_emissions_carrier()
@@ -634,6 +639,24 @@ class CarrierRules(GenericRule):
 
         ### return
         self.constraints.add_constraint("constraint_nodal_energy_balance",constraints)
+
+
+    def constraint_min_energy_production(self):
+        """ ensures minimum energy production of the agricultural system
+
+        .. math::
+            \\sum{n \\in \\mathcal{N}, t \\in \\mathcal{T}} \\overline{U}_{electricity,n,t} \\geq e_{min}
+
+        :math:`\\overline{U}_{electricity,n,t}`: flow of carrier electricity exported at node :math:`n` at time step :math:`t` \n
+        :math:`e_{min}`: minimum energy production of the agricultural system
+
+        """
+        lhs = (self.variables["flow_export"].sel({'set_carriers': 'electricity'}) * self.get_year_time_step_duration_array()).sum(
+            ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+        rhs = self.parameters.min_energy_production.sel({'set_carriers': 'electricity'})
+        constraints = lhs >= rhs
+        self.constraints.add_constraint("constraint_min_energy_production",constraints)
+
 
     def constraint_biodiversity_emissions_carrier(self):
         """ biodiversity impact of importing and exporting carrier
