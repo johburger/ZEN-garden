@@ -1124,7 +1124,8 @@ class TechnologyRules(GenericRule):
             elif self.system.transport_diffusion_type == 'capacity-distance':
                 logging.info("Transport diffusion limit is capacity-distance dependent.")
                 # multiply the capacity addition with the distance to get the capacity-distance
-                capacity_addition_years = capacity_addition_years * distance.rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
+                capacity_addition_years = capacity_addition_years * distance.reindex_like(capacity_addition.lower).rename(
+                    {"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
 
             # calculate the capacity addition for all locations within the super locations
             capacity_addition_years = capacity_addition_years.where(super_loc)
