@@ -1111,17 +1111,20 @@ class TechnologyRules(GenericRule):
             capacity_addition_years = capacity_addition.rename(
                 {"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
             broadcast_dummy = capacity_addition.rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years).broadcast_like(super_loc)
+            distance = self.parameters.distance.rename({'set_transport_technologies': 'set_technologies', 'set_edges': 'set_location'}
+                                                       ).broadcast_like(capacity_addition.lower).fillna(1)
             if self.system.transport_diffusion_type == 'distance' and 'technology_installation' in self.variables:
                 logging.info("Transport diffusion limit is distance dependent.")
                 tech_installation = self.variables["technology_installation"]
-                distance = self.parameters.distance.rename(
-                    {'set_transport_technologies': 'set_technologies', 'set_edges': 'set_location'}).broadcast_like(
-                    tech_installation.lower).fillna(1)
                 broadcast_dummy = capacity_addition.where(tech_installation.isnull()).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years).broadcast_like(super_loc)
                 # Only transport techs with binary installation variables can be used for distance dependent diffusion limit
                 capacity_addition_years = (capacity_addition.where(tech_installation.isnull()).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
                                            + tech_installation.rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
                                            * distance.reindex_like(tech_installation.lower).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years))
+            elif self.system.transport_diffusion_type == 'capacity-distance':
+                logging.info("Transport diffusion limit is capacity-distance dependent.")
+                # multiply the capacity addition with the distance to get the capacity-distance
+                capacity_addition_years = capacity_addition_years * distance.rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
 
             # calculate the capacity addition for all locations within the super locations
             capacity_addition_years = capacity_addition_years.where(super_loc)
@@ -1157,7 +1160,7 @@ class TechnologyRules(GenericRule):
         market_share_unbounded.index.names = ["set_technologies", "set_other_technologies"]
         market_share_unbounded = market_share_unbounded.to_xarray().broadcast_like(capacity_previous.lower).fillna(0)
         mask_market_share_unbounded = market_share_unbounded != 0
-        if mask_market_share_unbounded.any() and transport_diff_type == 'distance':
+        if mask_market_share_unbounded.any() and 'distance' in transport_diff_type:
             warnings.warn('Distance dependent transport diffusion limit is set but there is also technology spillover. This is not implemented at the moment!')
         # not included yet: create a mask based on the tech installation variables
         #  then use the mask to set the term_unbounded_addition to 0 where there are tech installation variables present
@@ -1196,6 +1199,16 @@ class TechnologyRules(GenericRule):
             capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(
                 distance_addition_unbounded_super.reindex_like(capacity_addition_unbounded_super).isnull(), 0)
             capacity_addition_unbounded_super = capacity_addition_unbounded_super + distance_addition_unbounded_super.fillna(0)
+        elif self.system.transport_diffusion_type == 'capacity-distance':
+            capacity_addition_super = (distance * capacity_addition).where(super_loc).sum("set_location")
+
+            # convert capacity addition unbounded to capacity-distance for transport technologies
+            capacity_addition_unbounded_super = self.parameters.capacity_addition_unbounded_super
+            cap_dist_addition_unbounded_super = self.parameters.cap_dist_addition_unbounded_super.rename(
+                {'set_transport_technologies': 'set_technologies'})
+            capacity_addition_unbounded_super = (capacity_addition_unbounded_super.where(mask_technology_type, 0) +
+                cap_dist_addition_unbounded_super.broadcast_like(mask_technology_type).fillna(0))
+            capacity_addition_unbounded_super = capacity_addition_unbounded_super.broadcast_like(tdr)
 
         lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover,
                            -1 * term_unbounded_addition], compat="broadcast_equals").sum("set_super_location")
