@@ -51,6 +51,9 @@ class Carrier(Element):
         self.carbon_intensity_carrier_export = self.data_input.extract_input_data("carbon_intensity_carrier_export", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly",  unit_category={"emissions": 1, "energy_quantity": -1})
         self.min_energy_production = self.data_input.extract_input_data("min_energy_production", index_sets=[],
                                                                         unit_category={"energy_quantitiy": 1})
+        self.min_item_production = self.data_input.extract_input_data("min_item_production", index_sets=[], unit_category={})
+        self.min_total_protein_production = self.data_input.extract_input_data("min_total_protein_production", index_sets=[],
+                                                                        unit_category={"emissions": 1, "energy_quantity": -1})
         # specifically added impact parameters for agriculture study
         self.biodiversity_intensity_carrier_import = self.data_input.extract_input_data(
             "biodiversity_intensity_carrier_import", index_sets=["set_nodes", "set_time_steps_yearly"],
@@ -121,6 +124,8 @@ class Carrier(Element):
         # carbon intensity carrier exmport
         optimization_setup.parameters.add_parameter(name="carbon_intensity_carrier_export", index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"], doc='Parameter which specifies the carbon intensity of carrier export', calling_class=cls)
         optimization_setup.parameters.add_parameter(name="min_energy_production", index_names=["set_carriers"], doc='Parameter which specifies the minimum energy production of carrier', calling_class=cls)
+        optimization_setup.parameters.add_parameter(name="min_item_production", index_names=["set_carriers"], doc='Parameter which specifies the minimum item production of carrier', calling_class=cls)
+        optimization_setup.parameters.add_parameter(name="min_total_protein_production", index_names=["set_carriers"], doc='Parameter which specifies the minimum total protein production over all protein carriers', calling_class=cls)
         # biodiversity impact carrier import and export
         optimization_setup.parameters.add_parameter(name="biodiversity_intensity_carrier_import",
                                                     index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
@@ -253,6 +258,9 @@ class Carrier(Element):
         rules.constraint_nodal_energy_balance()
         # mininum energy production
         rules.constraint_min_energy_production()
+        # min item and protein production
+        # rules.constraint_min_item_production()
+        rules.constraint_min_total_protein_production()
 
         # newly added impacts: biodiversity, gwp100, methane, nitrous oxide
         rules.constraint_biodiversity_emissions_carrier()
@@ -655,8 +663,38 @@ class CarrierRules(GenericRule):
             ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
         rhs = self.parameters.min_energy_production.sel({'set_carriers': 'electricity'})
         constraints = lhs >= rhs
-        self.constraints.add_constraint("constraint_min_energy_production",constraints)
+        self.constraints.add_constraint("constraint_min_energy_production", constraints)
 
+
+    def constraint_min_item_production(self):
+        """ ensures minimum production of individual items based on total food production"""
+        term_item_production = (self.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) * self.get_year_time_step_duration_array()).sum(
+            ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+        term_food = (self.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) * self.get_year_time_step_duration_array()).sum(
+            ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
+        min_item_production = self.parameters.min_item_production.sel({'set_carriers': self.system.set_food_carriers})
+        lhs = lp.merge([term_item_production, - min_item_production * term_food], compat='broadcast_equals')
+        rhs = 0
+        constraints = lhs >= rhs
+        self.constraints.add_constraint("constraint_min_item_production", constraints)
+
+
+    def constraint_min_total_protein_production(self):
+        """ ensures minimum total protein production based on total food production"""
+        protein = (self.variables["flow_export"].sel({'set_carriers': self.system.set_protein_carriers}) *
+                   self.get_year_time_step_duration_array()).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
+        food = (self.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) *
+                self.get_year_time_step_duration_array()).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
+        assert len(self.optimization_setup.variables.units['flow_export'].loc[
+                       self.system.set_protein_carriers].unique()) == 1, "All protein carriers must have the same unit"
+        assert len(self.optimization_setup.variables.units['flow_export'].loc[
+                       self.system.set_food_carriers].unique()) == 1, "All food carriers must have the same unit"
+        # use beef_energy to read in the minimum total protein production including the correct units.
+        min_total_protein_production = self.parameters.min_total_protein_production.sel({'set_carriers': 'beef_energy'})
+        lhs = lp.merge([protein, - min_total_protein_production * food], compat='broadcast_equals')
+        rhs = 0
+        constraints = lhs >= rhs
+        self.constraints.add_constraint("constraint_min_total_protein_production", constraints)
 
     def constraint_biodiversity_emissions_carrier(self):
         """ biodiversity impact of importing and exporting carrier
