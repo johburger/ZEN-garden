@@ -259,7 +259,7 @@ class Carrier(Element):
         # mininum energy production
         rules.constraint_min_energy_production()
         # min item and protein production
-        # rules.constraint_min_item_production()
+        rules.constraint_min_item_production()
         rules.constraint_min_total_protein_production()
 
         # newly added impacts: biodiversity, gwp100, methane, nitrous oxide
