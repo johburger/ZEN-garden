@@ -1,6 +1,7 @@
 """
 This module contains the Results class, which is used to extract and process the results of a model run.
 """
+import numpy as np
 from pandas import Series
 
 from zen_garden.postprocess.results.solution_loader import (
@@ -184,23 +185,25 @@ class Results:
                 output_df = series[sequence_timesteps]
             elif component.timestep_type is TimestepType.storage:
                 # for storage components, the last timestep is the final state, linear interpolation is used
-                last_occurrences = sequence_timesteps.groupby(sequence_timesteps).apply(lambda x: x.index[-1])
-                first_occurrences = sequence_timesteps.groupby(sequence_timesteps).apply(lambda x: x.index[0])
+                last_occurrences = sequence_timesteps.drop_duplicates(keep="last")
+                first_occurrences = sequence_timesteps.drop_duplicates(keep="first")
+                last_occurrences = pd.Series(last_occurrences.index, index=last_occurrences.values)
+                first_occurrences = pd.Series(first_occurrences.index, index=first_occurrences.values)
                 last_occurrences = last_occurrences[last_occurrences.index.intersection(series.columns)]
                 output_df = series[last_occurrences.index].rename(last_occurrences,axis=1)
+                output_df = output_df.apply(lambda row: np.interp(sequence_timesteps.index,row.index,row.values,left=np.nan,right=np.nan),axis=1,result_type="expand")
                 # fill missing ts with nan
-                output_df = output_df.reindex(columns=sequence_timesteps.index)
                 time_steps_start_end = self.solution_loader.get_time_steps_storage_level_startend_year(scenario)
                 time_steps_start_end = {k:v for k,v in time_steps_start_end.items() if k in first_occurrences and v in last_occurrences}
                 for tstart,tend in time_steps_start_end.items():
                     tstart_reconstructed = first_occurrences[tstart]
-                    first_valid_timestep = output_df.loc[:,tstart_reconstructed:].T.first_valid_index()
+                    _output_df_recon = output_df.iloc[0][tstart_reconstructed:]
+                    first_valid_timestep = _output_df_recon.index[np.isnan(_output_df_recon).argmin()]
                     df_temp = pd.DataFrame(index=series.index,columns=range(tstart_reconstructed-1,first_valid_timestep+1),dtype=float)
                     df_temp.loc[:,tstart_reconstructed-1] = series.loc[:,tend]
                     df_temp.loc[:,first_valid_timestep] = series.loc[:,sequence_timesteps[first_valid_timestep]]
-                    df_temp = df_temp.interpolate(method='index',axis=1)
+                    df_temp = df_temp.interpolate(method='linear',axis=1)
                     output_df.loc[:,first_occurrences[tstart]:last_occurrences[tstart]] = df_temp.loc[:,tstart_reconstructed:first_valid_timestep]
-                output_df = output_df.interpolate(method='index',axis=1)
                 if select_year_time_steps:
                     sequence_timesteps = sequence_timesteps[sequence_timesteps.isin(time_steps)]
                 output_df = output_df[sequence_timesteps.index]
@@ -212,6 +215,8 @@ class Results:
         output_df = output_df.T.reset_index(drop=True).T
 
         return output_df
+
+
 
     def get_full_ts(
         self,
@@ -478,6 +483,7 @@ class Results:
         self,
         component_name: str,
         scenario_name: Optional[str] = None,
+        index: Optional[Union[NestedTuple, NestedDict, list[str], str, float, int]] = None,
         droplevel: bool = True,
         convert_to_yearly_unit: bool = False,
     ) -> None | Series | str:
@@ -486,6 +492,7 @@ class Results:
 
         :param component_name: Name of the component
         :param scenario_name: Name of the scenario
+        :param index: slicing index of the resulting dataframe
         :param droplevel: Drop the location and time levels of the multiindex
         :param convert_to_yearly_unit: If True, the unit is converted to a yearly unit, i.e., for components with an operational time step type, the unit is multiplied by hours.
         :return: The corresponding unit
@@ -493,7 +500,7 @@ class Results:
         if scenario_name is None:
             scenario_name = next(iter(self.solution_loader.scenarios.keys()))
         units = self.get_df(
-            component_name, scenario_name=scenario_name, data_type="units"
+            component_name, scenario_name=scenario_name, data_type="units", index=index
         )
         if units is None:
             return None
