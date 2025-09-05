@@ -65,7 +65,7 @@ class DataInput:
             return df_output
         # use distances computed with node coordinates as default values
         elif file_name == "distance":
-            df_output, default_value, index_name_list = self.create_default_output(index_sets, unit_category, file_name=file_name, time_steps=time_steps, manual_default_value=self.energy_system.set_haversine_distances_edges)
+            df_output, default_value, index_name_list = self.create_default_output(index_sets, unit_category, file_name=file_name, time_steps=time_steps, manual_default_value=1)
         else:
             df_output, default_value, index_name_list = self.create_default_output(index_sets, unit_category, file_name=file_name, time_steps=time_steps,subelement=subelement)
         # read input file
@@ -430,7 +430,7 @@ class DataInput:
                 return set_nodes_config
         else:
             set_edges_input = self.read_input_csv("set_edges")
-            self.energy_system.optimization_setup.input_data_checks.check_single_directed_edges(set_edges_input=set_edges_input)
+            # self.energy_system.optimization_setup.input_data_checks.check_single_directed_edges(set_edges_input=set_edges_input)
             if set_edges_input is not None:
                 set_edges = set_edges_input[(set_edges_input["node_from"].isin(self.energy_system.set_nodes)) & (set_edges_input["node_to"].isin(self.energy_system.set_nodes))]
                 set_edges = set_edges.set_index("edge")

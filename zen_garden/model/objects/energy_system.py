@@ -5,6 +5,7 @@ optimization model as an input.
 """
 import copy
 import logging
+import time
 
 import numpy as np
 import pandas as pd
@@ -72,7 +73,7 @@ class EnergySystem:
         self.set_nodes = self.data_input.extract_locations()
         self.set_nodes_on_edges = self.calculate_edges_from_nodes()
         self.set_edges = list(self.set_nodes_on_edges.keys())
-        self.set_haversine_distances_edges = self.calculate_haversine_distances_from_nodes()
+        # self.set_haversine_distances_edges = self.calculate_haversine_distances_from_nodes()
         self.area_of_nodes = self.data_input.extract_input_data("area_of_nodes", index_sets=['set_nodes'], unit_category={'distance': 2})
         self.activity_change_limit = self.data_input.extract_input_data("activity_change_limit", index_sets=[], unit_category={})
         self.supplementary_activity_limit = self.data_input.extract_input_data("supplementary_activity_limit", index_sets=[], unit_category={})
@@ -127,8 +128,9 @@ class EnergySystem:
         set_nodes_on_edges = {}
         # read edge file
         set_edges_input = self.data_input.extract_locations(extract_nodes=False)
-        for edge in set_edges_input.index:
-            set_nodes_on_edges[edge] = (set_edges_input.loc[edge, "node_from"], set_edges_input.loc[edge, "node_to"])
+        set_nodes_on_edges = dict(
+            zip(set_edges_input.index,
+                zip(set_edges_input["node_from"].values, set_edges_input["node_to"].values)))
         return set_nodes_on_edges
 
     def calculate_haversine_distances_from_nodes(self):
