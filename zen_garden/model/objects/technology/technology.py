@@ -5,6 +5,7 @@ constraints that hold for all technologies.
 """
 import itertools
 import logging
+import time
 
 import linopy as lp
 import numpy as np
@@ -52,13 +53,17 @@ class Technology(Element):
         else:
             self.depreciation_time = self.lifetime.copy()
         self.construction_time = self.data_input.extract_input_data("construction_time", index_sets=[], unit_category={})
+        start_time = time.time()
         # maximum diffusion rate
         self.max_diffusion_rate = self.data_input.extract_input_data("max_diffusion_rate", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={})
 
         # add all raw time series to dict
+        logging.info('start with raw time series extraction')
         self.raw_time_series = {}
         self.raw_time_series["min_load"] = self.data_input.extract_input_data("min_load", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
         self.raw_time_series["max_load"] = self.data_input.extract_input_data("max_load", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
+        logging.info(f'Extracting input data for {self.name} - many things took {time.time() - start_time:.2f} seconds')
+        start_time = time.time()
         self.raw_time_series["opex_specific_variable"] = self.data_input.extract_input_data("opex_specific_variable", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1})
         # non-time series input data
         self.capacity_limit = self.data_input.extract_input_data("capacity_limit", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
@@ -71,11 +76,14 @@ class Technology(Element):
             "methane_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
         self.nitrous_intensity_technology = self.data_input.extract_input_data(
             "nitrous_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
+        logging.info(f'Extracting input data for {self.name} - many things 2 took {time.time() - start_time:.2f} seconds')
+        start_time = time.time()
         # extract existing capacity
         self.set_technologies_existing = self.data_input.extract_set_technologies_existing()
         self.capacity_existing = self.data_input.extract_input_data("capacity_existing", index_sets=[set_location, "set_technologies_existing"], unit_category={"energy_quantity": 1, "time": -1})
         self.capacity_investment_existing = self.data_input.extract_input_data("capacity_investment_existing", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
         self.lifetime_existing = self.data_input.extract_lifetime_existing("capacity_existing", index_sets=[set_location, "set_technologies_existing"])
+        logging.info(f'Extracting input data for {self.name} - many things 3 took {time.time() - start_time:.2f} seconds')
 
     def calculate_capex_of_capacities_existing(self, storage_energy=False):
         """ this method calculates the annualized capex of the existing capacities
