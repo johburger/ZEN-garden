@@ -521,7 +521,7 @@ class OptimizationSetup(object):
                              keep_files=self.solver.keep_files, sanitize_zeros=True)
         # enable logger
         logging.disable(logging.NOTSET)
-        if self.model.termination_condition == 'optimal':
+        if self.model.termination_condition in ['optimal', 'time_limit']:
             self.optimality = True
         elif self.model.termination_condition == "suboptimal":
             logging.warning("The optimization is suboptimal")
