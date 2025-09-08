@@ -672,7 +672,7 @@ class CarrierRules(GenericRule):
             ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
         term_food = (self.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) * self.get_year_time_step_duration_array()).sum(
             ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
-        min_item_production = self.parameters.min_item_production.sel({'set_carriers': self.system.set_food_carriers})
+        min_item_production = self.parameters.min_item_production.sel({'set_carriers': self.system.set_food_carriers}) * 0.3
         lhs = lp.merge([term_item_production, - min_item_production * term_food], compat='broadcast_equals')
         rhs = 0
         constraints = lhs >= rhs
