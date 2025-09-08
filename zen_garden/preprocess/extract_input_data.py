@@ -663,12 +663,12 @@ class DataInput:
         if default_value is None:
             df_output = pd.Series(index=index_multi_index, dtype=float)
         # use distances computed with node coordinates as default values
-        elif file_name == "distance":
-            df_output = pd.Series(index=index_multi_index, dtype=float)
-            for key, value in default_value["value"].items():
-                df_output[key] = value
-        else:
-            df_output = pd.Series(index=index_multi_index, data=default_value["value"], dtype=float)
+        # elif file_name == "distance":
+        #     df_output = pd.Series(index=index_multi_index, dtype=float)
+        #     for key, value in default_value["value"].items():
+        #         df_output[key] = value
+        # else:
+        df_output = pd.Series(index=index_multi_index, data=default_value["value"], dtype=float)
         return df_output, default_value, index_name_list
 
     def construct_index_list(self, index_sets, time_steps):
