@@ -498,31 +498,31 @@ class ConversionTechnologyRules(GenericRule):
             factor=self.parameters.biodiversity_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
         term_reference_flow_gwp100_emissions = self.get_flow_expression_conversion(techs, nodes,
             factor=self.parameters.gwp100_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
-        term_reference_flow_methane_emissions = self.get_flow_expression_conversion(techs, nodes,
-            factor=self.parameters.methane_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
-        term_reference_flow_nitrous_emissions = self.get_flow_expression_conversion(techs, nodes,
-            factor=self.parameters.nitrous_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+        # term_reference_flow_methane_emissions = self.get_flow_expression_conversion(techs, nodes,
+        #     factor=self.parameters.methane_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+        # term_reference_flow_nitrous_emissions = self.get_flow_expression_conversion(techs, nodes,
+        #     factor=self.parameters.nitrous_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
 
         lhs_opex = ((1*self.variables["cost_opex_variable"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_opex)
         lhs_emissions = ((1*self.variables["carbon_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_emissions)
         lhs_biodiversity_emissions = ((1*self.variables["biodiversity_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_biodiversity_emissions)
         lhs_gwp100_emissions = ((1*self.variables["gwp100_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_gwp100_emissions)
-        lhs_methane_emissions = ((1*self.variables["methane_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_methane_emissions)
-        lhs_nitrous_emissions = ((1*self.variables["nitrous_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_nitrous_emissions)
+        # lhs_methane_emissions = ((1*self.variables["methane_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_methane_emissions)
+        # lhs_nitrous_emissions = ((1*self.variables["nitrous_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_nitrous_emissions)
         rhs = 0
         constraints_opex = lhs_opex == rhs
         constraints_emissions = lhs_emissions == rhs
         constraints_biodiversity_emissions = lhs_biodiversity_emissions == rhs
         constraints_gwp100_emissions = lhs_gwp100_emissions == rhs
-        constraints_methane_emissions = lhs_methane_emissions == rhs
-        constraints_nitrous_emissions = lhs_nitrous_emissions == rhs
+        # constraints_methane_emissions = lhs_methane_emissions == rhs
+        # constraints_nitrous_emissions = lhs_nitrous_emissions == rhs
 
         self.constraints.add_constraint("constraint_opex_technology_conversion", constraints_opex)
         self.constraints.add_constraint("constraint_carbon_emissions_technology_conversion", constraints_emissions)
         self.constraints.add_constraint("constraint_biodiversity_emissions_technology_conversion", constraints_biodiversity_emissions)
         self.constraints.add_constraint("constraint_gwp100_emissions_technology_conversion", constraints_gwp100_emissions)
-        self.constraints.add_constraint("constraint_methane_emissions_technology_conversion", constraints_methane_emissions)
-        self.constraints.add_constraint("constraint_nitrous_emissions_technology_conversion", constraints_nitrous_emissions)
+        # self.constraints.add_constraint("constraint_methane_emissions_technology_conversion", constraints_methane_emissions)
+        # self.constraints.add_constraint("constraint_nitrous_emissions_technology_conversion", constraints_nitrous_emissions)
 
     def constraint_linear_capex(self):
         """ if capacity and capex have a linear relationship
