@@ -2,6 +2,7 @@
 Functions to apply time series aggregation to time series
 """
 import copy
+import time
 
 import pandas as pd
 import numpy as np
@@ -118,10 +119,16 @@ class TimeSeriesAggregation(object):
         self.typical_periods = self.typical_periods.sort_index(axis=1)
         # sets the aggregated time series of each element
         for element in self.optimization_setup.get_all_elements(Element):
+            logging.info(f'\nStarting TSA for {element.name}')
+            current_time = time.time()
             raw_ts = getattr(element, "raw_time_series")
             # iterate through raw time series
             for ts in raw_ts:
                 if raw_ts[ts] is None:
+                    continue
+                if not self.system.conduct_time_series_aggregation:
+                    setattr(element, ts, raw_ts[ts])
+                    element.aggregated = True
                     continue
                 index_names = list(raw_ts[ts].index.names)
                 index_names.remove(self.header_set_time_steps)
@@ -150,6 +157,7 @@ class TimeSeriesAggregation(object):
                 df_aggregated_ts.index = df_aggregated_ts.index.reorder_levels(index_names + [self.header_set_time_steps])
                 setattr(element, ts, df_aggregated_ts)
                 element.aggregated = True
+            logging.info(f'Finished TSA for {element.name} in {time.time() - current_time} seconds')
 
     def get_excluded_ts(self):
         """ gets the names of all elements and parameter ts that shall be excluded from the time series aggregation """
