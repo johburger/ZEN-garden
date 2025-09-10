@@ -429,11 +429,10 @@ class EnergySystemRules(GenericRule):
             \\sum_{t\\in\\mathcal{T}} \\sum_{n\\in\\mathcal{N}} \\tau_t a_{c,n,y}^\\mathrm{export} \\geq a_{y}^\\mathrm{min_{CO2}}, c=CO2-stored
 
         """
-        m = xr.DataArray([carrier == 'co2_stored' for carrier in self.energy_system.set_carriers],
-                          dims=['set_carriers']).broadcast_like(self.variables['flow_export'].lower)
-        lhs = (self.variables['flow_export'] * self.get_year_time_step_duration_array()).where(m).sum(
+        term_export = (self.variables['flow_export'] * self.get_year_time_step_duration_array()).sel({'set_carriers': 'co2_stored'}).sum(
             ['set_time_steps_operation', 'set_nodes'])
-        rhs = self.parameters.min_co2_stored.broadcast_like(lhs.const)
+        lhs = (term_export + self.variables['carbon_emissions_annual_overshoot'])
+        rhs = self.parameters.min_co2_stored
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_co2_stored", constraints)
 
