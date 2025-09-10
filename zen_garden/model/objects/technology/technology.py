@@ -46,11 +46,11 @@ class Technology(Element):
         self.capacity_addition_max = self.data_input.extract_input_data("capacity_addition_max", index_sets=[], unit_category={"energy_quantity": 1, "time": -1})
         self.capacity_addition_unbounded = self.data_input.extract_input_data("capacity_addition_unbounded", index_sets=[], unit_category={"energy_quantity": 1, "time": -1})
         self.lifetime = self.data_input.extract_input_data("lifetime", index_sets=[], unit_category={})
-        if "depreciation_time" in self.data_input.attribute_dict:
-            self.depreciation_time = self.data_input.extract_input_data("depreciation_time", index_sets=[], unit_category={})
-            self.depreciation_time[0] = np.max((self.energy_system.system.interval_between_years, self.depreciation_time[0]))
-        else:
-            self.depreciation_time = self.lifetime.copy()
+        # if "depreciation_time" in self.data_input.attribute_dict:
+        #     self.depreciation_time = self.data_input.extract_input_data("depreciation_time", index_sets=[], unit_category={})
+        #     self.depreciation_time[0] = np.max((self.energy_system.system.interval_between_years, self.depreciation_time[0]))
+        # else:
+        #     self.depreciation_time = self.lifetime.copy()
         self.construction_time = self.data_input.extract_input_data("construction_time", index_sets=[], unit_category={})
         # maximum diffusion rate
         self.max_diffusion_rate = self.data_input.extract_input_data("max_diffusion_rate", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={})
@@ -59,7 +59,7 @@ class Technology(Element):
         self.raw_time_series = {}
         self.raw_time_series["min_load"] = self.data_input.extract_input_data("min_load", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
         self.raw_time_series["max_load"] = self.data_input.extract_input_data("max_load", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={})
-        self.raw_time_series["opex_specific_variable"] = self.data_input.extract_input_data("opex_specific_variable", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1})
+        # self.raw_time_series["opex_specific_variable"] = self.data_input.extract_input_data("opex_specific_variable", index_sets=[set_location, "set_time_steps"], time_steps="set_base_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1})
         # non-time series input data
         self.capacity_limit = self.data_input.extract_input_data("capacity_limit", index_sets=[set_location, "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
         self.carbon_intensity_technology = self.data_input.extract_input_data("carbon_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
@@ -338,15 +338,15 @@ class Technology(Element):
         # lifetime existing technologies
         optimization_setup.parameters.add_parameter(name="lifetime_existing", index_names=["set_technologies", "set_location", "set_technologies_existing"], doc='Parameter which specifies the remaining lifetime of an existing technology', calling_class=cls)
         # lifetime existing technologies
-        optimization_setup.parameters.add_parameter(name="capex_capacity_existing", index_names=["set_technologies", "set_capacity_types", "set_location", "set_technologies_existing"], capacity_types=True, doc='Parameter which specifies the total capex of an existing technology which still has to be paid', calling_class=cls)
+        # optimization_setup.parameters.add_parameter(name="capex_capacity_existing", index_names=["set_technologies", "set_capacity_types", "set_location", "set_technologies_existing"], capacity_types=True, doc='Parameter which specifies the total capex of an existing technology which still has to be paid', calling_class=cls)
         # variable specific opex
-        optimization_setup.parameters.add_parameter(name="opex_specific_variable", index_names=["set_technologies","set_location","set_time_steps_operation"], doc='Parameter which specifies the variable specific opex', calling_class=cls)
+        # optimization_setup.parameters.add_parameter(name="opex_specific_variable", index_names=["set_technologies","set_location","set_time_steps_operation"], doc='Parameter which specifies the variable specific opex', calling_class=cls)
         # fixed specific opex
-        optimization_setup.parameters.add_parameter(name="opex_specific_fixed", index_names=["set_technologies", "set_capacity_types","set_location","set_time_steps_yearly"], capacity_types=True, doc='Parameter which specifies the fixed annual specific opex', calling_class=cls)
+        # optimization_setup.parameters.add_parameter(name="opex_specific_fixed", index_names=["set_technologies", "set_capacity_types","set_location","set_time_steps_yearly"], capacity_types=True, doc='Parameter which specifies the fixed annual specific opex', calling_class=cls)
         # lifetime newly built technologies
         optimization_setup.parameters.add_parameter(name="lifetime", index_names=["set_technologies"], doc='Parameter which specifies the lifetime of a newly built technology', calling_class=cls)
         # amortization time newly built technologies
-        optimization_setup.parameters.add_parameter(name="depreciation_time", index_names=["set_technologies"], doc='Parameter which specifies the depreciation time of a newly built technology', calling_class=cls)
+        # optimization_setup.parameters.add_parameter(name="depreciation_time", index_names=["set_technologies"], doc='Parameter which specifies the depreciation time of a newly built technology', calling_class=cls)
         # construction_time newly built technologies
         optimization_setup.parameters.add_parameter(name="construction_time", index_names=["set_technologies"], doc='Parameter which specifies the construction time of a newly built technology', calling_class=cls)
         # maximum diffusion rate, i.e., increase in capacity
@@ -374,8 +374,8 @@ class Technology(Element):
         # calculate additional existing parameters
         optimization_setup.parameters.add_parameter(name="existing_capacities", data=cls.get_existing_quantity(optimization_setup, type_existing_quantity="capacity"),
                                                     doc="Parameter which specifies the total available capacity of existing technologies at the beginning of the optimization", calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="existing_capex", data=cls.get_existing_quantity(optimization_setup,type_existing_quantity="cost_capex_overnight"),
-                                                    doc="Parameter which specifies the total capex of existing technologies at the beginning of the optimization", calling_class=cls)
+        # optimization_setup.parameters.add_parameter(name="existing_capex", data=cls.get_existing_quantity(optimization_setup,type_existing_quantity="cost_capex_overnight"),
+        #                                             doc="Parameter which specifies the total capex of existing technologies at the beginning of the optimization", calling_class=cls)
 
         # add pe.Param of the child classes
         for subclass in cls.__subclasses__():
@@ -437,23 +437,23 @@ class Technology(Element):
         variables.add_variable(model, name="capacity_investment", index_sets=cls.create_custom_set(["set_technologies", "set_capacity_types", "set_location", "set_time_steps_yearly"], optimization_setup),
             bounds=(0,np.inf), doc='size of invested technology at location l and time t', unit_category={"energy_quantity": 1, "time": -1})
         # capex of building capacity overnight
-        variables.add_variable(model, name="cost_capex_overnight", index_sets=cls.create_custom_set(["set_technologies", "set_capacity_types", "set_location", "set_time_steps_yearly"], optimization_setup),
-            bounds=(0,np.inf), doc='capex for building technology at location l and time t', unit_category={"money": 1})
+        # variables.add_variable(model, name="cost_capex_overnight", index_sets=cls.create_custom_set(["set_technologies", "set_capacity_types", "set_location", "set_time_steps_yearly"], optimization_setup),
+        #     bounds=(0,np.inf), doc='capex for building technology at location l and time t', unit_category={"money": 1})
         # annual capex of having capacity
-        variables.add_variable(model, name="cost_capex_yearly", index_sets=cls.create_custom_set(["set_technologies", "set_capacity_types", "set_location", "set_time_steps_yearly"], optimization_setup),
-            bounds=(0,np.inf), doc='annual capex for having technology at location l', unit_category={"money": 1})
+#         variables.add_variable(model, name="cost_capex_yearly", index_sets=cls.create_custom_set(["set_technologies", "set_capacity_types", "set_location", "set_time_steps_yearly"], optimization_setup),
+#             bounds=(0,np.inf), doc='annual capex for having technology at location l', unit_category={"money": 1})
         # total capex
-        variables.add_variable(model, name="cost_capex_yearly_total", index_sets=sets["set_time_steps_yearly"],
-            bounds=(0,np.inf), doc='total capex for installing all technologies in all locations at all times', unit_category={"money": 1})
+#         variables.add_variable(model, name="cost_capex_yearly_total", index_sets=sets["set_time_steps_yearly"],
+#             bounds=(0,np.inf), doc='total capex for installing all technologies in all locations at all times', unit_category={"money": 1})
         # opex
-        variables.add_variable(model, name="cost_opex_variable", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
-            bounds=(0,np.inf), doc="opex for operating technology at location l and time t", unit_category={"money": 1, "time": -1})
+#         variables.add_variable(model, name="cost_opex_variable", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
+#             bounds=(0,np.inf), doc="opex for operating technology at location l and time t", unit_category={"money": 1, "time": -1})
         # total opex
-        variables.add_variable(model, name="cost_opex_yearly_total", index_sets=sets["set_time_steps_yearly"],
-            bounds=(0,np.inf), doc="total opex all technologies and locations in year y", unit_category={"money": 1})
+#         variables.add_variable(model, name="cost_opex_yearly_total", index_sets=sets["set_time_steps_yearly"],
+#             bounds=(0,np.inf), doc="total opex all technologies and locations in year y", unit_category={"money": 1})
         # yearly opex
-        variables.add_variable(model, name="cost_opex_yearly", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_yearly"], optimization_setup),
-            bounds=(0,np.inf), doc="yearly opex for operating technology at location l and year y", unit_category={"money": 1})
+#         variables.add_variable(model, name="cost_opex_yearly", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_yearly"], optimization_setup),
+#             bounds=(0,np.inf), doc="yearly opex for operating technology at location l and year y", unit_category={"money": 1})
         # carbon emissions
         variables.add_variable(model, name="carbon_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
             doc="carbon emissions for operating technology at location l and time t", unit_category={"emissions": 1, "time": -1})
@@ -490,10 +490,10 @@ class Technology(Element):
         # which makes all problems MIPs. Therefore, we only add binary variables, if really necessary. Gurobi can handle this
         # by noting that the binary variables are not part of the model, however, only if there are no binary variables at all,
         # it is possible to get the dual values of the constraints.
-        mask = cls._technology_installation_mask(optimization_setup)
-        if mask.any():
-            variables.add_variable(model, name="technology_installation", index_sets=cls.create_custom_set(["set_technologies", "set_capacity_types", "set_location", "set_time_steps_yearly"], optimization_setup),
-                                   binary=True, doc='installment of a technology at location l and time t', mask=mask, unit_category=None)
+        # mask = cls._technology_installation_mask(optimization_setup)
+        # if mask.any():
+        #     variables.add_variable(model, name="technology_installation", index_sets=cls.create_custom_set(["set_technologies", "set_capacity_types", "set_location", "set_time_steps_yearly"], optimization_setup),
+        #                            binary=True, doc='installment of a technology at location l and time t', mask=mask, unit_category=None)
 
         # on-off variables
         # We remove the binary variables if there are any no constraints that use them
@@ -541,16 +541,16 @@ class Technology(Element):
         rules.constraint_technology_diffusion_limit()
 
         # annual capex of having capacity
-        rules.constraint_cost_capex_yearly()
+        # rules.constraint_cost_capex_yearly()
 
         # total capex of all technologies
-        rules.constraint_cost_capex_yearly_total()
+        # rules.constraint_cost_capex_yearly_total()
 
         # yearly opex
-        rules.constraint_cost_opex_yearly()
+        # rules.constraint_cost_opex_yearly()
 
         # total opex of all technologies
-        rules.constraint_cost_opex_yearly_total()
+        # rules.constraint_cost_opex_yearly_total()
 
         # total carbon emissions of technologies
         rules.constraint_carbon_emissions_technology_total()

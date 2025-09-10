@@ -57,12 +57,12 @@ class ConversionTechnology(Technology):
         super().store_input_data()
         # get conversion efficiency and capex
         self.get_conversion_factor()
-        self.opex_specific_fixed = self.data_input.extract_input_data("opex_specific_fixed", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "time": 1})
+        # self.opex_specific_fixed = self.data_input.extract_input_data("opex_specific_fixed", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "time": 1})
         self.min_full_load_hours_fraction = self.data_input.extract_input_data("min_full_load_hours_fraction", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={})
         self.area_requirement = self.data_input.extract_input_data("area_requirement", index_sets=["set_nodes"], unit_category={"distance": 2, "energy_quantity": -1, "time": 1})
         self.cost_activity_change = self.data_input.extract_input_data("cost_activity_change", index_sets=["set_nodes"], unit_category={"energy_quantity": -1, "time": 1})
         self.cost_supplementary_activity = self.data_input.extract_input_data("cost_supplementary_activity", index_sets=["set_nodes"], unit_category={"energy_quantity": -1, "time": 1})
-        self.convert_to_fraction_of_capex()
+        # self.convert_to_fraction_of_capex()
 
     def get_conversion_factor(self):
         """retrieves and stores conversion_factor """
@@ -188,8 +188,8 @@ class ConversionTechnology(Technology):
 
         :param optimization_setup: The OptimizationSetup the element is part of """
         # slope of linearly modeled capex
-        optimization_setup.parameters.add_parameter(name="capex_specific_conversion", index_names=["set_conversion_technologies", "set_capex_linear", "set_nodes", "set_time_steps_yearly"],
-            doc="Parameter which specifies the slope of the capex if approximated linearly", calling_class=cls)
+        # optimization_setup.parameters.add_parameter(name="capex_specific_conversion", index_names=["set_conversion_technologies", "set_capex_linear", "set_nodes", "set_time_steps_yearly"],
+        #     doc="Parameter which specifies the slope of the capex if approximated linearly", calling_class=cls)
         # slope of linearly modeled conversion efficiencies
         optimization_setup.parameters.add_parameter(name="conversion_factor", index_names=["set_conversion_technologies", "set_dependent_carriers", "set_nodes", "set_time_steps_operation"],
             doc="Parameter which specifies the conversion factor", calling_class=cls)
@@ -271,8 +271,8 @@ class ConversionTechnology(Technology):
         variables.add_variable(model, name="capacity_approximation", index_sets=cls.create_custom_set(["set_conversion_technologies", "set_nodes", "set_time_steps_yearly"], optimization_setup), bounds=(0, np.inf),
             doc='pwa variable for size of installed technology on edge i and time t', unit_category={"energy_quantity": 1, "time": -1})
         # pwa capex technology
-        variables.add_variable(model, name="capex_approximation", index_sets=cls.create_custom_set(["set_conversion_technologies", "set_nodes", "set_time_steps_yearly"], optimization_setup), bounds=(0, np.inf),
-            doc='pwa variable for capex for installing technology on edge i and time t', unit_category={"money": 1})
+        # variables.add_variable(model, name="capex_approximation", index_sets=cls.create_custom_set(["set_conversion_technologies", "set_nodes", "set_time_steps_yearly"], optimization_setup), bounds=(0, np.inf),
+        #     doc='pwa variable for capex for installing technology on edge i and time t', unit_category={"money": 1})
 
     @classmethod
     def construct_constraints(cls, optimization_setup):
@@ -297,16 +297,16 @@ class ConversionTechnology(Technology):
         rules.constraint_social_cost()
 
         # capex
-        set_pwa_capex = cls.create_custom_set(["set_conversion_technologies", "set_capex_pwa", "set_nodes", "set_time_steps_yearly"], optimization_setup)
-        set_linear_capex = cls.create_custom_set(["set_conversion_technologies", "set_capex_linear", "set_nodes", "set_time_steps_yearly"], optimization_setup)
-        if len(set_pwa_capex[0]) > 0:
-            # if set_pwa_capex contains technologies:
-            pwa_breakpoints, pwa_values = cls.calculate_capex_pwa_breakpoints_values(optimization_setup, set_pwa_capex[0])
-            constraints.add_pw_constraint(model, index_values=set_pwa_capex[0], yvar="capex_approximation", xvar="capacity_approximation",
-                                          break_points=pwa_breakpoints, f_vals=pwa_values, cons_type="EQ", name="constraint_capex_pwa",)
-        if set_linear_capex[0]:
-            # if set_linear_capex contains technologies: (note we give the coordinates nice names)
-            rules.constraint_linear_capex()
+        # set_pwa_capex = cls.create_custom_set(["set_conversion_technologies", "set_capex_pwa", "set_nodes", "set_time_steps_yearly"], optimization_setup)
+        # set_linear_capex = cls.create_custom_set(["set_conversion_technologies", "set_capex_linear", "set_nodes", "set_time_steps_yearly"], optimization_setup)
+        # if len(set_pwa_capex[0]) > 0:
+        #     # if set_pwa_capex contains technologies:
+        #     pwa_breakpoints, pwa_values = cls.calculate_capex_pwa_breakpoints_values(optimization_setup, set_pwa_capex[0])
+        #     constraints.add_pw_constraint(model, index_values=set_pwa_capex[0], yvar="capex_approximation", xvar="capacity_approximation",
+        #                                   break_points=pwa_breakpoints, f_vals=pwa_values, cons_type="EQ", name="constraint_capex_pwa",)
+        # if set_linear_capex[0]:
+        #     # if set_linear_capex contains technologies: (note we give the coordinates nice names)
+        #     rules.constraint_linear_capex()
         # Coupling constraints
         rules.constraint_capacity_capex_coupling()
 
@@ -491,7 +491,7 @@ class ConversionTechnologyRules(GenericRule):
         if len(techs) == 0:
             return
         nodes = self.sets["set_nodes"]
-        term_reference_flow_opex = self.get_flow_expression_conversion(techs, nodes, factor=self.parameters.opex_specific_variable.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+        # term_reference_flow_opex = self.get_flow_expression_conversion(techs, nodes, factor=self.parameters.opex_specific_variable.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
         term_reference_flow_emissions = self.get_flow_expression_conversion(techs, nodes, factor=self.parameters.carbon_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
         # additional impact categories
         term_reference_flow_biodiversity_emissions = self.get_flow_expression_conversion(techs, nodes,
@@ -503,21 +503,21 @@ class ConversionTechnologyRules(GenericRule):
         # term_reference_flow_nitrous_emissions = self.get_flow_expression_conversion(techs, nodes,
         #     factor=self.parameters.nitrous_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
 
-        lhs_opex = ((1*self.variables["cost_opex_variable"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_opex)
+        # lhs_opex = ((1*self.variables["cost_opex_variable"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_opex)
         lhs_emissions = ((1*self.variables["carbon_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_emissions)
         lhs_biodiversity_emissions = ((1*self.variables["biodiversity_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_biodiversity_emissions)
         lhs_gwp100_emissions = ((1*self.variables["gwp100_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_gwp100_emissions)
         # lhs_methane_emissions = ((1*self.variables["methane_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_methane_emissions)
         # lhs_nitrous_emissions = ((1*self.variables["nitrous_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_nitrous_emissions)
         rhs = 0
-        constraints_opex = lhs_opex == rhs
+        # constraints_opex = lhs_opex == rhs
         constraints_emissions = lhs_emissions == rhs
         constraints_biodiversity_emissions = lhs_biodiversity_emissions == rhs
         constraints_gwp100_emissions = lhs_gwp100_emissions == rhs
         # constraints_methane_emissions = lhs_methane_emissions == rhs
         # constraints_nitrous_emissions = lhs_nitrous_emissions == rhs
 
-        self.constraints.add_constraint("constraint_opex_technology_conversion", constraints_opex)
+        # self.constraints.add_constraint("constraint_opex_technology_conversion", constraints_opex)
         self.constraints.add_constraint("constraint_carbon_emissions_technology_conversion", constraints_emissions)
         self.constraints.add_constraint("constraint_biodiversity_emissions_technology_conversion", constraints_biodiversity_emissions)
         self.constraints.add_constraint("constraint_gwp100_emissions_technology_conversion", constraints_gwp100_emissions)
@@ -566,18 +566,18 @@ class ConversionTechnologyRules(GenericRule):
         nodes = self.sets["set_nodes"]
         capacity_addition = self.variables["capacity_addition"].loc[techs, "power", nodes].rename(
             {"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"})
-        cost_capex_overnight = self.variables["cost_capex_overnight"].loc[techs, "power", nodes].rename(
-            {"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"})
+        # cost_capex_overnight = self.variables["cost_capex_overnight"].loc[techs, "power", nodes].rename(
+        #     {"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"})
 
         ### formulate constraint
         lhs_capacity = capacity_addition - self.variables["capacity_approximation"]
-        lhs_capex = cost_capex_overnight - self.variables["capex_approximation"]
+        # lhs_capex = cost_capex_overnight - self.variables["capex_approximation"]
         rhs = 0
         constraints_capacity = lhs_capacity == rhs
-        constraints_capex = lhs_capex == rhs
+        # constraints_capex = lhs_capex == rhs
         ### return
         self.constraints.add_constraint("constraint_capacity_coupling", constraints_capacity)
-        self.constraints.add_constraint("constraint_capex_coupling", constraints_capex)
+        # self.constraints.add_constraint("constraint_capex_coupling", constraints_capex)
 
     def constraint_carrier_conversion(self):
         """ conversion factor between reference carrier and dependent carrier

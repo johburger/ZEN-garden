@@ -179,11 +179,11 @@ class Carrier(Element):
         variables.add_variable(model, name="flow_export", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
                                doc="node- and time-dependent carrier export from the grid", unit_category={"energy_quantity": 1, "time": -1})
         # carrier import/export cost
-        variables.add_variable(model, name="cost_carrier", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup),
-                               doc="node- and time-dependent carrier cost due to import and export", unit_category={"money": 1, "time": -1})
+        # variables.add_variable(model, name="cost_carrier", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup),
+        #                        doc="node- and time-dependent carrier cost due to import and export", unit_category={"money": 1, "time": -1})
         # total carrier import/export cost
-        variables.add_variable(model, name="cost_carrier_total", index_sets=sets["set_time_steps_yearly"],
-                               doc="total carrier cost due to import and export", unit_category={"money": 1})
+        # variables.add_variable(model, name="cost_carrier_total", index_sets=sets["set_time_steps_yearly"],
+        #                        doc="total carrier cost due to import and export", unit_category={"money": 1})
         # carbon emissions
         variables.add_variable(model, name="carbon_emissions_carrier", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup),
                                doc="carbon emissions of importing and exporting carrier", unit_category={"emissions": 1, "time": -1})
@@ -218,8 +218,8 @@ class Carrier(Element):
         variables.add_variable(model, name="shed_demand", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
                                doc="shed demand of carrier", unit_category={"energy_quantity": 1, "time": -1})
         # cost of shed demand
-        variables.add_variable(model, name="cost_shed_demand", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
-                               doc="shed demand of carrier", unit_category={"money": 1, "time": -1})
+        # variables.add_variable(model, name="cost_shed_demand", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup), bounds=(0,np.inf),
+        #                        doc="shed demand of carrier", unit_category={"money": 1, "time": -1})
 
         # add pe.Sets of the child classes
         for subclass in cls.__subclasses__():
@@ -240,13 +240,13 @@ class Carrier(Element):
         rules.constraint_availability_import_export_yearly()
 
         # cost for carrier
-        rules.constraint_cost_carrier()
+        # rules.constraint_cost_carrier()
 
         # cost and limit for shed demand
         rules.constraint_cost_limit_shed_demand()
 
         # total cost for carriers
-        rules.constraint_cost_carrier_total()
+        # rules.constraint_cost_carrier_total()
 
         # carbon emissions
         rules.constraint_carbon_emissions_carrier()
@@ -438,16 +438,16 @@ class CarrierRules(GenericRule):
         mask = self.parameters.price_shed_demand != np.inf
 
         # cost of shedding demand
-        lhs_cost = (self.variables["cost_shed_demand"] - self.parameters.price_shed_demand * self.variables["shed_demand"]).where(mask)
-        rhs_cost = 0
-        constraints_cost = lhs_cost == rhs_cost
+        # lhs_cost = (self.variables["cost_shed_demand"] - self.parameters.price_shed_demand * self.variables["shed_demand"]).where(mask)
+        # rhs_cost = 0
+        # constraints_cost = lhs_cost == rhs_cost
 
         # limit of shedding demand, either the demand (price != inf) or zero (price == inf)
         lhs_shed_demand = self.variables["shed_demand"]
         rhs_shed_demand = self.parameters.demand.where(mask, 0.0)
         constraints_shed_demand = lhs_shed_demand <= rhs_shed_demand
 
-        self.constraints.add_constraint("constraint_cost_shed_demand",constraints_cost)
+        # self.constraints.add_constraint("constraint_cost_shed_demand",constraints_cost)
         self.constraints.add_constraint("constraint_limit_shed_demand",constraints_shed_demand)
 
     def constraint_carbon_emissions_carrier(self):

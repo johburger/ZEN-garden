@@ -292,14 +292,14 @@ class EnergySystem:
         variables.add_variable(model, name="carbon_emissions_annual_overshoot", index_sets=sets["set_time_steps_yearly"], bounds=(0, np.inf),
                                doc="overshoot of the annual carbon emissions limit of energy system", unit_category={"emissions": 1})
         # cost of carbon emissions
-        variables.add_variable(model, name="cost_carbon_emissions_total", index_sets=sets["set_time_steps_yearly"],
-                               doc="total cost of carbon emissions of energy system", unit_category={"money": 1})
+        # variables.add_variable(model, name="cost_carbon_emissions_total", index_sets=sets["set_time_steps_yearly"],
+        #                        doc="total cost of carbon emissions of energy system", unit_category={"money": 1})
         # costs
-        variables.add_variable(model, name="cost_total", index_sets=sets["set_time_steps_yearly"],
-                               doc="total cost of energy system", unit_category={"money": 1})
+        # variables.add_variable(model, name="cost_total", index_sets=sets["set_time_steps_yearly"],
+        #                        doc="total cost of energy system", unit_category={"money": 1})
         # net_present_cost
-        variables.add_variable(model, name="net_present_cost", index_sets=sets["set_time_steps_yearly"],
-                               doc="net_present_cost of energy system", unit_category={"money": 1})
+        # variables.add_variable(model, name="net_present_cost", index_sets=sets["set_time_steps_yearly"],
+        #                        doc="net_present_cost of energy system", unit_category={"money": 1})
         # (cumulative) biodiversity impacts
         variables.add_variable(model, name="biodiversity_emissions_annual", index_sets=sets["set_time_steps_yearly"], doc="annual biodiversity impacts of energy system", unit_category={"biodiversity": 1})
         variables.add_variable(model, name="biodiversity_emissions_cumulative", index_sets=sets["set_time_steps_yearly"],
@@ -333,20 +333,20 @@ class EnergySystem:
         self.rules.constraint_carbon_emissions_budget()
 
         # net_present_cost
-        self.rules.constraint_net_present_cost()
+        # self.rules.constraint_net_present_cost()
 
         # total carbon emissions
         self.rules.constraint_carbon_emissions_annual()
 
         # cost of carbon emissions
-        self.rules.constraint_cost_carbon_emissions_total()
+        # self.rules.constraint_cost_carbon_emissions_total()
 
         # additional impacts: biodiversity, gwp100, methane, nitrous
         self.rules.constraint_additional_impact_emissions_annual()
         self.rules.constraint_additional_impact_emissions_cumulative()
 
         # costs
-        self.rules.constraint_cost_total()
+        # self.rules.constraint_cost_total()
 
         # disable carbon emissions budget overshoot
         self.rules.constraint_carbon_emissions_budget_overshoot()
@@ -505,12 +505,12 @@ class EnergySystemRules(GenericRule):
 
         """
 
-        if self.parameters.price_carbon_emissions_budget_overshoot == np.inf:
-            lhs = self.variables["carbon_emissions_budget_overshoot"]
-            rhs = 0
-            constraints = lhs == rhs
-        else:
-            constraints = None
+        # if self.parameters.price_carbon_emissions_budget_overshoot == np.inf:
+        lhs = self.variables["carbon_emissions_budget_overshoot"]
+        rhs = 0
+        constraints = lhs == rhs
+        # else:
+        #     constraints = None
 
         self.constraints.add_constraint("constraint_carbon_emissions_budget_overshoot",constraints)
 
@@ -524,14 +524,14 @@ class EnergySystemRules(GenericRule):
         :math:`\\mu^o`: carbon price for annual overshoot
 
         """
-        no_price = self.parameters.price_carbon_emissions_annual_overshoot == np.inf
-        no_limit = (self.parameters.carbon_emissions_annual_limit == np.inf).all()
-        if (no_price or no_limit) and not (no_price and no_limit):
-            lhs = self.variables["carbon_emissions_annual_overshoot"]
-            rhs = 0
-            constraints = lhs == rhs
-        else:
-            constraints = None
+        # no_price = self.parameters.price_carbon_emissions_annual_overshoot == np.inf
+        # no_limit = (self.parameters.carbon_emissions_annual_limit == np.inf).all()
+        # if (no_price or no_limit) and not (no_price and no_limit):
+        lhs = self.variables["carbon_emissions_annual_overshoot"]
+        rhs = 0
+        constraints = lhs == rhs
+        # else:
+        #     constraints = None
 
         self.constraints.add_constraint("constraint_carbon_emissions_annual_overshoot",constraints)
 

@@ -71,11 +71,11 @@ class TransportTechnology(Technology):
         # get transport loss factor
         self.get_transport_loss_factor()
         # get capex of transport technology
-        self.get_capex_transport()
+        # self.get_capex_transport()
         # annualize capex
-        self.convert_to_fraction_of_capex()
+        # self.convert_to_fraction_of_capex()
         # calculate capex of existing capacity
-        self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
+        # self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
 
     def get_transport_loss_factor(self):
         """get transport loss factor"""
@@ -170,9 +170,9 @@ class TransportTechnology(Technology):
         # distance between nodes
         optimization_setup.parameters.add_parameter(name="distance", index_names=["set_transport_technologies", "set_edges"], doc='distance between two nodes for transport technologies', calling_class=cls)
         # capital cost per unit
-        optimization_setup.parameters.add_parameter(name="capex_specific_transport", index_names=["set_transport_technologies", "set_edges", "set_time_steps_yearly"], doc='capex per unit for transport technologies', calling_class=cls)
+        # optimization_setup.parameters.add_parameter(name="capex_specific_transport", index_names=["set_transport_technologies", "set_edges", "set_time_steps_yearly"], doc='capex per unit for transport technologies', calling_class=cls)
         # capital cost per distance
-        optimization_setup.parameters.add_parameter(name="capex_per_distance_transport", index_names=['set_transport_technologies', "set_edges", "set_time_steps_yearly"], doc='capex per distance for transport technologies', calling_class=cls)
+        # optimization_setup.parameters.add_parameter(name="capex_per_distance_transport", index_names=['set_transport_technologies', "set_edges", "set_time_steps_yearly"], doc='capex per distance for transport technologies', calling_class=cls)
         # carrier losses
         optimization_setup.parameters.add_parameter(name="transport_loss_factor", index_names=["set_transport_technologies", "set_edges"], doc='linear carrier losses due to transport with transport technologies', calling_class=cls)
 
@@ -227,7 +227,7 @@ class TransportTechnology(Technology):
         rules.constraint_transport_technology_losses_flow()
 
         # capex of transport technologies
-        rules.constraint_transport_technology_capex()
+        # rules.constraint_transport_technology_capex()
 
 
 class TransportTechnologyRules(GenericRule):
@@ -289,8 +289,8 @@ class TransportTechnologyRules(GenericRule):
         if len(techs) == 0:
             return
         edges = self.sets["set_edges"]
-        lhs_opex = (self.variables["cost_opex_variable"].loc[techs,edges,:]
-               - (self.parameters.opex_specific_variable*self.variables["flow_transport"].rename({"set_transport_technologies":"set_technologies","set_edges":"set_location"})).sel({"set_technologies":techs,"set_location":edges}))
+        # lhs_opex = (self.variables["cost_opex_variable"].loc[techs,edges,:]
+        #        - (self.parameters.opex_specific_variable*self.variables["flow_transport"].rename({"set_transport_technologies":"set_technologies","set_edges":"set_location"})).sel({"set_technologies":techs,"set_location":edges}))
         lhs_emissions = (self.variables["carbon_emissions_technology"].loc[techs,edges,:]
                - (self.parameters.carbon_intensity_technology*self.variables["flow_transport"].rename({"set_transport_technologies":"set_technologies","set_edges":"set_location"})).sel({"set_technologies":techs,"set_location":edges}))
         lhs_biodiversity = (self.variables["biodiversity_emissions_technology"].loc[techs, edges, :]
@@ -311,21 +311,21 @@ class TransportTechnologyRules(GenericRule):
         #                   ).sel({"set_technologies": techs, "set_location": edges}))
 
 
-        lhs_opex = lhs_opex.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
+        # lhs_opex = lhs_opex.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
         lhs_emissions = lhs_emissions.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
         lhs_biodiversity = lhs_biodiversity.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
         lhs_gwp100 = lhs_gwp100.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
         # lhs_methane = lhs_methane.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
         # lhs_nitrous = lhs_nitrous.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
         rhs = 0
-        constraints_opex = lhs_opex == rhs
+        # constraints_opex = lhs_opex == rhs
         constraints_emissions = lhs_emissions == rhs
         constraints_biodiversity = lhs_biodiversity == rhs
         constraints_gwp100 = lhs_gwp100 == rhs
         # constraints_methane = lhs_methane == rhs
         # constraints_nitrous = lhs_nitrous == rhs
         ### return
-        self.constraints.add_constraint("constraint_opex_technology_transport",constraints_opex)
+        # self.constraints.add_constraint("constraint_opex_technology_transport",constraints_opex)
         self.constraints.add_constraint("constraint_carbon_emissions_technology_transport",constraints_emissions)
         self.constraints.add_constraint("constraint_biodiversity_emissions_technology_transport", constraints_biodiversity)
         self.constraints.add_constraint("constraint_gwp100_emissions_technology_transport", constraints_gwp100)
