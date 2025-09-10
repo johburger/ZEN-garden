@@ -2,10 +2,10 @@
 
 # activate the right modules
 # gcc 12.2 stack
-module load stack/2024-06
+module load stack/2025-06
 module load gcc/12.2.0
 # python 3.11.2
-module load python/3.11.6
+module load python/3.13.0
 # backend for the solvers
 module load glpk
 module load gurobi/12.0.1
