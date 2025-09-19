@@ -674,7 +674,7 @@ class CarrierRules(GenericRule):
         term_food = (self.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) * self.get_year_time_step_duration_array()).sum(
             ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
         min_item_production = self.parameters.min_item_production.sel({'set_carriers': self.system.set_food_carriers})
-        lhs = lp.merge([term_item_production, - min_item_production * term_food], compat='broadcast_equals')
+        lhs = lp.merge([term_item_production, - min_item_production * term_food], compat='broadcast_equals', cls=LinearExpression)
         rhs = 0
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_item_production", constraints)
@@ -692,7 +692,7 @@ class CarrierRules(GenericRule):
                        self.system.set_food_carriers].unique()) == 1, "All food carriers must have the same unit"
         # use beef_energy to read in the minimum total protein production including the correct units.
         min_total_protein_production = self.parameters.min_total_protein_production.sel({'set_carriers': 'beef_energy'})
-        lhs = lp.merge([protein, - min_total_protein_production * food], compat='broadcast_equals')
+        lhs = lp.merge([protein, - min_total_protein_production * food], compat='broadcast_equals', cls=LinearExpression)
         rhs = 0
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_total_protein_production", constraints)
