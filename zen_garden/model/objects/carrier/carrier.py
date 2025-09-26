@@ -52,6 +52,7 @@ class Carrier(Element):
         self.carbon_intensity_carrier_export = self.data_input.extract_input_data("carbon_intensity_carrier_export", index_sets=["set_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly",  unit_category={"emissions": 1, "energy_quantity": -1})
         self.min_energy_production = self.data_input.extract_input_data("min_energy_production", index_sets=[],
                                                                         unit_category={"energy_quantitiy": 1})
+        self.min_energy_production *= (self.energy_system.system.unaggregated_time_steps_per_year / self.energy_system.system.total_hours_per_year)
         self.min_item_production = self.data_input.extract_input_data("min_item_production", index_sets=[], unit_category={})
         self.min_total_protein_production = self.data_input.extract_input_data("min_total_protein_production", index_sets=[],
                                                                         unit_category={"emissions": 1, "energy_quantity": -1})
