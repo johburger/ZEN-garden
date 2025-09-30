@@ -75,8 +75,8 @@ class EnergySystem:
         self.set_edges = list(self.set_nodes_on_edges.keys())
         # self.set_haversine_distances_edges = self.calculate_haversine_distances_from_nodes()
         self.area_of_nodes = self.data_input.extract_input_data("area_of_nodes", index_sets=['set_nodes'], unit_category={'distance': 2})
-        self.activity_change_limit = self.data_input.extract_input_data("activity_change_limit", index_sets=[], unit_category={})
-        self.supplementary_activity_limit = self.data_input.extract_input_data("supplementary_activity_limit", index_sets=[], unit_category={})
+        self.activity_change_limit = self.data_input.extract_input_data("activity_change_limit", index_sets=[], unit_category={}) * len(self.set_nodes)
+        self.supplementary_activity_limit = self.data_input.extract_input_data("supplementary_activity_limit", index_sets=[], unit_category={}) * len(self.set_nodes)
         self.set_technologies = self.system.set_technologies
         # base time steps
         self.set_base_time_steps = list(range(0, self.system.unaggregated_time_steps_per_year * self.system.optimized_years))
