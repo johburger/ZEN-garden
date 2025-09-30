@@ -756,7 +756,7 @@ class TechnologyRules(GenericRule):
             ### formulate constraint
             lhs = lp.merge([self.variables["capacity"].loc[:, :, set_loc_in_super_loc, :].where(m1).to_linexpr(),
                            self.variables["capacity_addition"].loc[:, :, set_loc_in_super_loc, :].where(m2).to_linexpr()],
-                           compat="broadcast_equals").sum('set_location')
+                           compat="broadcast_equals", cls=LinearExpression).sum('set_location')
             # sum(self.variables["capacity"].loc[:,:,loc,:].where(m1) + self.variables["capacity_addition"].loc[:,:,loc,:].where(m2) for loc in set_loc_in_super_loc)
             rhs = capacity_limit_super.loc[:, :, super_loc, :].where(m1, 0.0) # .expand_dims(dim={'set_location': set_loc_in_super_loc})
             # rhs = rhs.transpose(*list(lhs.dims.keys())[:-1])  # does not work yet..
@@ -1193,7 +1193,7 @@ class TechnologyRules(GenericRule):
             mask_technology_installation = self.variables.technology_installation.isnull() == False
             distance_super = (tech_installation * distance).where(super_loc).sum("set_location")
             capacity_addition_super = capacity_addition.where(tech_installation.isnull()).where(super_loc).sum('set_location')
-            capacity_addition_super = lp.merge([1 * capacity_addition_super, 1 * distance_super], compat='broadcast_equals')
+            capacity_addition_super = lp.merge([1 * capacity_addition_super, 1 * distance_super], compat='broadcast_equals', cls=LinearExpression)
 
             # set cap addition to zero where there are distance limits in place
             distance_addition_unbounded_super = self.parameters.distance_addition_unbounded_super.rename(
@@ -1214,8 +1214,8 @@ class TechnologyRules(GenericRule):
                 cap_dist_addition_unbounded_super.broadcast_like(mask_technology_type).fillna(0))
             capacity_addition_unbounded_super = capacity_addition_unbounded_super.broadcast_like(tdr)
 
-        lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover,
-                           -1 * term_unbounded_addition], compat="broadcast_equals").sum("set_super_location")
+        lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover, -1 * term_unbounded_addition],
+                          compat="broadcast_equals", cls=LinearExpression).sum("set_super_location")
         rhs_sn = ((tdr * capacity_existing_total_nosr_super).fillna(0) + capacity_addition_unbounded_super).sum("set_super_location")
         rhs_sn = rhs_sn.broadcast_like(lhs_sn.const)
         # mask for tdr == inf
@@ -1233,7 +1233,8 @@ class TechnologyRules(GenericRule):
             capacity_existing_total_kdr = capacity_existing_kdr + spillover_rate * capacity_existing_kdr_sr
             capacity_existing_total_kdr = capacity_existing_total_kdr.broadcast_like(super_loc).where(super_loc).sum("set_location")
 
-            lhs_an = lp.merge([1 * capacity_addition_super, -1 * term_knowledge, -1 * term_unbounded_addition], compat="broadcast_equals")
+            lhs_an = lp.merge([1 * capacity_addition_super, -1 * term_knowledge, -1 * term_unbounded_addition],
+                              compat="broadcast_equals", cls=LinearExpression)
             rhs_an = tdr * capacity_existing_total_kdr + capacity_addition_unbounded_super
             rhs_an = rhs_an.broadcast_like(lhs_an.const)
             # mask for tdr == inf
@@ -1469,8 +1470,7 @@ class TechnologyRules(GenericRule):
             # the first term is just to ensure full shape
             lhs = lp.merge(self.variables["technology_lca_impacts"].loc[tech].where(False).to_linexpr(),
                            self.variables["technology_lca_impacts"].loc[tech, locs].to_linexpr(),
-                           term_reference_flow,
-                           compat="broadcast_equals")
+                           term_reference_flow, compat="broadcast_equals", cls=LinearExpression)
             rhs = 0
             constraints[tech] = lhs == rhs
 
