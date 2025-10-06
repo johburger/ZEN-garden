@@ -347,6 +347,8 @@ class Results:
         """
         if scenario_name is None:
             scenario_names = list(self.solution_loader.scenarios)
+        elif isinstance(scenario_name, list):
+            scenario_names = scenario_name
         else:
             scenario_names = [scenario_name]
 
