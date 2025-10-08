@@ -725,7 +725,7 @@ class Variable(Component):
         else:
             index = pd.Index(var_index_values)
         unit = self.unit_handling.ureg("dimensionless")
-        distinct_dims = {"money": "[currency]", "distance": "[length]", "time": "[time]", "emissions": "[mass]"}
+        distinct_dims = {"money": "[currency]", "distance": "[length]", "time": "[time]", "emissions": "[mass]", "biodiversity": "[biodiversity]"}
         for dim, dim_name in distinct_dims.items():
             if dim in unit_category:
                 dim_unit = [key for key, value in self.unit_handling.base_units.items() if value == dim_name][0]
