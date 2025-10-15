@@ -6,6 +6,8 @@ constraints that hold for the transport technologies.
 """
 import numpy as np
 import xarray as xr
+import logging
+import pandas as pd
 
 from .technology import Technology
 from ..component import IndexSet
