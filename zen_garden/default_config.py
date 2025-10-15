@@ -208,7 +208,7 @@ class Analysis(Subscriptable):
     Class which contains the analysis configuration. This defines for example the objective function, output settings, etc.
     """
     dataset: str = ""
-    objective: Literal['total_cost','total_carbon_emissions'] = "total_cost"
+    objective: Literal['total_cost','total_carbon_emissions', 'total_food', 'total_energy'] = "total_cost"
     sense: str = "min"
     subsets: Subsets = Subsets()
     header_data_inputs: HeaderDataInputs = HeaderDataInputs()
