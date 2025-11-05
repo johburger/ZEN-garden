@@ -10,6 +10,8 @@ dependencies:
   - utm
   - grid-strategy
   - openpyxl
+  - basemap
+  - basemap-data-hires
   - pip:
       - -e .[dev,vis,gurobipy,docs]
 
