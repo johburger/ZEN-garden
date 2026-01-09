@@ -151,7 +151,8 @@ class Scenario():
     def _read_system(self) -> System:
         system_path = os.path.join(self.path, "system.json")
         if not os.path.exists(system_path):
-            print(f"system.json does not exist for scenario {self.name}")
+            if self._exists:
+                print(f"system.json does not exist for scenario {self.name}")
             return System()
 
         with open(system_path, "r") as f:
@@ -160,7 +161,8 @@ class Scenario():
     def _read_solver(self) -> Solver:
         solver_path = os.path.join(self.path, "solver.json")
         if not os.path.exists(solver_path):
-            print(f"solver.json does not exist for scenario {self.name}")
+            if self._exists:
+                print(f"solver.json does not exist for scenario {self.name}")
             return Solver()
 
         with open(solver_path, "r") as f:
