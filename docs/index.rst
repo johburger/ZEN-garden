@@ -35,6 +35,7 @@ Documentation
    files/quick_start/installation
    files/quick_start/building_models
    files/quick_start/running_models
+   files/quick_start/summary
 
 
 .. toctree::
@@ -44,13 +45,14 @@ Documentation
    files/tutorial/00_tutorial_overview 
    files/tutorial/01_analyze_outputs
    files/tutorial/02_change_configuration
-   files/tutorial/03_scenario_analysis
-   files/tutorial/04_time_series_aggregation
-   files/tutorial/05_scaling
+   files/tutorial/03_add_technologies_carrier
+   files/tutorial/04_scenario_analysis
+   files/tutorial/05_time_series_aggregation
    files/tutorial/06_unit_handling
-   files/tutorial/07_operation_only
-   files/tutorial/08_handle_infeasibilities
-   files/tutorial/09_troubleshooting
+   files/tutorial/07_scaling
+   files/tutorial/08_operation_only
+   files/tutorial/09_handle_infeasibilities
+   files/tutorial/10_troubleshooting
 
    
 .. toctree::
@@ -69,7 +71,8 @@ Documentation
    :caption: References
 
    files/references/api_reference
-
+   files/references/class_structure
+   files/api/generated/changelog.md
 
 
 .. toctree::
@@ -82,6 +85,8 @@ Documentation
    files/developer_guide/documentation
    files/developer_guide/adding_param_variable_constraint
    files/developer_guide/constraint_guide
+   files/developer_guide/github_actions
+   files/developer_guide/tips_and_tricks
 
 
 
