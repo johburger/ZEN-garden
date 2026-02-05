@@ -84,7 +84,7 @@ and the cost of carbon emissions :math:`OPEX_y^\mathrm{e}`.
 .. math::
     :label: capex_y
 
-    CAPEX_y = \sum_{h\in\mathcal{H}}\sum_{s\in\mathcal{S}}
+    CAPEX_y = \sum_{h\in\mathcal{H}}
     \sum_{p\in\mathcal{P}} A_{h,p,y}
 
 Each technology :math:`h\in\mathcal{H}` is either a conversion technology 
@@ -100,7 +100,7 @@ on edges :math:`e\in\mathcal{E}`. We summarize nodes and edges to positions
 
 The investment costs are annualized by multiplying the total investment cost 
 with the annuity factor :math:`f_h`, which is a function of the technology
-deprecation time :math:`dp_h` and the discount rate :math:`r`:
+depreciation time :math:`dp_h` and the discount rate :math:`r`:
 
 .. math::
     :label: annuity
@@ -127,8 +127,8 @@ where :math:`\lceil\cdot\rceil` is the ceiling function and :math:`\psi(y)` is a
 function that maps the planning period :math:`y` to the actual year.
 
 .. note::
-    The deprecation time :math:`dp_h` is an optional parameter that reflects the time range for which technology
-    investments have to be paid back. In case the deprecation time is not defined or not needed, the default value will
+    The depreciation time :math:`dp_h` is an optional parameter that reflects the time range for which technology
+    investments have to be paid back. In case the depreciation time is not defined or not needed, the default value will
     be set to the technology lifetime.
 
 The capital investment cost :math:`I_{h,p,y}` for conversion technology
@@ -143,7 +143,7 @@ investment :math:`\alpha_{i,y}` and the capacity addition
 
 .. note::
     The capex of conversion technologies can also be approximated by a piecewise 
-    linear approximation as described in :ref:`input_handling.pwa` and 
+    linear approximation as described in :ref:`input_structure.pwa` and 
     :ref:`math_formulation.pwa_constraints`.
 
 For existing conversion technology capacities :math:`s_{h,n,y}^{ex}` that were 
@@ -260,7 +260,7 @@ entire year, where each timestep is multiplied by the time step duration
     :label: opex_v
 
     OPEX_y^\mathrm{t,v} = \sum_{t\in\mathcal{T}}\tau_t 
-    \bigg(\sum_{h\in\mathcal{H}} \sum_{s\in\mathcal{S}} 
+    \bigg(\sum_{h\in\mathcal{H}} 
     \sum_{p\in\mathcal{P}} O^\mathrm{t}_{h,p,t,y} \bigg).
 
 For conversion technologies :math:`i \in \mathcal{I}`, the variable operational 
@@ -858,6 +858,8 @@ The derivative of Eq. :eq:`storage_level_selfdisch` follows as:
 With :math:`\kappa^t>0`, it follows that Eq. :eq:`storage_level_simpl` is 
 monotonous for :math:`0<\varphi<1`.
 
+.. _math_formulation.investment_constraints:
+
 Investment constraints
 ----------------------
 
@@ -921,6 +923,7 @@ the new technology capacities do not become available before the construction
 time has passed:
 
 .. math::
+    :label: construction_time
 
     \Delta S_{h,p,y} = 
     \Delta S_{h,p,\left(y-dy^\mathrm{construction}\right)}^\mathrm{invest}
@@ -1081,7 +1084,7 @@ technology is not constrained by the capacity limit (Big-M parameter).
 Minimum full-load hours
 -----------------------
 
-.. docstring_method:: zen_garden.model.objects.technology.conversion_technology.ConversionTechnologyRules.constraint_minimum_full_load_hours
+.. docstring_method:: zen_garden.model.technology.conversion_technology.ConversionTechnologyRules.constraint_minimum_full_load_hours
 
 This constraint is currently only available for conversion technologies.
 
