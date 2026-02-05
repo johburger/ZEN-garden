@@ -295,13 +295,8 @@ class Postprocess:
 
             # skip variables not selected to be saved
             if (
-                not self.optimization_setup.operation_only_phase 
-                and self.solver.selected_saved_variables 
+                self.solver.selected_saved_variables 
                 and name not in self.solver.selected_saved_variables
-            ) or (
-                self.optimization_setup.operation_only_phase
-                and self.solver.selected_saved_variables_operation
-                and name not in self.solver.selected_saved_variables_operation
             ):
                 continue
             
@@ -326,24 +321,14 @@ class Postprocess:
 
             units = self._unit_df(units,df.index)
 
-            # rename for operations-only duals
-            if self.optimization_setup.operation_only_phase:
-                name = name + '_operation'
-
             # transform the dataframe to a json string and load it into the dictionary as dict
             data_frames[name] = self._transform_df(df,doc,units)
         
-        # choose whether to write new file or append to existing file
-        if self.optimization_setup.operation_only_phase:
-            mode = 'a'
-        else: 
-            mode = 'w'
-
         # write file
         self.write_file(
             self.name_dir.joinpath('var_dict'), 
             data_frames, 
-            mode = mode
+            mode = 'w'
         )
 
     def save_duals(self):
@@ -361,13 +346,8 @@ class Postprocess:
 
             # skip variables not selected to be saved
             if (
-                not self.optimization_setup.operation_only_phase 
-                and self.solver.selected_saved_duals
+                self.solver.selected_saved_duals 
                 and name not in self.solver.selected_saved_duals
-            ) or (
-                self.optimization_setup.operation_only_phase
-                and self.solver.selected_saved_duals_operation
-                and name not in self.solver.selected_saved_duals_operation
             ):
                 continue
             
@@ -394,24 +374,14 @@ class Postprocess:
             if len(df.index.names) == len(index_list):
                 df.index.names = index_list
 
-            # rename for operations-only duals
-            if self.optimization_setup.operation_only_phase:
-                name = name + '_operation'
-
             # we transform the dataframe to a json string and load it into the dictionary as dict
             data_frames[name] = self._transform_df(df,doc)
-
-        # choose whether to write new file or append to existing file
-        if self.optimization_setup.operation_only_phase:
-            mode = 'a'
-        else: 
-            mode = 'w'
 
         # write file
         self.write_file(
             self.name_dir.joinpath('dual_dict'), 
             data_frames, 
-            mode = mode
+            mode = 'w'
         )
 
     def save_system(self):
@@ -434,8 +404,9 @@ class Postprocess:
             fname = self.name_dir.joinpath('analysis')
         # remove cwd path part to avoid saving the absolute path
         if os.path.isabs(self.analysis.dataset):
-            self.analysis.dataset = os.path.split(Path(self.analysis.dataset))[-1]
-            self.analysis.folder_output = os.path.split(Path(self.analysis.folder_output))[-1]
+            cwd = os.getcwd()
+            self.analysis.dataset = os.path.relpath(self.analysis.dataset,cwd)
+            self.analysis.folder_output = os.path.relpath(self.analysis.folder_output, cwd)
         self.write_file(fname, self.analysis, format="json")
 
     def save_solver(self):
@@ -447,6 +418,12 @@ class Postprocess:
             fname = self.name_dir.parent.joinpath('solver')
         else:
             fname = self.name_dir.joinpath('solver')
+        
+        # remove cwd path part to avoid saving the absolute path
+        if os.path.isabs(self.solver.solver_dir):
+            cwd = os.getcwd()
+            self.solver.solver_dir = os.path.relpath(self.solver.solver_dir,cwd)
+        # save    
         self.write_file(fname, self.solver, format="json")
 
     def save_scenarios(self):
@@ -454,8 +431,8 @@ class Postprocess:
         Saves the scenario dict as json
         """
         # only save the scenarios at the highest level
-        root_path = Path(self.analysis.folder_output).joinpath(self.model_name)
-        fname = root_path.joinpath('scenarios')
+        root_dir = Path(self.analysis.folder_output).joinpath(self.model_name)
+        fname = root_dir.joinpath('scenarios')
         self.write_file(fname, self.scenarios, format="json")
 
     def save_unit_definitions(self):

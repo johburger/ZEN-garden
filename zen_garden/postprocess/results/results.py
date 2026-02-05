@@ -28,7 +28,7 @@ class Results:
     """
     The Results class is used to extract and process the results of a model run.
     """
-    def __init__(self, path: str):
+    def __init__(self, path: str, enable_cache: bool = True):
         """
         Initializes the Results class.
 
@@ -36,7 +36,7 @@ class Results:
         """
         assert os.path.exists(path), f"The output folder {Path(path).absolute()} does not exist."
         assert len(os.listdir(path)) > 0, f"The output folder {Path(path).absolute()} is empty."
-        self.solution_loader = SolutionLoader(path)
+        self.solution_loader = SolutionLoader(path, enable_cache=enable_cache)
         self.has_scenarios = len(self.solution_loader.scenarios) > 1
         first_scenario = next(iter(self.solution_loader.scenarios.values()))
         self.name = Path(first_scenario.analysis.dataset).name
@@ -76,7 +76,7 @@ class Results:
             if component_name not in scenario.components:
                 logging.warning(f"Component {component_name} not found. If you expected this component to be present, the solution is probably empty and therefore skipped.")
                 return pd.Series()
-            component = scenario.components[component_name]
+            component = scenario.get_component(component_name)
             if data_type == "units" and not component.has_units:
                 return None
             idx = reformat_slicing_index(index,component)
@@ -89,7 +89,7 @@ class Results:
                 scenario = self.solution_loader.scenarios[scenario_name]
                 if component_name not in scenario.components:
                     continue
-                component = scenario.components[component_name]
+                component = scenario.get_component(component_name)
                 if data_type == "units" and not component.has_units:
                     return None
                 idx = reformat_slicing_index(index, component)
@@ -247,7 +247,7 @@ class Results:
             scenario = self.solution_loader.scenarios[scenario_name]
             if component_name not in scenario.components:
                 continue
-            component = scenario.components[component_name]
+            component = scenario.get_component(component_name)
             idx = reformat_slicing_index(index,component)
             scenarios_dict[scenario_name] = self.get_full_ts_per_scenario(
                 scenario,
@@ -337,13 +337,21 @@ class Results:
         """
         Calculates the total values of a component for a all scenarios.
 
-        :param component_name: Name of the component
+        :param component_name: Name of the component. Should not be used for dual variables!
         :param year: Filter the results by a given year
         :param scenario_name: Filter the results by a given scenario
         :param keep_raw: Keep the raw values of the rolling horizon optimization
         :param index: slicing index of the resulting dataframe
         :return: Total values of the component
         """
+
+        # Throw error if used for a dual variable
+        if component_name in self.get_component_names("dual"):
+            raise ValueError(
+                "This method does not support the extraction of " \
+                "dual variables. Please use the methods " \
+                "`get_dual()` or `get_full_ts()` instead.")
+
         if scenario_name is None:
             scenario_names = list(self.solution_loader.scenarios)
         else:
@@ -355,7 +363,7 @@ class Results:
             scenario = self.solution_loader.scenarios[scenario_name]
             if component_name not in scenario.components:
                 continue
-            component = scenario.components[component_name]
+            component = scenario.get_component(component_name)
             idx = reformat_slicing_index(index, component)
             current_total = self.get_total_per_scenario(
                 scenario, component, year, keep_raw, index = idx
@@ -408,7 +416,7 @@ class Results:
         :return: annuity of the duals
         """
         system = scenario.system
-        discount_rate_component = scenario.components["discount_rate"]
+        discount_rate_component = scenario.get_component("discount_rate")
         # calculate annuity
         discount_rate = self.solution_loader.get_component_data(
             scenario, discount_rate_component
@@ -545,7 +553,7 @@ class Results:
         component = None
         for s in self.solution_loader.scenarios:
             if component_name in self.solution_loader.scenarios[s].components:
-                component = self.solution_loader.scenarios[s].components[component_name]
+                component = self.solution_loader.scenarios[s].get_component(component_name)
                 break
         if component is None:
             return u
@@ -569,10 +577,28 @@ class Results:
 
     def get_system(self, scenario_name: Optional[str] = None) -> System:
         """
-        Extracts the System config of a given Scenario. If no scenario is given, a random one is taken.
+        Extract system configurations from a scenario.
 
-        :param scenario_name: Name of the scenario
-        :return: The corresponding System config
+        Extracts system configurations from the results of a scenario. This 
+        ensures the tractability of model configurations. System configurations
+        are those specified in the ``system.json`` file of a given model.
+
+        Args:
+            scenario_name (str, optional): The name of the scenario for which
+                to extract the system configuration. If no value is given, then
+                the first scenario is used. Default value: ``None``.
+
+        Returns:
+            System: System configuration.
+
+        Examples:
+            Basic usage example:
+
+            >>> from zen_garden.postprocess.results.results import Results
+            >>> r = Results(path='<result_folder>')
+            >>> r.get_system() # system configurations of first scenario
+            >>> r.get_system('scenario_name') # system configuration of "scenario_name"
+
         """
         if scenario_name is None:
             scenario_name = next(iter(self.solution_loader.scenarios.keys()))
@@ -580,10 +606,29 @@ class Results:
 
     def get_analysis(self, scenario_name: Optional[str] = None) -> Analysis:
         """
-        Extracts the Analysis config of a given Scenario. If no scenario is given, a random one is taken.
+        Extract analysis configurations from a scenario.
 
-        :param scenario_name: Name of the scenario
-        :return: The corresponding Analysis config
+        Extracts analysis configurations from the results of a scenario. This 
+        ensures the tractability of model configurations. Analysis configurations 
+        are those specified under the ``analysis`` object in the ``config.json``
+        file.
+
+        Args:
+            scenario_name (str, optional): The name of the scenario for which
+                to extract the system configuration. If no value is given, then
+                the first scenario is used. Default value: ``None``.
+
+        Returns:
+            Analysis: Analysis configuration.
+
+        Examples:
+            Basic usage example:
+
+            >>> from zen_garden.postprocess.results.results import Results
+            >>> r = Results(path='<result_folder>')
+            >>> r.get_analysis() # analysis configurations of first scenario
+            >>> r.get_analysis('scenario_name') # analysis configuration of "scenario_name"
+
         """
         if scenario_name is None:
             scenario_name = next(iter(self.solution_loader.scenarios.keys()))
@@ -591,10 +636,29 @@ class Results:
 
     def get_solver(self, scenario_name: Optional[str] = None) -> Solver:
         """
-        Extracts the Solver config of a given Scenario. If no scenario is given, a random one is taken.
+        Extract solver configurations from a scenario.
 
-        :param scenario_name: Name of the scenario
-        :return: The corresponding Solver config
+        Extracts solver configurations from the results of a scenario. This 
+        ensures the tractability of model configurations. Solver configurations 
+        are those specified under the ``solver`` object in the ``config.json``
+        file.
+
+        Args:
+            scenario_name (str, optional): The name of the scenario for which
+                to extract the system configuration. If no value is given, then
+                the first scenario is used. Default value: ``None``.
+
+        Returns:
+            Solver: Solver configuration.
+
+        Examples:
+            Basic usage example:
+
+            >>> from zen_garden.postprocess.results.results import Results
+            >>> r = Results(path='<result_folder>')
+            >>> r.get_solver() # solver configurations of first scenario
+            >>> r.get_solver('scenario_name') # solver configuration of "scenario_name"
+
         """
         if scenario_name is None:
             scenario_name = next(iter(self.solution_loader.scenarios.keys()))
@@ -610,12 +674,33 @@ class Results:
         component = None
         for scenario in self.solution_loader.scenarios.values():
             if component_name in scenario.components:
-                component = scenario.components[component_name]
+                component = scenario.get_component(component_name)
                 break
         if component is None:
             logging.warning(f"Component {component_name} not found and the documentation cannot be returned.")
             return ""
         return component.doc
+
+    def get_index_names(self, component_name: str, scenario_name: Optional[str] = None) -> list[str]:
+        """
+        Docstring for get_index_names
+        
+        :param self: Description
+        :param component_name: Description
+        :type component_name: str
+        :param scenario_name: Description
+        :type scenario_name: Optional[str]
+        :return: Description
+        :rtype: list[str]
+        """
+        if scenario_name is None:
+            scenario_name = next(iter(self.solution_loader.scenarios.keys()))
+        scenario = self.solution_loader.scenarios[scenario_name]
+        if component_name not in scenario.components:
+            logging.warning(f"Component {component_name} not found and the index names cannot be returned.")
+            return []
+        component = scenario.get_component(component_name)
+        return component.index_names
 
     def get_years(self, scenario_name: Optional[str] = None) -> list[int]:
         """
@@ -824,11 +909,9 @@ class Results:
         assert component_type in ComponentType.get_component_type_names(), f"Invalid component type: {component_type}. Valid types are: {ComponentType.get_component_type_names()}"
         list_names = []
         for scenario in self.solution_loader.scenarios:
-            for component in self.solution_loader.scenarios[scenario].components:
-                component_name = self.solution_loader.scenarios[scenario].components[component].name
-                component_type_specific = self.solution_loader.scenarios[scenario].components[component].component_type.name
-                if component_name not in list_names and component_type_specific == component_type:
-                    list_names.append(component)
+            for cn in self.solution_loader.scenarios[scenario].component_types[component_type]:
+                if cn not in list_names:
+                    list_names.append(cn)
         return list_names
 
 

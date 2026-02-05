@@ -29,6 +29,11 @@ for details.
     version from the repository. Otherwise, dependency changes may result in 
     errors.
 
+.. tip::
+    The command-line command ``zen-garden`` is a shortcut that invokes the 
+    ``run`` function from ``zen_garden``. This shortcut is 
+    defined in the ``[project.scripts]`` section of the ``pyproject.toml``.
+
 
 Debugging ZEN-garden
 ====================
@@ -51,18 +56,18 @@ can be run from a python script using the following code:
 
 .. code-block:: python
 
-  from zen_garden.__main__ import run_module
+  from zen_garden import run
   import os
 
   os.chdir("<path\to\data>")
-  run_module(dataset = "<dataset_name>")
+  run(dataset = "<dataset_name>")
 
 Using a IDE, this python code can be run and debugged using the standard debug
 functionalities of the IDE. Any breakpoints set within the ZEN-garden module 
 will be stopped at when the script is run in debug mode. As described in the
 :ref:`additional remarks section for running model <running.additional_remarks>`,
 all command line flags for ZEN-garden can be directly added into the 
-``run_module`` function of ZEN-garden.
+``run`` function of ZEN-garden.
 
 
 .. _debug.IDE:
@@ -74,7 +79,7 @@ Alternatively, developers may also debug ZEN-garden using IDE-specific
 debug routines and configurations. These configurations are described 
 below for two common IDEs: PyCharm and VSCode. In both cases, the user 
 must specify special debug settings in the IDE. These settings essentially 
-inform the IDE about which command line script (i.e. ``python -m zen_garden``) 
+inform the IDE about which command line script (i.e., ``zen-garden``) 
 needs to be run whenever debugging. Once set up, the user can debug ZEN-garden by 
 clicking on a button in the IDE. The full ZEN-garden module will then be run
 in debug mode, regardless of which file is currently open and being edited. The 
