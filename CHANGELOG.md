@@ -3,6 +3,26 @@
 This file gets automatically updated in ZEN-garden's continuous integration 
 procedures. Do not edit the file manually.
 
+## [v2.9.5] - 2026-02-06 
+
+### Bug Fixes 🐛
+- fix result extraction from hdf files when there is a single column. [[🔀 PR #1216](https://github.com/ZEN-universe/ZEN-garden/pull/1216) @csfunke]
+
+## [v2.9.4] - 2026-02-06 
+
+### Bug Fixes 🐛
+- fix version check from  `2.9.1` to `2.9.2` for new results. [[🔀 PR #1213](https://github.com/ZEN-universe/ZEN-garden/pull/1213) @jacob-mannhardt]
+
+## [v2.9.3] - 2026-02-06 
+
+### Bug Fixes 🐛
+- add error catch for when extracting the units in the new format without updating the environment before. [[🔀 PR #1211](https://github.com/ZEN-universe/ZEN-garden/pull/1211) @jacob-mannhardt]
+
+## [v2.9.2] - 2026-02-06 
+
+### Bug Fixes 🐛
+- Make result reading faster by splitting the `value` and `unit` columns into two keys in the `.h5` file. [[🔀 PR #1209](https://github.com/ZEN-universe/ZEN-garden/pull/1209) @jacob-mannhardt]
+
 ## [v2.9.1] - 2026-02-05 
 
 ### Bug Fixes 🐛
