@@ -488,7 +488,9 @@ class OptimizationSetup(object):
             if len(attribute) > 1:
                 dict_of_attributes[combined_key] = attribute
                 attribute_is_series = True
-            elif len(attribute) == 0:  # catches an empty attribute that otherwise leads to wrong Series concatenation
+            elif (
+                len(attribute) == 0
+            ):  # catches an empty attribute that leads to wrong Series concatenation
                 attribute_is_series = True
             else:
                 if attribute.index == 0:

@@ -641,7 +641,9 @@ class DataInput:
             df_output = df_output * scenario_factor
             setattr(self, name_yearly_variation, df_output)
 
-    def extract_locations(self, extract_nodes=True, extract_coordinates=False, super_locations=False):
+    def extract_locations(
+        self, extract_nodes=True, extract_coordinates=False, super_locations=False
+    ):
         """Reads input data to extract nodes or edges.
 
         Args
@@ -661,35 +663,61 @@ class DataInput:
             loc = self.analysis.header_data_inputs[set_locations]
             set_super_locations_config = set(self.system[set_super_locations])
             if self.read_input_csv(set_super_locations) is None:
-                assert len(set_super_locations_config) == 0, f"File for {set_super_locations} is missing."
+                assert (
+                    len(set_super_locations_config) == 0
+                ), f"File for {set_super_locations} is missing."
                 return dict()
-            set_super_locations_input = self.read_input_csv(set_super_locations).set_index(super_loc)
+            set_super_locations_input = self.read_input_csv(
+                set_super_locations
+            ).set_index(super_loc)
             super_locations = set(set_super_locations_input.index.unique())
             if len(set_super_locations_config) > 0:
-                super_locations = super_locations.intersection(set_super_locations_config)
-                assert len(super_locations) == len(set_super_locations_config), "Not all super sets are defined."
+                super_locations = super_locations.intersection(
+                    set_super_locations_config
+                )
+                assert len(super_locations) == len(
+                    set_super_locations_config
+                ), "Not all super sets are defined."
             # drop super locations if nodes are not in set nodes
             if extract_nodes:
-                bool_set_super_locations = set_super_locations_input[loc].isin(self.system["set_nodes"])
+                bool_set_super_locations = set_super_locations_input[loc].isin(
+                    self.system["set_nodes"]
+                )
             else:
-                # bool_set_super_locations = set_super_locations_input["super_node_from"].isin(self.system["set_super_nodes"]) & \
-                #                            set_super_locations_input["super_node_to"].isin(self.system["set_super_nodes"])
-                bool_set_super_locations = set_super_locations_input[loc].isin(self.energy_system.set_edges)
+                bool_set_super_locations = set_super_locations_input[loc].isin(
+                    self.energy_system.set_edges
+                )
             if not bool_set_super_locations.all():
-                logging.warning(f"The following {super_loc} are dropped from the super sets as they are not in the set of nodes: \n {set_super_locations_input[~bool_set_super_locations]}")
-                set_super_locations_input = set_super_locations_input[bool_set_super_locations]
-            self.system[set_super_locations] = list(set_super_locations_input.index.unique())
+                logging.warning(
+                    f"The following {super_loc} are dropped from the super sets as "
+                    f"they are not in the set of nodes: "
+                    f"\n {set_super_locations_input[~bool_set_super_locations]}"
+                )
+                set_super_locations_input = set_super_locations_input[
+                    bool_set_super_locations
+                ]
+            self.system[set_super_locations] = list(
+                set_super_locations_input.index.unique()
+            )
             # create dict assigning locations to super locations
             super_locations_dict = dict()
             for s_loc in set_super_locations_input.index.unique():
                 if isinstance(set_super_locations_input.loc[s_loc, loc], pd.Series):
-                    super_locations_dict[s_loc] = set_super_locations_input.loc[s_loc, loc]
+                    super_locations_dict[s_loc] = set_super_locations_input.loc[
+                        s_loc, loc
+                    ]
                 elif isinstance(set_super_locations_input.loc[s_loc, loc], str):
-                    super_locations_dict[s_loc] = pd.Series(set_super_locations_input.loc[s_loc, loc], name=loc, index=pd.Index([s_loc], name=super_loc))
+                    super_locations_dict[s_loc] = pd.Series(
+                        set_super_locations_input.loc[s_loc, loc],
+                        name=loc,
+                        index=pd.Index([s_loc], name=super_loc),
+                    )
                 elif pd.isna(set_super_locations_input.loc[s_loc, loc]):
                     super_locations_dict[s_loc] = []
                 else:
-                    super_locations_dict[s_loc] = [set_super_locations_input.loc[s_loc, loc]]
+                    super_locations_dict[s_loc] = [
+                        set_super_locations_input.loc[s_loc, loc]
+                    ]
             return super_locations_dict
         elif extract_nodes:
             set_nodes_config = self.system.set_nodes
@@ -731,7 +759,7 @@ class DataInput:
                 return set_nodes_config
         else:
             set_edges_input = self.read_input_csv("set_edges")
-            input_checks = self.energy_system.optimization_setup.input_data_checks
+            # input_checks = self.energy_system.optimization_setup.input_data_checks
             # input_checks.check_single_directed_edges(set_edges_input=set_edges_input)
             if set_edges_input is not None:
                 set_edges = set_edges_input[
@@ -739,7 +767,11 @@ class DataInput:
                     & (set_edges_input["node_to"].isin(self.energy_system.set_nodes))
                 ]
                 set_edges = set_edges.set_index("edge")
-                # set_nodes_on_edges = {edge: (set_edges.loc[edge, "node_from"], set_edges.loc[edge, "node_to"]) for edge in set_edges.index}
+                # set_nodes_on_edges = {
+                #     edge: (
+                #         set_edges.loc[edge, "node_from"],
+                #         set_edges.loc[edge, "node_to"]
+                #     ) for edge in set_edges.index}
                 return set_edges
             else:
                 raise FileNotFoundError(

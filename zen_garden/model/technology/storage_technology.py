@@ -3,6 +3,8 @@ technologies. The class takes the abstract optimization model as an input, and r
 the parameters, variables and constraints that hold for the storage technologies.
 """
 
+import logging
+
 import numpy as np
 import xarray as xr
 
@@ -28,7 +30,7 @@ class StorageTechnology(Technology):
         :param optimization_setup: The OptimizationSetup the element is part of
         """
 
-        logging.info(f'Initialize storage technology {tech}')
+        logging.info(f"Initialize storage technology {tech}")
         super().__init__(tech, optimization_setup)
         # store carriers of storage technology
         self.store_carriers()
@@ -78,7 +80,12 @@ class StorageTechnology(Technology):
             time_steps="set_time_steps_yearly",
             unit_category={"energy_quantity": 1},
         )
-        self.capacity_limit_super_energy = self.data_input.extract_input_data("capacity_limit_super_energy", index_sets=["set_super_nodes", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1})
+        self.capacity_limit_super_energy = self.data_input.extract_input_data(
+            "capacity_limit_super_energy",
+            index_sets=["set_super_nodes", "set_time_steps_yearly"],
+            time_steps="set_time_steps_yearly",
+            unit_category={"energy_quantity": 1},
+        )
         self.capacity_existing_energy = self.data_input.extract_input_data(
             "capacity_existing_energy",
             index_sets=["set_nodes", "set_technologies_existing"],

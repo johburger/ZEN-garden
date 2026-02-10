@@ -64,7 +64,11 @@ class Technology(Element):
             index_sets=[],
             unit_category={"energy_quantity": 1, "time": -1},
         )
-        self.capacity_addition_unbounded_super = self.data_input.extract_input_data("capacity_addition_unbounded_super", index_sets=[], unit_category={"energy_quantity": 1, "time": -1})
+        self.capacity_addition_unbounded_super = self.data_input.extract_input_data(
+            "capacity_addition_unbounded_super",
+            index_sets=[],
+            unit_category={"energy_quantity": 1, "time": -1},
+        )
         self.lifetime = self.data_input.extract_input_data(
             "lifetime", index_sets=[], unit_category={}
         )
@@ -90,9 +94,12 @@ class Technology(Element):
             time_steps="set_time_steps_yearly",
             unit_category={},
         )
-        self.max_diffusion_rate_super = self.data_input.extract_input_data("max_diffusion_rate_super", index_sets=["set_time_steps_yearly"],
-                                                                           time_steps="set_time_steps_yearly", unit_category={})
-
+        self.max_diffusion_rate_super = self.data_input.extract_input_data(
+            "max_diffusion_rate_super",
+            index_sets=["set_time_steps_yearly"],
+            time_steps="set_time_steps_yearly",
+            unit_category={},
+        )
 
         # add all raw time series to dict
         self.raw_time_series = {}
@@ -123,8 +130,12 @@ class Technology(Element):
             time_steps="set_time_steps_yearly",
             unit_category={"energy_quantity": 1, "time": -1},
         )
-        self.capacity_limit_super = self.data_input.extract_input_data("capacity_limit_super", index_sets=[set_location_super, "set_time_steps_yearly"],
-                                                                       time_steps="set_time_steps_yearly", unit_category={"energy_quantity": 1, "time": -1})
+        self.capacity_limit_super = self.data_input.extract_input_data(
+            "capacity_limit_super",
+            index_sets=[set_location_super, "set_time_steps_yearly"],
+            time_steps="set_time_steps_yearly",
+            unit_category={"energy_quantity": 1, "time": -1},
+        )
         self.carbon_intensity_technology = self.data_input.extract_input_data(
             "carbon_intensity_technology",
             index_sets=[set_location],
@@ -476,8 +487,11 @@ class Technology(Element):
             doc="Set of transport technologies",
         )
         # flexible transport technologies
-        optimization_setup.sets.add_set(name="set_flexible_transport_technologies", data=energy_system.set_flexible_transport_technologies,
-                                        doc="Set of flexible transport technologies")
+        optimization_setup.sets.add_set(
+            name="set_flexible_transport_technologies",
+            data=energy_system.set_flexible_transport_technologies,
+            doc="Set of flexible transport technologies",
+        )
         # storage technologies
         optimization_setup.sets.add_set(
             name="set_storage_technologies",
@@ -568,7 +582,13 @@ class Technology(Element):
             calling_class=cls,
         )
         # unbounded capacity addition for super location
-        optimization_setup.parameters.add_parameter(name="capacity_addition_unbounded_super", index_names=["set_technologies"], doc='Parameter which specifies the unbounded capacity addition that can be added each year per super node (only for delayed technology deployment)', calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="capacity_addition_unbounded_super",
+            index_names=["set_technologies"],
+            doc="Parameter specifying the unbounded capacity addition that can be "
+                "added each year per super node (for delayed technology deployment)",
+            calling_class=cls,
+        )
 
         # lifetime existing technologies
         optimization_setup.parameters.add_parameter(
@@ -651,7 +671,13 @@ class Technology(Element):
             calling_class=cls,
         )
         # maximum diffusion rate, i.e., increase in capacity, for super locations
-        optimization_setup.parameters.add_parameter(name="max_diffusion_rate_super", index_names=["set_technologies", "set_time_steps_yearly"], doc="Parameter which specifies the maximum diffusion rate per super location which is the maximum increase in capacity between investment steps", calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="max_diffusion_rate_super",
+            index_names=["set_technologies", "set_time_steps_yearly"],
+            doc="Parameter specifying the maximum diffusion rate per super location "
+                "which is the maximum increase in capacity between investment steps",
+            calling_class=cls,
+        )
         # capacity_limit of technologies
         optimization_setup.parameters.add_parameter(
             name="capacity_limit",
@@ -666,8 +692,19 @@ class Technology(Element):
             calling_class=cls,
         )
         # capacity_limit of technologies for super level
-        optimization_setup.parameters.add_parameter(name="capacity_limit_super", index_names=["set_technologies", "set_capacity_types", "set_super_location", "set_time_steps_yearly"], capacity_types=True,
-                                                    doc='Parameter which specifies the capacity limit of technologies for the super locations', calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="capacity_limit_super",
+            index_names=[
+                "set_technologies",
+                "set_capacity_types",
+                "set_super_location",
+                "set_time_steps_yearly",
+            ],
+            capacity_types=True,
+            doc="Parameter which specifies the capacity limit of technologies "
+                "for the super locations",
+            calling_class=cls,
+        )
 
         # minimum load relative to capacity
         optimization_setup.parameters.add_parameter(
@@ -701,9 +738,18 @@ class Technology(Element):
             calling_class=cls,
         )
         # lca parameters
-        if optimization_setup.system['load_lca_factors']:
-            optimization_setup.parameters.add_parameter(name='technology_lca_factors', index_names=['set_technologies', 'set_location', 'set_lca_impact_categories', 'set_time_steps_yearly'],
-                                                        doc='Parameters for the environmental impacts of each technology', calling_class=cls)
+        if optimization_setup.system["load_lca_factors"]:
+            optimization_setup.parameters.add_parameter(
+                name="technology_lca_factors",
+                index_names=[
+                    "set_technologies",
+                    "set_location",
+                    "set_lca_impact_categories",
+                    "set_time_steps_yearly",
+                ],
+                doc="Parameters for the environmental impacts of each technology",
+                calling_class=cls,
+            )
         # calculate additional existing parameters
         optimization_setup.parameters.add_parameter(
             name="existing_capacities",
@@ -965,12 +1011,32 @@ class Technology(Element):
             unit_category={"emissions": 1},
         )
         # LCA impacts of each technology
-        if optimization_setup.system['load_lca_factors']:
-            variables.add_variable(model, name="technology_lca_impacts", index_sets=cls.create_custom_set(
-                ['set_technologies', 'set_location', 'set_lca_impact_categories', 'set_time_steps_operation'], optimization_setup),
-                                   doc='LCA impacts for operating technology at location l and time t', unit_category={"time": -1})
-            variables.add_variable(model, name='technology_lca_impacts_total', index_sets=cls.create_custom_set(['set_lca_impact_categories', 'set_time_steps_yearly'], optimization_setup),
-                                   doc='Total LCA impacts in year y', unit_category={})
+        if optimization_setup.system["load_lca_factors"]:
+            variables.add_variable(
+                model,
+                name="technology_lca_impacts",
+                index_sets=cls.create_custom_set(
+                    [
+                        "set_technologies",
+                        "set_location",
+                        "set_lca_impact_categories",
+                        "set_time_steps_operation",
+                    ],
+                    optimization_setup,
+                ),
+                doc="LCA impacts for operating technology at location l and time t",
+                unit_category={"time": -1},
+            )
+            variables.add_variable(
+                model,
+                name="technology_lca_impacts_total",
+                index_sets=cls.create_custom_set(
+                    ["set_lca_impact_categories", "set_time_steps_yearly"],
+                    optimization_setup,
+                ),
+                doc="Total LCA impacts in year y",
+                unit_category={},
+            )
 
         # install technology
         # Note: binary variables are written into the lp file by linopy even if they
@@ -1107,13 +1173,21 @@ class Technology(Element):
         # total carbon emissions of technologies
         rules.constraint_carbon_emissions_technology_total()
         # LCA
-        if optimization_setup.system['load_lca_factors']:
+        if optimization_setup.system["load_lca_factors"]:
             # lca impacts
-            constraints.add_constraint_block(model, name='constraint_technology_lca_impacts', constraint=rules.constraint_technology_lca_impacts_block(),
-                                             doc='lca impacts of each technology at each location and time step')
+            constraints.add_constraint_block(
+                model,
+                name="constraint_technology_lca_impacts",
+                constraint=rules.constraint_technology_lca_impacts_block(),
+                doc="lca impacts of each technology at each location and time step",
+            )
             # total LCA impacts
-            constraints.add_constraint_block(model, name='constraint_technology_lca_impacts_total', constraint=rules.constraint_technology_lca_impacts_total_block(),
-                                             doc='total lca impacts of all technologies per year')
+            constraints.add_constraint_block(
+                model,
+                name="constraint_technology_lca_impacts_total",
+                constraint=rules.constraint_technology_lca_impacts_total_block(),
+                doc="total lca impacts of all technologies per year",
+            )
 
         # min load constraints
         n_cons = len(model.constraints.items())
@@ -1333,34 +1407,28 @@ class TechnologyRules(GenericRule):
         )
 
     def constraint_technology_capacity_limit_super(self):
-        """limited capacity_limit of technology for super locations
+        """limited capacity_limit of technology for super locations.
 
         .. math::
-            \\mathrm{if\\ existing\\ capacities\\ < capacity\\ limit}\\ s^\\mathrm{max}_{h,sp} \\geq \\sum_{p \\in \\script{SP}_sp} S_{h,p,y}
+            \\text{if existing capacities < capacity limit}\\ s^\\mathrm{max}_{h,sp}
+            \\geq \\sum_{p \\in \\script{SP}_sp} S_{h,p,y}
         .. math::
-            \\mathrm{else}\\ 0 \\geq \\sum_{p \\in \\script{SP}_sp} \\Delta S_{h,p,y}
+            \\text{else} 0 \\geq \\sum_{p \\in \\script{SP}_sp} \\Delta S_{h,p,y}
 
         :return: #TODO describe parameter/return
         """
 
-        # existing_capacities = self.parameters.existing_capacities
-        # m1 = (self.parameters.capacity_limit_super != np.inf)
-        # # mask for matching nodes with super_nodes:
-        # m_node = xr.DataArray(
-        #     [[node in self.sets['set_nodes_in_super_nodes'][s_node] for node in self.sets["set_nodes"]] for s_node in
-        #      self.sets["set_super_nodes"]],
-        #     dims=["set_super_nodes", "set_nodes"], coords=[self.sets["set_super_nodes"], self.sets["set_nodes"]])
-        #
-        # # idea: expand on the set super_locations by additionally indexing everything with the set_locations
-        # rhs = self.parameters.capacity_limit_super
-        # constraints = lhs <= rhs
-        # self.constraints.return_contraints("constraint_technology_capacity_limit_super", constraints)
-
         ### index sets
-        index_names = ["set_technologies", "set_capacity_types", "set_super_location", "set_time_steps_yearly"]
-        index_values, index_names = Element.create_custom_set(index_names, self.optimization_setup)
+        index_names = [
+            "set_technologies",
+            "set_capacity_types",
+            "set_super_location",
+            "set_time_steps_yearly",
+        ]
+        index_values, index_names = Element.create_custom_set(
+            index_names, self.optimization_setup
+        )
         index = ZenIndex(index_values, index_names)
-
 
         ### index loop
         constraints = {}
@@ -1376,24 +1444,50 @@ class TechnologyRules(GenericRule):
                 continue
             if not set_loc_in_super_loc:
                 continue
-            existing_capacities = sum(self.parameters.existing_capacities.loc[:, :, loc, :] for loc in set_loc_in_super_loc)
-            if not (isinstance(existing_capacities, int) or isinstance(existing_capacities, float)):
+            existing_capacities = sum(
+                self.parameters.existing_capacities.loc[:, :, loc, :]
+                for loc in set_loc_in_super_loc
+            )
+            if not (
+                isinstance(existing_capacities, int)
+                or isinstance(existing_capacities, float)
+            ):
                 existing_capacities = existing_capacities.fillna(0.0)
             # masks to formulate constraints
-            m1 = (capacity_limit_super.loc[:, :, super_loc, :] != np.inf) & (existing_capacities < capacity_limit_super.loc[:, :, super_loc, :])
-            m2 = (capacity_limit_super.loc[:, :, super_loc, :] != np.inf) & ~(existing_capacities < capacity_limit_super.loc[:, :, super_loc, :])
+            m1 = (capacity_limit_super.loc[:, :, super_loc, :] != np.inf) & (
+                existing_capacities < capacity_limit_super.loc[:, :, super_loc, :]
+            )
+            m2 = (capacity_limit_super.loc[:, :, super_loc, :] != np.inf) & ~(
+                existing_capacities < capacity_limit_super.loc[:, :, super_loc, :]
+            )
             ### formulate constraint
-            lhs = lp.merge([self.variables["capacity"].loc[:, :, set_loc_in_super_loc, :].where(m1).to_linexpr(),
-                           self.variables["capacity_addition"].loc[:, :, set_loc_in_super_loc, :].where(m2).to_linexpr()],
-                           compat="broadcast_equals", cls=LinearExpression).sum('set_location')
-            # sum(self.variables["capacity"].loc[:,:,loc,:].where(m1) + self.variables["capacity_addition"].loc[:,:,loc,:].where(m2) for loc in set_loc_in_super_loc)
-            rhs = capacity_limit_super.loc[:, :, super_loc, :].where(m1, 0.0) # .expand_dims(dim={'set_location': set_loc_in_super_loc})
+            lhs = lp.merge(
+                [
+                    self.variables["capacity"]
+                    .loc[:, :, set_loc_in_super_loc, :]
+                    .where(m1)
+                    .to_linexpr(),
+                    self.variables["capacity_addition"]
+                    .loc[:, :, set_loc_in_super_loc, :]
+                    .where(m2)
+                    .to_linexpr(),
+                ],
+                compat="broadcast_equals",
+                cls=LinearExpression,
+            ).sum("set_location")
+            # sum(self.variables["capacity"].loc[:, :, loc, :].where(m1) +
+            #     self.variables["capacity_addition"].loc[:, :,loc, :].where(m2) for loc
+            #     in set_loc_in_super_loc)
+            rhs = capacity_limit_super.loc[:, :, super_loc, :].where(
+                m1, 0.0
+            )  # .expand_dims(dim={'set_location': set_loc_in_super_loc})
             # rhs = rhs.transpose(*list(lhs.dims.keys())[:-1])  # does not work yet..
-            constraints[super_loc] = lhs<=rhs
+            constraints[super_loc] = lhs <= rhs
 
         ### return
-        self.constraints.add_constraint("constraint_technology_capacity_limit_super", constraints)
-        # return self.constraints.return_contraints(constraints, model=self.model, index_values=index.get_unique(["set_super_location"]), index_names=["set_super_location"])
+        self.constraints.add_constraint(
+            "constraint_technology_capacity_limit_super", constraints
+        )
 
     def constraint_technology_min_capacity_addition(self):
         """Min capacity addition of technology.
@@ -1888,23 +1982,30 @@ class TechnologyRules(GenericRule):
             )
 
     def constraint_technology_diffusion_limit_super(self):
-        """limited technology diffusion based on the existing capacity in the previous year for super locations
+        """limited technology diffusion based on super loc's previous capacities.
 
         For storage and conversion technologies: \n
         .. math::
-               \\Delta S_{k,n,y}\\leq ((1+\\vartheta_k)^{\\mathrm{dy}}-1)(K_{k,n,y}+\\omega \\sum_{\\tilde{n}\\in\\tilde{\\mathcal{N}}}K_{k,\\tilde{n},y})
-                +\\mathrm{dy}(\\xi\\sum_{\\tilde{k}\\in\\tilde{\\mathcal{K}}}S_{\\tilde{k},n,y} + \\zeta_k)
+               \\Delta S_{k,n,y}\\leq ((1+\\vartheta_k)^{\\mathrm{dy}}-1)(K_{k,n,y}
+               + \\omega \\sum_{\\tilde{n}\\in\\tilde{\\mathcal{N}}}K_{k,\\tilde{n},y})
+               + \\mathrm{dy}(\\xi\\sum_{\\tilde{k}\\in\\tilde{\\mathcal{K}}}
+               S_{\\tilde{k},n,y} + \\zeta_k)
 
         For transport technologies: \n
         .. math::
                 \\Delta S_{j,e,y}\\leq ((1+\\vartheta_j)^{\\mathrm{dy}}-1)K_{j,e,y}
-                +\\mathrm{dy}(\\xi\\sum_{\\tilde{j}\\in\\tilde{\\mathcal{J}}}S_{\\tilde{j},e,y} + \\zeta_j)
+                +\\mathrm{dy}(\\xi\\sum_{\\tilde{j}
+                \\in\\tilde{\\mathcal{J}}}S_{\\tilde{j},e,y} + \\zeta_j)
 
-        :math:`\\Delta S_{j,e,y}`: size of built technology :math:`j` (invested capacity after construction) at location :math:`e` in year :math:`y` \n
-        :math:`\\vartheta_j`: maximum diffusion rate of technology :math:`j` which is the maximum increase in capacity between investment steps \n
-        :math:`K_{j,e,y}`: existing knowledge of how to install the technology :math:`j` at location :math:`e` in year :math:`y` \n
+        :math:`\\Delta S_{j,e,y}`: size of built technology :math:`j` (invested
+        capacity after construction) at location :math:`e` in year :math:`y` \n
+        :math:`\\vartheta_j`: maximum diffusion rate of technology :math:`j` which is
+        the maximum increase in capacity between investment steps \n
+        :math:`K_{j,e,y}`: existing knowledge of how to install the
+        technology :math:`j` at location :math:`e` in year :math:`y` \n
         :math:`\\xi`: parameter which specifies the unbounded market share \n
-        :math:`\\zeta_j`: parameter which specifies the unbounded capacity addition that can be added each year (only for delayed technology deployment) \n
+        :math:`\\zeta_j`: parameter which specifies the unbounded capacity addition
+        that can be added each year (only for delayed technology deployment) \n
         :math:`dy`: interval between planning periods\n
         :math:`\\omega`: parameter which specifies the knowledge spillover rate
 
@@ -1918,10 +2019,21 @@ class TechnologyRules(GenericRule):
         # get the super locations
         super_edges = pd.concat(self.energy_system.set_edges_in_super_edges.values())
         super_nodes = pd.concat(self.energy_system.set_nodes_in_super_nodes.values())
-        super_loc_index = pd.MultiIndex.from_frame(pd.concat([super_nodes, super_edges]).reset_index().rename({'index': 'set_super_location', 0: 'set_location'}, axis=1))
-        super_loc = pd.Series(1, index=super_loc_index).unstack(fill_value=0).stack().to_xarray()
+        super_loc_index = pd.MultiIndex.from_frame(
+            pd.concat([super_nodes, super_edges])
+            .reset_index()
+            .rename({"index": "set_super_location", 0: "set_location"}, axis=1)
+        )
+        super_loc = (
+            pd.Series(1, index=super_loc_index)
+            .unstack(fill_value=0)
+            .stack()
+            .to_xarray()
+        )
         # technology diffusion rate per investment period
-        tdr = (1 + self.parameters.max_diffusion_rate_super) ** interval_between_years - 1
+        tdr = (
+            1 + self.parameters.max_diffusion_rate_super
+        ) ** interval_between_years - 1
         tdr = tdr.broadcast_like(self.parameters.capacity_limit_super)
         tdr_sum = tdr.sum("set_super_location")
         mask_inf_tdr = ~(tdr == np.inf)
@@ -1929,15 +2041,24 @@ class TechnologyRules(GenericRule):
         # if all tdr are inf, we can skip the constraint
         if (~mask_inf_tdr).all():
             return
-        # create mask for knowledge spillover rate (sr) to exclude transport technologies
-        mask_technology_type = pd.Series(index=xr.DataArray(self.sets["set_technologies"]), data=1)
+        # create mask for knowledge spillover rate (sr) to exclude transport techns
+        mask_technology_type = pd.Series(
+            index=xr.DataArray(self.sets["set_technologies"]), data=1
+        )
         mask_technology_type.index.name = "set_technologies"
-        mask_technology_type[mask_technology_type.index.isin(self.sets["set_transport_technologies"])] = 0
+        mask_technology_type[
+            mask_technology_type.index.isin(self.sets["set_transport_technologies"])
+        ] = 0
         mask_technology_type = mask_technology_type.to_xarray()
         # create mask for knowledge spillover rate (sr) to exclude edges
-        mask_super_location = pd.Series(index=super_loc_index.get_level_values('set_super_location').unique(), data=1)
+        mask_super_location = pd.Series(
+            index=super_loc_index.get_level_values("set_super_location").unique(),
+            data=1,
+        )
         mask_super_location.index.name = "set_super_location"
-        mask_super_location[mask_super_location.index.isin(self.energy_system.set_super_edges)] = 0
+        mask_super_location[
+            mask_super_location.index.isin(self.energy_system.set_super_edges)
+        ] = 0
         mask_super_location = mask_super_location.to_xarray()
         # mask match technology type and location
         mask_transport_edge = (1 - mask_technology_type) & (1 - mask_super_location)
@@ -1945,16 +2066,26 @@ class TechnologyRules(GenericRule):
         mask_technology_location = mask_transport_edge | mask_not_transport_not_edge
         # create xarray for previous years
         years = pd.MultiIndex.from_tuples(
-            [(y, py) for y, py in
-             itertools.product(self.sets["set_time_steps_yearly"], self.sets["set_time_steps_yearly"]) if py < y],
-            names=["set_time_steps_yearly", "set_time_steps_yearly_prev"])
+            [
+                (y, py)
+                for y, py in itertools.product(
+                    self.sets["set_time_steps_yearly"],
+                    self.sets["set_time_steps_yearly"],
+                )
+                if py < y
+            ],
+            names=["set_time_steps_yearly", "set_time_steps_yearly_prev"],
+        )
         # only formulate term_knowledge if there are previous years
         term_knowledge_no_spillover = capacity_addition.where(False)  # dummy term
         term_knowledge = capacity_addition.where(False)  # dummy term
         if len(years) != 0:
             # kdr for capacity additions
-            kdr = {(y, py): (1 - knowledge_depreciation_rate) ** (interval_between_years * (y - 1 - py))
-                   for y, py in years}
+            kdr = {
+                (y, py): (1 - knowledge_depreciation_rate)
+                ** (interval_between_years * (y - 1 - py))
+                for y, py in years
+            }
             kdr = pd.Series(kdr)
             kdr.index.names = ["set_time_steps_yearly", "set_time_steps_yearly_prev"]
             kdr = kdr.to_xarray().fillna(0)
@@ -1963,137 +2094,334 @@ class TechnologyRules(GenericRule):
             years = years.to_xarray().fillna(0)
             # expand and sum capacity addition over all nodes for spillover
             capacity_addition_years = capacity_addition.rename(
-                {"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
-            broadcast_dummy = capacity_addition.rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years).broadcast_like(super_loc)
-            distance = self.parameters.distance.rename({'set_transport_technologies': 'set_technologies', 'set_edges': 'set_location'}
-                                                       ).broadcast_like(capacity_addition.lower).fillna(1)
-            if self.system.transport_diffusion_type == 'distance' and 'technology_installation' in self.variables:
+                {"set_time_steps_yearly": "set_time_steps_yearly_prev"}
+            ).broadcast_like(years)
+            broadcast_dummy = (
+                capacity_addition.rename(
+                    {"set_time_steps_yearly": "set_time_steps_yearly_prev"}
+                )
+                .broadcast_like(years)
+                .broadcast_like(super_loc)
+            )
+            distance = (
+                self.parameters.distance.rename(
+                    {
+                        "set_transport_technologies": "set_technologies",
+                        "set_edges": "set_location",
+                    }
+                )
+                .broadcast_like(capacity_addition.lower)
+                .fillna(1)
+            )
+            if (
+                self.system.transport_diffusion_type == "distance"
+                and "technology_installation" in self.variables
+            ):
                 logging.info("Transport diffusion limit is distance dependent.")
                 tech_installation = self.variables["technology_installation"]
-                broadcast_dummy = capacity_addition.where(tech_installation.isnull()).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years).broadcast_like(super_loc)
-                # Only transport techs with binary installation variables can be used for distance dependent diffusion limit
-                capacity_addition_years = (capacity_addition.where(tech_installation.isnull()).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
-                                           + tech_installation.rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
-                                           * distance.reindex_like(tech_installation.lower).rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years))
-            elif self.system.transport_diffusion_type == 'capacity-distance':
-                logging.info("Transport diffusion limit is capacity-distance dependent.")
-                # multiply the capacity addition with the distance to get the capacity-distance
-                capacity_addition_years = capacity_addition_years * distance.reindex_like(capacity_addition.lower).rename(
-                    {"set_time_steps_yearly": "set_time_steps_yearly_prev"}).broadcast_like(years)
+                broadcast_dummy = (
+                    capacity_addition.where(tech_installation.isnull())
+                    .rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"})
+                    .broadcast_like(years)
+                    .broadcast_like(super_loc)
+                )
+                # Only transport techs with binary installation variables can be
+                #   used for distance dependent diffusion limit
+                capacity_addition_years = capacity_addition.where(
+                    tech_installation.isnull()
+                ).rename(
+                    {"set_time_steps_yearly": "set_time_steps_yearly_prev"}
+                ).broadcast_like(
+                    years
+                ) + tech_installation.rename(
+                    {"set_time_steps_yearly": "set_time_steps_yearly_prev"}
+                ).broadcast_like(
+                    years
+                ) * distance.reindex_like(
+                    tech_installation.lower
+                ).rename(
+                    {"set_time_steps_yearly": "set_time_steps_yearly_prev"}
+                ).broadcast_like(
+                    years
+                )
+            elif self.system.transport_diffusion_type == "capacity-distance":
+                logging.info(
+                    "Transport diffusion limit is capacity-distance dependent."
+                )
+                # multiply capacity addition with the distance to get capacity-distance
+                capacity_addition_years = (
+                    capacity_addition_years
+                    * distance.reindex_like(capacity_addition.lower)
+                    .rename({"set_time_steps_yearly": "set_time_steps_yearly_prev"})
+                    .broadcast_like(years)
+                )
 
-            # calculate the capacity addition for all locations within the super locations
+            # calculate the capacity addition for all locations in the super locations
             capacity_addition_years = capacity_addition_years.where(super_loc)
             kdr = kdr.broadcast_like(broadcast_dummy.lower).fillna(0)
-            term_knowledge_no_spillover = tdr * (capacity_addition_years * kdr).sum("set_time_steps_yearly_prev").sum("set_location")
+            term_knowledge_no_spillover = tdr * (capacity_addition_years * kdr).sum(
+                "set_time_steps_yearly_prev"
+            ).sum("set_location")
             # if spillover rate is not inf, calculate term knowledge with spillover
             if spillover_rate != np.inf:
-                super_location_index = pd.Series(index=pd.MultiIndex.from_product(
-                    [capacity_addition_years.coords["set_super_location"].values,
-                     capacity_addition_years.coords["set_super_location"].values],
-                    names=["set_super_location", "set_super_location_temp"])).to_xarray()
-                # Only the nodes are selected since the spatial spillover is assumed to be 0 for transport techs.
-                capacity_addition_location = capacity_addition_years.rename({"set_super_location": "set_super_location_temp"}).where(
-                    super_location_index != 'dummy').sum("set_location").sel({"set_super_location_temp": self.sets["set_super_nodes"]}).sum("set_super_location_temp")
-                # calculate term spillover, sums capacities at all super nodes minus the capacities at the actual super node
-                term_spillover = capacity_addition_location - capacity_addition_years.sum("set_location")
+                super_location_index = pd.Series(
+                    index=pd.MultiIndex.from_product(
+                        [
+                            capacity_addition_years.coords["set_super_location"].values,
+                            capacity_addition_years.coords["set_super_location"].values,
+                        ],
+                        names=["set_super_location", "set_super_location_temp"],
+                    )
+                ).to_xarray()
+                # Only the nodes are selected since the spatial spillover is assumed
+                #   to be 0 for transport techs.
+                capacity_addition_location = (
+                    capacity_addition_years.rename(
+                        {"set_super_location": "set_super_location_temp"}
+                    )
+                    .where(super_location_index != "dummy")
+                    .sum("set_location")
+                    .sel({"set_super_location_temp": self.sets["set_super_nodes"]})
+                    .sum("set_super_location_temp")
+                )
+                # calculate term spillover, sums capacities at all super nodes minus
+                #   the capacities at the actual super node
+                term_spillover = (
+                    capacity_addition_location
+                    - capacity_addition_years.sum("set_location")
+                )
                 sr = xr.full_like(term_spillover.const, spillover_rate)
-                sr = sr.where(mask_technology_type, 0).where(mask_super_location).fillna(0)
+                sr = (
+                    sr.where(mask_technology_type, 0)
+                    .where(mask_super_location)
+                    .fillna(0)
+                )
                 # annual knowledge addition
-                kdr = kdr.sel(set_location=self.energy_system.set_nodes[0]).drop_vars('set_location')
-                term_knowledge = capacity_addition_years.sum("set_location") + sr * term_spillover
-                term_knowledge = tdr * (term_knowledge * kdr).sum("set_time_steps_yearly_prev")
+                kdr = kdr.sel(set_location=self.energy_system.set_nodes[0]).drop_vars(
+                    "set_location"
+                )
+                term_knowledge = (
+                    capacity_addition_years.sum("set_location") + sr * term_spillover
+                )
+                term_knowledge = tdr * (term_knowledge * kdr).sum(
+                    "set_time_steps_yearly_prev"
+                )
 
         capacity_previous = self.variables["capacity_previous"]
         # only instantiate the market_share if the techs are transport techs
         market_share_unbounded = {
-            (t, ot): self.parameters.market_share_unbounded if (t in self.sets['set_transport_technologies'] and
-                                                                ot in self.sets['set_transport_technologies']) else 0
+            (t, ot): (
+                self.parameters.market_share_unbounded
+                if (
+                    t in self.sets["set_transport_technologies"]
+                    and ot in self.sets["set_transport_technologies"]
+                )
+                else 0
+            )
             for t in self.sets["set_technologies"]
             for ot in self.optimization_setup.get_class_set_of_element(t, Technology)
         }
         market_share_unbounded = pd.Series(market_share_unbounded)
-        market_share_unbounded.index.names = ["set_technologies", "set_other_technologies"]
-        market_share_unbounded = market_share_unbounded.to_xarray().broadcast_like(capacity_previous.lower).fillna(0)
+        market_share_unbounded.index.names = [
+            "set_technologies",
+            "set_other_technologies",
+        ]
+        market_share_unbounded = (
+            market_share_unbounded.to_xarray()
+            .broadcast_like(capacity_previous.lower)
+            .fillna(0)
+        )
         mask_market_share_unbounded = market_share_unbounded != 0
-        if mask_market_share_unbounded.any() and 'distance' in transport_diff_type:
-            warnings.warn('Distance dependent transport diffusion limit is set but there is also technology spillover. This is not implemented at the moment!')
+        if (mask_market_share_unbounded.any()
+                and "distance" in self.system.transport_diffusion_type):
+            warnings.warn(
+                "Distance dependent transport diffusion limit is set but there is "
+                "also technology spillover. This is not implemented at the moment!"
+            )
         # not included yet: create a mask based on the tech installation variables
-        #  then use the mask to set the term_unbounded_addition to 0 where there are tech installation variables present
-        #  Last step: create a separate rhs with the distances that are already built. In order to get the installed technologies for the rhs
-        #  a new variable has to be created which is equal to the distance that is actually present at the previous time step
-        capacity_previous_super_loc = capacity_previous.broadcast_like(super_loc).rename({"set_technologies": "set_other_technologies"})
-        market_share_unbounded_super_loc = market_share_unbounded.broadcast_like(super_loc)
-        term_unbounded_addition = (market_share_unbounded_super_loc * capacity_previous_super_loc).where(mask_market_share_unbounded).sum(
-            "set_other_technologies").where(super_loc).sum("set_location")
+        #  then use the mask to set the term_unbounded_addition to 0 where there are
+        #  tech installation variables present Last step: create a separate rhs with
+        #  the distances that are already built. In order to get the installed
+        #  technologies for the rhs a new variable has to be created which is equal to
+        #  the distance that is actually present at the previous time step
+        capacity_previous_super_loc = capacity_previous.broadcast_like(
+            super_loc
+        ).rename({"set_technologies": "set_other_technologies"})
+        market_share_unbounded_super_loc = market_share_unbounded.broadcast_like(
+            super_loc
+        )
+        term_unbounded_addition = (
+            (market_share_unbounded_super_loc * capacity_previous_super_loc)
+            .where(mask_market_share_unbounded)
+            .sum("set_other_technologies")
+            .where(super_loc)
+            .sum("set_location")
+        )
 
         # existing capacities
-        delta_years = interval_between_years * (capacity_addition.coords["set_time_steps_yearly"] - 1 - self.energy_system.set_time_steps_yearly[0])
+        delta_years = interval_between_years * (
+            capacity_addition.coords["set_time_steps_yearly"]
+            - 1
+            - self.energy_system.set_time_steps_yearly[0]
+        )
         lifetime_existing = self.parameters.lifetime_existing
         lifetime = self.parameters.lifetime
-        kdr_existing = (1 - knowledge_depreciation_rate) ** (delta_years + lifetime - lifetime_existing)
+        kdr_existing = (1 - knowledge_depreciation_rate) ** (
+            delta_years + lifetime - lifetime_existing
+        )
         capacity_existing_total_nosr = capacity_existing
-        capacity_existing_total_nosr = (capacity_existing_total_nosr * kdr_existing).sum("set_technologies_existing")
-        capacity_existing_total_nosr_super = capacity_existing_total_nosr.broadcast_like(super_loc).where(super_loc).sum("set_location")
+        capacity_existing_total_nosr = (
+            capacity_existing_total_nosr * kdr_existing
+        ).sum("set_technologies_existing")
+        capacity_existing_total_nosr_super = (
+            capacity_existing_total_nosr.broadcast_like(super_loc)
+            .where(super_loc)
+            .sum("set_location")
+        )
         # capacity addition unbounded
-        capacity_addition_unbounded_super = self.parameters.capacity_addition_unbounded_super
-        capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr), 0)
+        capacity_addition_unbounded_super = (
+            self.parameters.capacity_addition_unbounded_super
+        )
+        capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(
+            mask_technology_location.broadcast_like(tdr), 0
+        )
         # build constraints for all nodes summed ("sn")
         capacity_addition_super = capacity_addition.where(super_loc).sum("set_location")
 
-        if self.system.transport_diffusion_type == 'distance' and 'technology_installation' in self.variables:
-            mask_technology_installation = self.variables.technology_installation.isnull() == False
-            distance_super = (tech_installation * distance).where(super_loc).sum("set_location")
-            capacity_addition_super = capacity_addition.where(tech_installation.isnull()).where(super_loc).sum('set_location')
-            capacity_addition_super = lp.merge([1 * capacity_addition_super, 1 * distance_super], compat='broadcast_equals', cls=LinearExpression)
+        if (
+            self.system.transport_diffusion_type == "distance"
+            and "technology_installation" in self.variables
+        ):
+            mask_technology_installation = (
+                self.variables.technology_installation.isnull() == False
+            )
+            distance_super = (
+                (tech_installation * distance).where(super_loc).sum("set_location")
+            )
+            capacity_addition_super = (
+                capacity_addition.where(tech_installation.isnull())
+                .where(super_loc)
+                .sum("set_location")
+            )
+            capacity_addition_super = lp.merge(
+                [1 * capacity_addition_super, 1 * distance_super],
+                compat="broadcast_equals",
+                cls=LinearExpression,
+            )
 
             # set cap addition to zero where there are distance limits in place
-            distance_addition_unbounded_super = self.parameters.distance_addition_unbounded_super.rename(
-                {'set_transport_technologies': 'set_technologies'}).broadcast_like(tdr)
-            # remove distance additions where techs cannot be installed (e.g. conv techs on edges)
-            distance_addition_unbounded_super = distance_addition_unbounded_super.where(mask_technology_location.broadcast_like(tdr))
+            distance_addition_unbounded_super = (
+                self.parameters.distance_addition_unbounded_super.rename(
+                    {"set_transport_technologies": "set_technologies"}
+                ).broadcast_like(tdr)
+            )
+            # remove distance additions where techs cannot be installed
+            #   (e.g. conv techs on edges)
+            distance_addition_unbounded_super = distance_addition_unbounded_super.where(
+                mask_technology_location.broadcast_like(tdr)
+            )
             capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(
-                distance_addition_unbounded_super.reindex_like(capacity_addition_unbounded_super).isnull(), 0)
-            capacity_addition_unbounded_super = capacity_addition_unbounded_super + distance_addition_unbounded_super.fillna(0)
-        elif self.system.transport_diffusion_type == 'capacity-distance':
-            capacity_addition_super = (distance * capacity_addition).where(super_loc).sum("set_location")
+                distance_addition_unbounded_super.reindex_like(
+                    capacity_addition_unbounded_super
+                ).isnull(),
+                0,
+            )
+            capacity_addition_unbounded_super = (
+                capacity_addition_unbounded_super
+                + distance_addition_unbounded_super.fillna(0)
+            )
+        elif self.system.transport_diffusion_type == "capacity-distance":
+            capacity_addition_super = (
+                (distance * capacity_addition).where(super_loc).sum("set_location")
+            )
 
-            # convert capacity addition unbounded to capacity-distance for transport technologies
-            capacity_addition_unbounded_super = self.parameters.capacity_addition_unbounded_super
-            cap_dist_addition_unbounded_super = self.parameters.cap_dist_addition_unbounded_super.rename(
-                {'set_transport_technologies': 'set_technologies'})
-            capacity_addition_unbounded_super = (capacity_addition_unbounded_super.where(mask_technology_type, 0) +
-                cap_dist_addition_unbounded_super.broadcast_like(mask_technology_type).fillna(0))
-            capacity_addition_unbounded_super = capacity_addition_unbounded_super.broadcast_like(tdr)
+            # convert capacity addition unbounded to
+            #   capacity-distance for transport technologies
+            capacity_addition_unbounded_super = (
+                self.parameters.capacity_addition_unbounded_super
+            )
+            cap_dist_addition_unbounded_super = (
+                self.parameters.cap_dist_addition_unbounded_super.rename(
+                    {"set_transport_technologies": "set_technologies"}
+                )
+            )
+            capacity_addition_unbounded_super = capacity_addition_unbounded_super.where(
+                mask_technology_type, 0
+            ) + cap_dist_addition_unbounded_super.broadcast_like(
+                mask_technology_type
+            ).fillna(
+                0
+            )
+            capacity_addition_unbounded_super = (
+                capacity_addition_unbounded_super.broadcast_like(tdr)
+            )
 
-        lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover, -1 * term_unbounded_addition],
-                          compat="broadcast_equals", cls=LinearExpression).sum("set_super_location")
-        rhs_sn = ((tdr * capacity_existing_total_nosr_super).fillna(0) + capacity_addition_unbounded_super).sum("set_super_location")
+        lhs_sn = lp.merge(
+            [
+                1 * capacity_addition_super,
+                -1 * term_knowledge_no_spillover,
+                -1 * term_unbounded_addition,
+            ],
+            compat="broadcast_equals",
+            cls=LinearExpression,
+            join="outer",
+        ).sum("set_super_location")
+        rhs_sn = (
+            (tdr * capacity_existing_total_nosr_super).fillna(0)
+            + capacity_addition_unbounded_super
+        ).sum("set_super_location")
         rhs_sn = rhs_sn.broadcast_like(lhs_sn.const)
         # mask for tdr == inf
         lhs_sn = self.align_and_mask(lhs_sn, mask_inf_tdr_sum)
         rhs_sn = self.align_and_mask(rhs_sn, mask_inf_tdr_sum)
         # combine constraint
         constraints_sn = lhs_sn <= rhs_sn
-        self.constraints.add_constraint("constraint_technology_diffusion_limit_super_total", constraints_sn)
+        self.constraints.add_constraint(
+            "constraint_technology_diffusion_limit_super_total", constraints_sn
+        )
         # build constraints for all nodes ("an") if spillover rate is not inf
         if spillover_rate != np.inf:
             # existing capacities with spillover
-            capacity_existing_kdr = (capacity_existing * kdr_existing).sum("set_technologies_existing")
-            capacity_existing_kdr_sr = ((capacity_existing.sum("set_location") - capacity_existing).where(mask_technology_type, 0) *
-                                        kdr_existing).sum("set_technologies_existing")
-            capacity_existing_total_kdr = capacity_existing_kdr + spillover_rate * capacity_existing_kdr_sr
-            capacity_existing_total_kdr = capacity_existing_total_kdr.broadcast_like(super_loc).where(super_loc).sum("set_location")
+            capacity_existing_kdr = (capacity_existing * kdr_existing).sum(
+                "set_technologies_existing"
+            )
+            capacity_existing_kdr_sr = (
+                (capacity_existing.sum("set_location") - capacity_existing).where(
+                    mask_technology_type, 0
+                )
+                * kdr_existing
+            ).sum("set_technologies_existing")
+            capacity_existing_total_kdr = (
+                capacity_existing_kdr + spillover_rate * capacity_existing_kdr_sr
+            )
+            capacity_existing_total_kdr = (
+                capacity_existing_total_kdr.broadcast_like(super_loc)
+                .where(super_loc)
+                .sum("set_location")
+            )
 
-            lhs_an = lp.merge([1 * capacity_addition_super, -1 * term_knowledge, -1 * term_unbounded_addition],
-                              compat="broadcast_equals", cls=LinearExpression)
-            rhs_an = tdr * capacity_existing_total_kdr + capacity_addition_unbounded_super
+            lhs_an = lp.merge(
+                [
+                    1 * capacity_addition_super,
+                    -1 * term_knowledge,
+                    -1 * term_unbounded_addition,
+                ],
+                compat="broadcast_equals",
+                cls=LinearExpression,
+                join="outer",
+            )
+            rhs_an = (
+                tdr * capacity_existing_total_kdr + capacity_addition_unbounded_super
+            )
             rhs_an = rhs_an.broadcast_like(lhs_an.const)
             # mask for tdr == inf
             lhs_an = self.align_and_mask(lhs_an, mask_inf_tdr)
             rhs_an = self.align_and_mask(rhs_an, mask_inf_tdr)
             # combine constraint
             constraints_an = lhs_an <= rhs_an
-            self.constraints.add_constraint("constraint_technology_diffusion_limit_super", constraints_an)
+            self.constraints.add_constraint(
+                "constraint_technology_diffusion_limit_super", constraints_an
+            )
 
     def constraint_cost_capex_yearly(self):
         """Aggregates the capex of built capacity and of existing capacity.
@@ -2401,10 +2729,18 @@ class TechnologyRules(GenericRule):
         )
 
     def constraint_technology_lca_impacts_block(self):
-        """ lca impacts of all technologies per location and year"""
+        """lca impacts of all technologies per location and year."""
 
         ### index sets
-        index_values, index_names = Element.create_custom_set(['set_technologies', 'set_location', 'set_lca_impact_categories', 'set_time_steps_operation'], self.optimization_setup)
+        index_values, index_names = Element.create_custom_set(
+            [
+                "set_technologies",
+                "set_location",
+                "set_lca_impact_categories",
+                "set_time_steps_operation",
+            ],
+            self.optimization_setup,
+        )
         index = ZenIndex(index_values, index_names)
         times = index.get_unique(["set_time_steps_operation"])
 
@@ -2412,58 +2748,112 @@ class TechnologyRules(GenericRule):
         # not necessary
 
         ### index loop
-        # we loop over the technologies and vectorize over the locations, lca categories, and over the times after converting them from operation to yearly time steps
+        # we loop over the technologies and vectorize over the locations,
+        #   lca categories, and over the times after converting them from
+        #   operation to yearly time steps
         constraints = {}
-        for tech in index.get_unique(['set_technologies']):
+        for tech in index.get_unique(["set_technologies"]):
             ### auxiliary calculations
-            yearly_time_steps = [self.time_steps.convert_time_step_operation2year(t) for t in times]
+            yearly_time_steps = [
+                self.time_steps.convert_time_step_operation2year(t) for t in times
+            ]
 
             ### auxiliary calculations
             locs = index.get_values([tech], 1, unique=True)
             reference_carrier = self.sets["set_reference_carriers"][tech][0]
             if tech in self.sets["set_conversion_technologies"]:
                 if reference_carrier in self.sets["set_input_carriers"][tech]:
-                    reference_flow = self.variables["flow_conversion_input"].loc[tech, reference_carrier, locs].to_linexpr()
+                    reference_flow = (
+                        self.variables["flow_conversion_input"]
+                        .loc[tech, reference_carrier, locs]
+                        .to_linexpr()
+                    )
                 else:
-                    reference_flow = self.variables["flow_conversion_output"].loc[tech, reference_carrier, locs].to_linexpr()
-                reference_flow = reference_flow.rename({"set_nodes": "set_location", 'set_conversion_technologies': 'set_technologies'})
+                    reference_flow = (
+                        self.variables["flow_conversion_output"]
+                        .loc[tech, reference_carrier, locs]
+                        .to_linexpr()
+                    )
+                reference_flow = reference_flow.rename(
+                    {
+                        "set_nodes": "set_location",
+                        "set_conversion_technologies": "set_technologies",
+                    }
+                )
             elif tech in self.sets["set_transport_technologies"]:
-                reference_flow = self.variables["flow_transport"].loc[tech, locs].to_linexpr()
-                reference_flow = reference_flow.rename({"set_edges": "set_location", 'set_transport_technologies': 'set_technologies'})
+                reference_flow = (
+                    self.variables["flow_transport"].loc[tech, locs].to_linexpr()
+                )
+                reference_flow = reference_flow.rename(
+                    {
+                        "set_edges": "set_location",
+                        "set_transport_technologies": "set_technologies",
+                    }
+                )
             else:
-                reference_flow = self.variables["flow_storage_charge"].loc[tech, locs] + self.variables["flow_storage_discharge"].loc[tech, locs]
-                reference_flow = reference_flow.rename({"set_nodes": "set_location", 'set_storage_technologies': 'set_technologies'})
+                reference_flow = (
+                    self.variables["flow_storage_charge"].loc[tech, locs]
+                    + self.variables["flow_storage_discharge"].loc[tech, locs]
+                )
+                reference_flow = reference_flow.rename(
+                    {
+                        "set_nodes": "set_location",
+                        "set_storage_technologies": "set_technologies",
+                    }
+                )
             # make sure the coordinates are the same
-            # reference_flow = reference_flow.rename({'set_time_steps_operation': 'set_time_steps_yearly'}).broadcast_like(self.parameters.technology_lca_factors.loc[tech, locs, :, :])
-            fac = self.parameters.technology_lca_factors.loc[tech, locs, :, yearly_time_steps].assign_coords({'set_time_steps_yearly': times}).rename({"set_time_steps_yearly": "set_time_steps_operation"})
+            # reference_flow = reference_flow.rename(
+            #     {"set_time_steps_operation": "set_time_steps_yearly"}
+            # ).broadcast_like(
+            #     self.parameters.technology_lca_factors.loc[tech, locs, :, :]
+            # )
+            fac = (
+                self.parameters.technology_lca_factors.loc[
+                    tech, locs, :, yearly_time_steps
+                ]
+                .assign_coords({"set_time_steps_yearly": times})
+                .rename({"set_time_steps_yearly": "set_time_steps_operation"})
+            )
             reference_flow = reference_flow.broadcast_like(fac)
-            term_reference_flow = - fac * reference_flow
+            term_reference_flow = -fac * reference_flow
 
             ### formulate constraint
             # the first term is just to ensure full shape
-            lhs = lp.merge(self.variables["technology_lca_impacts"].loc[tech].where(False).to_linexpr(),
-                           self.variables["technology_lca_impacts"].loc[tech, locs].to_linexpr(),
-                           term_reference_flow, compat="broadcast_equals", cls=LinearExpression)
+            lhs = lp.merge(
+                self.variables["technology_lca_impacts"]
+                .loc[tech]
+                .where(False)
+                .to_linexpr(),
+                self.variables["technology_lca_impacts"].loc[tech, locs].to_linexpr(),
+                term_reference_flow,
+                compat="broadcast_equals",
+                cls=LinearExpression,
+            )
             rhs = 0
             constraints[tech] = lhs == rhs
 
-        self.constraints.return_contraints('constraint_technology_lca_impacts', constraints)
+        self.constraints.return_contraints(
+            "constraint_technology_lca_impacts", constraints
+        )
 
     def constraint_technology_lca_impacts_total_block(self):
-        """ calculate total lca impacts of each technology """
+        """calculate total lca impacts of each technology."""
 
         ### index sets
         years = self.sets["set_time_steps_yearly"]
         # this index is just for the sums in the auxiliary calculations
-        index_values, index_names = Element.create_custom_set(["set_technologies", "set_location", 'set_lca_impact_categories'],
-                                                              self.optimization_setup)
+        index_values, index_names = Element.create_custom_set(
+            ["set_technologies", "set_location", "set_lca_impact_categories"],
+            self.optimization_setup,
+        )
         index = ZenIndex(index_values, index_names)
 
         ### masks
         # not necessary
 
         ### index loop
-        # we cycle over the years, because the sum of the operational time steps depends on the year
+        # we cycle over the years, because the sum of the operational
+        # time steps depends on the year
         constraints = {}
         for year in years:
 
@@ -2472,13 +2862,26 @@ class TechnologyRules(GenericRule):
             for tech in index.get_unique(["set_technologies"]):
                 locs = index.get_values([tech], "set_location", unique=True)
                 times = self.time_steps.get_time_steps_year2operation(year)
-                term_summed_lca_impacts_technology.append((self.variables['technology_lca_impacts'].loc[tech, locs, :, times] *
-                                                                self.parameters.time_steps_operation_duration.loc[times]).sum(['set_time_steps_operation', 'set_location']))
-            term_summed_lca_impacts_technology = lp_sum(term_summed_lca_impacts_technology)
+                term_summed_lca_impacts_technology.append(
+                    (
+                        self.variables["technology_lca_impacts"].loc[
+                            tech, locs, :, times
+                        ]
+                        * self.parameters.time_steps_operation_duration.loc[times]
+                    ).sum(["set_time_steps_operation", "set_location"])
+                )
+            term_summed_lca_impacts_technology = lp_sum(
+                term_summed_lca_impacts_technology
+            )
 
             ### formulate constraint
-            lhs = self.variables["technology_lca_impacts_total"].loc[:, year] - term_summed_lca_impacts_technology
+            lhs = (
+                self.variables["technology_lca_impacts_total"].loc[:, year]
+                - term_summed_lca_impacts_technology
+            )
             rhs = 0
             constraints[year] = lhs == rhs
 
-        self.constraints.return_contraints('constraint_technology_lca_impacts_total', constraints)
+        self.constraints.return_contraints(
+            "constraint_technology_lca_impacts_total", constraints
+        )

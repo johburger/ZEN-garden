@@ -3,10 +3,11 @@ technologies. The class takes the abstract optimization model as an input, and r
 the parameters, variables and constraints that hold for the transport technologies.
 """
 
-import numpy as np
-import xarray as xr
 import logging
+
+import numpy as np
 import pandas as pd
+import xarray as xr
 
 from ..component import IndexSet
 from ..element import Element, GenericRule
@@ -56,8 +57,16 @@ class TransportTechnology(Technology):
                 unit_category={"emissions": 1, "energy_quantity": -1, "distance": -1},
             )
             self.carbon_intensity_technology *= self.distance
-        self.distance_addition_unbounded_super = self.data_input.extract_input_data("distance_addition_unbounded_super", index_sets=[], unit_category={"distance": 1})
-        self.cap_dist_addition_unbounded_super = self.data_input.extract_input_data("cap_dist_addition_unbounded_super", index_sets=[], unit_category={"energy_quantity": 1, "time": -1, "distance": 1})
+        self.distance_addition_unbounded_super = self.data_input.extract_input_data(
+            "distance_addition_unbounded_super",
+            index_sets=[],
+            unit_category={"distance": 1},
+        )
+        self.cap_dist_addition_unbounded_super = self.data_input.extract_input_data(
+            "cap_dist_addition_unbounded_super",
+            index_sets=[],
+            unit_category={"energy_quantity": 1, "time": -1, "distance": 1},
+        )
         # get transport loss factor
         self.get_transport_loss_factor()
         # get capex of transport technology
@@ -66,8 +75,17 @@ class TransportTechnology(Technology):
         self.convert_to_fraction_of_capex()
         # calculate capex of existing capacity
         self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
-        if self.energy_system.system['load_lca_factors']:
-            self.technology_lca_factors = self.data_input.extract_input_data('technology_lca_factors', index_sets=[self.location_type, 'set_lca_impact_categories', 'set_time_steps_yearly'], time_steps="set_time_steps_yearly", unit_category={"energy_quantity": -1, 'distance': -1})
+        if self.energy_system.system["load_lca_factors"]:
+            self.technology_lca_factors = self.data_input.extract_input_data(
+                "technology_lca_factors",
+                index_sets=[
+                    self.location_type,
+                    "set_lca_impact_categories",
+                    "set_time_steps_yearly",
+                ],
+                time_steps="set_time_steps_yearly",
+                unit_category={"energy_quantity": -1, "distance": -1},
+            )
             self.technology_lca_factors = self.technology_lca_factors * self.distance
 
     def get_transport_loss_factor(self):
@@ -107,18 +125,46 @@ class TransportTechnology(Technology):
         # check if there are separate capex for capacity and distance
         if self.optimization_setup.system.double_capex_transport:
             # both capex terms must be specified
-            if self.data_input.attribute_dict['capex_specific_transport']['default_value'] == 0:
-                logging.info(f"For {self.name}, capex_specific is created from capex_per_distance with the distance.")
-                self.capex_per_distance_transport = self.data_input.extract_input_data("capex_per_distance_transport",
-                                                       index_sets=["set_edges", "set_time_steps_yearly"],
-                                                       time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "distance": -1, "time": 1})
-                self.capex_specific_transport = self.capex_per_distance_transport * self.distance
+            if (
+                self.data_input.attribute_dict["capex_specific_transport"][
+                    "default_value"
+                ]
+                == 0
+            ):
+                logging.info(
+                    f"For {self.name}, capex_specific is created from "
+                    f"capex_per_distance with the distance."
+                )
+                self.capex_per_distance_transport = self.data_input.extract_input_data(
+                    "capex_per_distance_transport",
+                    index_sets=["set_edges", "set_time_steps_yearly"],
+                    time_steps="set_time_steps_yearly",
+                    unit_category={
+                        "money": 1,
+                        "energy_quantity": -1,
+                        "distance": -1,
+                        "time": 1,
+                    },
+                )
+                self.capex_specific_transport = (
+                    self.capex_per_distance_transport * self.distance
+                )
                 self.capex_per_distance_transport = self.capex_specific_transport * 0.0
             else:
-                self.capex_specific_transport = self.data_input.extract_input_data("capex_specific_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "energy_quantity": -1, "time": 1})
-                self.capex_per_distance_transport = self.data_input.extract_input_data("capex_per_distance_transport", index_sets=["set_edges", "set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"money": 1, "distance": -1})
+                self.capex_specific_transport = self.data_input.extract_input_data(
+                    "capex_specific_transport",
+                    index_sets=["set_edges", "set_time_steps_yearly"],
+                    time_steps="set_time_steps_yearly",
+                    unit_category={"money": 1, "energy_quantity": -1, "time": 1},
+                )
+                self.capex_per_distance_transport = self.data_input.extract_input_data(
+                    "capex_per_distance_transport",
+                    index_sets=["set_edges", "set_time_steps_yearly"],
+                    time_steps="set_time_steps_yearly",
+                    unit_category={"money": 1, "distance": -1},
+                )
 
-        else:  # Here only capex_specific is used, and capex_per_distance_transport is set to Zero.
+        else:  # Only capex_specific is used, capex_per_distance_transport is set to 0.
             if "capex_per_distance_transport" in self.data_input.attribute_dict:
                 self.capex_per_distance_transport = self.data_input.extract_input_data(
                     "capex_per_distance_transport",
@@ -248,12 +294,20 @@ class TransportTechnology(Technology):
             doc="distance between two nodes for transport technologies",
             calling_class=cls,
         )
-        optimization_setup.parameters.add_parameter(name="distance_addition_unbounded_super", index_names=["set_transport_technologies"],
-                                                    doc='Parameter which specifies the unbounded distance that can be added each year per super node (only for delayed technology deployment)',
-                                                    calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="cap_dist_addition_unbounded_super", index_names=["set_transport_technologies"],
-                                                    doc='Parameter which specifies the unbounded capacity-distance that can be added each year per super node (only for delayed technology deployment)',
-                                                    calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="distance_addition_unbounded_super",
+            index_names=["set_transport_technologies"],
+            doc="Parameter which specifies the unbounded distance that can be added "
+            "each year per super node (only for delayed technology deployment)",
+            calling_class=cls,
+        )
+        optimization_setup.parameters.add_parameter(
+            name="cap_dist_addition_unbounded_super",
+            index_names=["set_transport_technologies"],
+            doc="Parameter which specifies the unbounded capacity-distance that can "
+            "be added each year per super node (only for delayed tech deployment)",
+            calling_class=cls,
+        )
         # capital cost per unit
         optimization_setup.parameters.add_parameter(
             name="capex_specific_transport",
@@ -406,9 +460,15 @@ class TransportTechnologyRules(GenericRule):
             coords=[times],
         )
         # get the mask for the flexible transport technologies
-        mask_flexible_techs = pd.Series(index=xr.DataArray(self.sets['set_transport_technologies']), data=False)
+        mask_flexible_techs = pd.Series(
+            index=xr.DataArray(self.sets["set_transport_technologies"]), data=False
+        )
         mask_flexible_techs.index.name = "set_transport_technologies"
-        mask_flexible_techs[mask_flexible_techs.index.isin(self.sets["set_flexible_transport_technologies"])] = True
+        mask_flexible_techs[
+            mask_flexible_techs.index.isin(
+                self.sets["set_flexible_transport_technologies"]
+            )
+        ] = True
         mask_flexible_techs = mask_flexible_techs.to_xarray()
         term_capacity = (
             self.parameters.max_load.loc[techs, edges, :]
@@ -420,7 +480,9 @@ class TransportTechnologyRules(GenericRule):
             }
         )
 
-        lhs = term_capacity - self.variables["flow_transport"].loc[techs, edges, :].where(~mask_flexible_techs)
+        lhs = term_capacity - self.variables["flow_transport"].loc[
+            techs, edges, :
+        ].where(~mask_flexible_techs)
         rhs = 0
         constraints = lhs >= rhs
         ### return
@@ -428,21 +490,61 @@ class TransportTechnologyRules(GenericRule):
             "constraint_capacity_factor_transport", constraints
         )
         if mask_flexible_techs.any():
-            super_edges = pd.concat(self.energy_system.set_edges_in_super_edges.values())
-            super_loc_index = pd.MultiIndex.from_frame(super_edges.reset_index().rename({'super_edge': 'set_super_edges', 'edge': 'set_location'}, axis=1))
-            super_loc = pd.Series(1, index=super_loc_index).unstack(fill_value=0).stack().to_xarray()
-            term_capacity_flexible = (self.parameters.max_load.loc[flexible_techs, edges, :].where(super_loc).fillna(0)
-                                      * self.variables["capacity"].loc[flexible_techs, "power", edges, time_step_year].where(super_loc)).sum('set_location').rename({"set_technologies": "set_transport_technologies"})
-            term_flow_transport = self.variables["flow_transport"].rename({'set_edges': 'set_location'}).loc[flexible_techs, edges, :].where(super_loc).sum('set_location')
+            super_edges = pd.concat(
+                self.energy_system.set_edges_in_super_edges.values()
+            )
+            super_loc_index = pd.MultiIndex.from_frame(
+                super_edges.reset_index().rename(
+                    {"super_edge": "set_super_edges", "edge": "set_location"}, axis=1
+                )
+            )
+            super_loc = (
+                pd.Series(1, index=super_loc_index)
+                .unstack(fill_value=0)
+                .stack()
+                .to_xarray()
+            )
+            term_capacity_flexible = (
+                (
+                    self.parameters.max_load.loc[flexible_techs, edges, :]
+                    .where(super_loc)
+                    .fillna(0)
+                    * self.variables["capacity"]
+                    .loc[flexible_techs, "power", edges, time_step_year]
+                    .where(super_loc)
+                )
+                .sum("set_location")
+                .rename({"set_technologies": "set_transport_technologies"})
+            )
+            term_flow_transport = (
+                self.variables["flow_transport"]
+                .rename({"set_edges": "set_location"})
+                .loc[flexible_techs, edges, :]
+                .where(super_loc)
+                .sum("set_location")
+            )
             lhs = term_capacity_flexible - term_flow_transport
             rhs = 0
             constraints_flexible = lhs >= rhs
-            self.constraints.add_constraint("constraint_capacity_factor_flexible_transport", constraints_flexible)
-            # additionally, the flow of the flexible transport modes is limited by the maximum capacity limit on each node
+            self.constraints.add_constraint(
+                "constraint_capacity_factor_flexible_transport", constraints_flexible
+            )
+            # additionally, the flow of the flexible transport modes is
+            #   limited by the maximum capacity limit on each node
             lhs = self.variables["flow_transport"].loc[flexible_techs, edges, :]
-            rhs = self.parameters.capacity_limit.loc[flexible_techs, "power", edges, time_step_year].rename({"set_technologies":"set_transport_technologies","set_location": "set_edges"})
+            rhs = self.parameters.capacity_limit.loc[
+                flexible_techs, "power", edges, time_step_year
+            ].rename(
+                {
+                    "set_technologies": "set_transport_technologies",
+                    "set_location": "set_edges",
+                }
+            )
             constraints_flexible_capacity_limit = lhs <= rhs
-            self.constraints.add_constraint("constraint_capacity_limit_flexible_transport", constraints_flexible_capacity_limit)
+            self.constraints.add_constraint(
+                "constraint_capacity_limit_flexible_transport",
+                constraints_flexible_capacity_limit,
+            )
 
     def constraint_opex_emissions_technology_transport(self):
         """Calculate opex of each technology.

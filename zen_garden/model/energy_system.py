@@ -82,9 +82,13 @@ class EnergySystem:
         self.set_haversine_distances_edges = (
             self.calculate_haversine_distances_from_nodes()
         )
-        self.set_nodes_in_super_nodes = self.data_input.extract_locations(super_locations=True)
+        self.set_nodes_in_super_nodes = self.data_input.extract_locations(
+            super_locations=True
+        )
         self.set_super_nodes = list(self.set_nodes_in_super_nodes.keys())
-        self.set_edges_in_super_edges = self.data_input.extract_locations(extract_nodes=False, super_locations=True)
+        self.set_edges_in_super_edges = self.data_input.extract_locations(
+            extract_nodes=False, super_locations=True
+        )
         self.set_super_edges = list(self.set_edges_in_super_edges.keys())
         self.set_technologies = self.system.set_technologies
         # base time steps
@@ -133,7 +137,9 @@ class EnergySystem:
         # technology-specific
         self.set_conversion_technologies = self.system.set_conversion_technologies
         self.set_transport_technologies = self.system.set_transport_technologies
-        self.set_flexible_transport_technologies = self.system.set_flexible_transport_technologies
+        self.set_flexible_transport_technologies = (
+            self.system.set_flexible_transport_technologies
+        )
         self.set_storage_technologies = self.system.set_storage_technologies
         self.set_retrofitting_technologies = self.system.set_retrofitting_technologies
         # discount rate
@@ -157,8 +163,15 @@ class EnergySystem:
         self.carbon_emissions_budget = self.data_input.extract_input_data(
             "carbon_emissions_budget", index_sets=[], unit_category={"emissions": 1}
         )
-        self.min_co2_stored = self.data_input.extract_input_data("min_co2_stored", index_sets=['set_time_steps_yearly'], time_steps='set_time_steps_yearly', unit_category={"emissions": 1})
-        self.min_co2_stored = self.min_co2_stored * _fraction_year  # reduce to fraction of year
+        self.min_co2_stored = self.data_input.extract_input_data(
+            "min_co2_stored",
+            index_sets=["set_time_steps_yearly"],
+            time_steps="set_time_steps_yearly",
+            unit_category={"emissions": 1},
+        )
+        self.min_co2_stored = (
+            self.min_co2_stored * _fraction_year
+        )  # reduce to fraction of year
         self.carbon_emissions_cumulative_existing = self.data_input.extract_input_data(
             "carbon_emissions_cumulative_existing",
             index_sets=[],
@@ -197,7 +210,7 @@ class EnergySystem:
             "knowledge_spillover_rate", index_sets=[], unit_category={}
         )
         # LCA impact categories
-        self.set_lca_impact_categories = self.system['set_lca_impact_categories']
+        self.set_lca_impact_categories = self.system["set_lca_impact_categories"]
 
     def calculate_edges_from_nodes(self):
         """Calculates set_nodes_on_edges from set_nodes.
@@ -325,9 +338,16 @@ class EnergySystem:
             name="set_nodes", data=self.set_nodes, doc="Set of nodes"
         )
         # super nodes
-        self.optimization_setup.sets.add_set(name="set_super_nodes", data=self.set_super_nodes, doc="Set of super nodes")
+        self.optimization_setup.sets.add_set(
+            name="set_super_nodes", data=self.set_super_nodes, doc="Set of super nodes"
+        )
         # set nodes in super nodes
-        self.optimization_setup.sets.add_set(name="set_nodes_in_super_nodes", data=self.set_nodes_in_super_nodes, doc="Set of nodes in super nodes", index_set="set_super_nodes")
+        self.optimization_setup.sets.add_set(
+            name="set_nodes_in_super_nodes",
+            data=self.set_nodes_in_super_nodes,
+            doc="Set of nodes in super nodes",
+            index_set="set_super_nodes",
+        )
         # edges
         self.optimization_setup.sets.add_set(
             name="set_edges", data=self.set_edges, doc="Set of edges"
@@ -341,10 +361,16 @@ class EnergySystem:
             index_set="set_edges",
         )
         # super edges
-        self.optimization_setup.sets.add_set(name="set_super_edges", data=self.set_super_edges, doc="Set of super edges")
+        self.optimization_setup.sets.add_set(
+            name="set_super_edges", data=self.set_super_edges, doc="Set of super edges"
+        )
         # edges in super edges
-        self.optimization_setup.sets.add_set(name="set_edges_in_super_edges", data=self.set_edges_in_super_edges,
-                                             doc="Set of edges in super edges.", index_set="set_super_edges")
+        self.optimization_setup.sets.add_set(
+            name="set_edges_in_super_edges",
+            data=self.set_edges_in_super_edges,
+            doc="Set of edges in super edges.",
+            index_set="set_super_edges",
+        )
 
         # carriers
         self.optimization_setup.sets.add_set(
@@ -395,9 +421,12 @@ class EnergySystem:
             doc="Set of storage level time steps",
         )
         ## impact categories for LCA, only if flag to include LCA categories is True
-        if self.system['load_lca_factors']:
-            self.optimization_setup.sets.add_set(name='set_lca_impact_categories', data=self.set_lca_impact_categories,
-                                                 doc='Set of the LCIA impact categories to be investigated')
+        if self.system["load_lca_factors"]:
+            self.optimization_setup.sets.add_set(
+                name="set_lca_impact_categories",
+                data=self.set_lca_impact_categories,
+                doc="Set of the LCIA impact categories to be investigated",
+            )
 
     def construct_params(self):
         """Constructs the pe.Params of the class <EnergySystem>."""
@@ -431,7 +460,13 @@ class EnergySystem:
             calling_class=cls,
         )
         # minimum CO2 stored
-        parameters.add_parameter(name="min_co2_stored", doc="Parameter which specifies the minimum amount of CO2 to be stored through carrier 'co2_stored'.", set_time_steps="set_time_steps_yearly", calling_class=cls)
+        parameters.add_parameter(
+            name="min_co2_stored",
+            doc="Parameter which specifies the minimum amount of CO2 to "
+                "be stored through carrier 'co2_stored'.",
+            set_time_steps="set_time_steps_yearly",
+            calling_class=cls,
+        )
         # carbon emissions budget
         parameters.add_parameter(
             name="carbon_emissions_budget",
@@ -551,9 +586,6 @@ class EnergySystem:
     def construct_constraints(self):
         """Constructs the constraints of the class <EnergySystem>."""
         logging.info("Construct Constraints of EnergySystem")
-        constraints = self.optimization_setup.constraints
-        sets = self.optimization_setup.sets
-        model = self.optimization_setup.model
 
         # create the rules
         self.rules = EnergySystemRules(self.optimization_setup)
@@ -678,19 +710,24 @@ class EnergySystemRules(GenericRule):
         )
 
     def constraint_min_co2_stored(self):
-        """ semi-hardcoded minimum boundary on CO2 stored in the system.
-        The emergency_storage technology is used as option for the optimizer to breach the limit at a high cost.
-        .. math::
-            \\sum_{t\\in\\mathcal{T}} \\sum_{n\\in\\mathcal{N}} \\tau_t a_{c,n,y}^\\mathrm{export} \\geq a_{y}^\\mathrm{min_{CO2}}, c=CO2-stored
+        """Semi-hardcoded minimum boundary on CO2 stored in the system.
 
+        The emergency_storage technology is used as option for the optimizer to breach
+        the limit at a high cost.
+        .. math::
+            \\sum_{t\\in\\mathcal{T}} \\sum_{n\\in\\mathcal{N}}
+            \\tau_t a_{c,n,y}^\\mathrm{export}
+            \\geq a_{y}^\\mathrm{min_{CO2}}, c=CO2-stored
         """
-        term_export = (self.variables['flow_export'] * self.get_year_time_step_duration_array()).sel({'set_carriers': 'co2_stored'}).sum(
-            ['set_time_steps_operation', 'set_nodes'])
-        lhs = (term_export + self.variables['carbon_emissions_annual_overshoot'])
+        term_export = (
+            (self.variables["flow_export"] * self.get_year_time_step_duration_array())
+            .sel({"set_carriers": "co2_stored"})
+            .sum(["set_time_steps_operation", "set_nodes"])
+        )
+        lhs = term_export + self.variables["carbon_emissions_annual_overshoot"]
         rhs = self.parameters.min_co2_stored
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_co2_stored", constraints)
-
 
     # TODO check if implemented correctly
     def constraint_carbon_emissions_budget(self):

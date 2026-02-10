@@ -5,6 +5,8 @@ variables and constraints of a generic carrier and returns the abstract optimiza
 model.
 """
 
+import logging
+
 import linopy as lp
 import numpy as np
 import xarray as xr
@@ -28,7 +30,7 @@ class Carrier(Element):
         :param carrier: carrier that is added to the model
         :param optimization_setup: The OptimizationSetup the element is part of
         """
-        logging.info(f'Initialize carrier {carrier}')
+        logging.info(f"Initialize carrier {carrier}")
         super().__init__(carrier, optimization_setup)
 
     def store_input_data(self):
@@ -90,12 +92,12 @@ class Carrier(Element):
         self.availability_import_total = self.data_input.extract_input_data(
             "availability_import_total",
             index_sets=["set_nodes"],
-            unit_category={"energy_quantity": 1}
+            unit_category={"energy_quantity": 1},
         )
         self.availability_export_total = self.data_input.extract_input_data(
             "availability_export_total",
             index_sets=["set_nodes"],
-            unit_category={"energy_quantity": 1}
+            unit_category={"energy_quantity": 1},
         )
         self.carbon_intensity_carrier_import = self.data_input.extract_input_data(
             "carbon_intensity_carrier_import",
@@ -115,13 +117,16 @@ class Carrier(Element):
             unit_category={"money": 1, "energy_quantity": -1},
         )
         # LCA factors
-        if self.energy_system.system['load_lca_factors']:
+        if self.energy_system.system["load_lca_factors"]:
             self.carrier_lca_factors = self.data_input.extract_input_data(
-                'carrier_lca_factors',
-                index_sets=['set_nodes', 'set_lca_impact_categories',
-                            'set_time_steps_yearly'],
+                "carrier_lca_factors",
+                index_sets=[
+                    "set_nodes",
+                    "set_lca_impact_categories",
+                    "set_time_steps_yearly",
+                ],
                 time_steps="set_time_steps_yearly",
-                unit_category={"energy_quantity": -1}
+                unit_category={"energy_quantity": -1},
             )
 
     def overwrite_time_steps(self, base_time_steps):
@@ -194,17 +199,17 @@ class Carrier(Element):
         optimization_setup.parameters.add_parameter(
             name="availability_import_total",
             index_names=["set_carriers", "set_nodes"],
-            doc='Parameter which specifies the maximum energy that can be imported from'
-                ' outside the system boundaries for the entire optimization horizon',
-            calling_class=cls
+            doc="Parameter which specifies the maximum energy that can be imported from"
+            " outside the system boundaries for the entire optimization horizon",
+            calling_class=cls,
         )
         # availability of carrier total
         optimization_setup.parameters.add_parameter(
             name="availability_export_total",
             index_names=["set_carriers", "set_nodes"],
-            doc='Parameter which specifies the maximum energy that can be exported to '
-                'outside the system boundaries for the entire optimization horizon',
-            calling_class=cls
+            doc="Parameter which specifies the maximum energy that can be exported to "
+            "outside the system boundaries for the entire optimization horizon",
+            calling_class=cls,
         )
 
         # import price
@@ -243,13 +248,17 @@ class Carrier(Element):
             calling_class=cls,
         )
         # lca parameters
-        if optimization_setup.system['load_lca_factors']:
+        if optimization_setup.system["load_lca_factors"]:
             optimization_setup.parameters.add_parameter(
-                name='carrier_lca_factors',
-                index_names=['set_carriers', 'set_nodes',
-                             'set_lca_impact_categories', 'set_time_steps_yearly'],
-                doc='Parameters for the environmental impacts of each carrier',
-                calling_class=cls
+                name="carrier_lca_factors",
+                index_names=[
+                    "set_carriers",
+                    "set_nodes",
+                    "set_lca_impact_categories",
+                    "set_time_steps_yearly",
+                ],
+                doc="Parameters for the environmental impacts of each carrier",
+                calling_class=cls,
             )
 
     @classmethod
@@ -348,27 +357,34 @@ class Carrier(Element):
             doc="shed demand of carrier",
             unit_category={"money": 1, "time": -1},
         )
-        if optimization_setup.system['load_lca_factors']:
+        if optimization_setup.system["load_lca_factors"]:
             # lca impacts of carrier for node and year
             variables.add_variable(
                 model,
-                name='carrier_lca_impacts',
+                name="carrier_lca_impacts",
                 index_sets=cls.create_custom_set(
-                    ["set_carriers", "set_nodes", "set_lca_impact_categories",
-                     "set_time_steps_operation"], optimization_setup
+                    [
+                        "set_carriers",
+                        "set_nodes",
+                        "set_lca_impact_categories",
+                        "set_time_steps_operation",
+                    ],
+                    optimization_setup,
                 ),
                 doc="LCA impacts of importing and exporting carrier",
-                unit_category={"time": -1})
+                unit_category={"time": -1},
+            )
             # Total LCA impacts of carrier
             variables.add_variable(
                 model,
                 name="carrier_lca_impacts_total",
                 index_sets=cls.create_custom_set(
-                    ['set_lca_impact_categories', 'set_time_steps_yearly'],
-                    optimization_setup
+                    ["set_lca_impact_categories", "set_time_steps_yearly"],
+                    optimization_setup,
                 ),
                 doc="total LCA impacts of importing and exporting carrier",
-                unit_category={})
+                unit_category={},
+            )
         # add pe.Sets of the child classes
         for subclass in cls.__subclasses__():
             if np.size(optimization_setup.system[subclass.label]):
@@ -382,7 +398,6 @@ class Carrier(Element):
         """
         model = optimization_setup.model
         constraints = optimization_setup.constraints
-        sets = optimization_setup.sets
         rules = CarrierRules(optimization_setup)
 
         # limit import/export flow by availability
@@ -411,24 +426,24 @@ class Carrier(Element):
         # energy balance
         rules.constraint_nodal_energy_balance()
         # LCA
-        if optimization_setup.system['load_lca_factors']:
+        if optimization_setup.system["load_lca_factors"]:
             # lca impacts
             constraints.add_constraint_block(
                 model,
-                name='constraint_carrier_lca_impacts',
+                name="constraint_carrier_lca_impacts",
                 constraint=rules.constraint_carrier_lca_impacts_block(),
-                doc='lca impacts of importing and exporting carrier'
+                doc="lca impacts of importing and exporting carrier",
             )
             # total LCA impacts
             constraints.add_constraint_rule(
                 model,
-                name='constraint_carrier_lca_impacts_total',
+                name="constraint_carrier_lca_impacts_total",
                 index_sets=cls.create_custom_set(
-                    ['set_lca_impact_categories', "set_time_steps_yearly"],
-                    optimization_setup
+                    ["set_lca_impact_categories", "set_time_steps_yearly"],
+                    optimization_setup,
                 ),
                 rule=rules.constraint_carrier_lca_impacts_total_rule,
-                doc='total yearly lca impacts of importing and exporting carriers'
+                doc="total yearly lca impacts of importing and exporting carriers",
             )
 
         # add pe.Sets of the child classes
@@ -507,26 +522,35 @@ class CarrierRules(GenericRule):
             "constraint_carbon_emissions_carrier_total", constraints
         )
 
-
     def constraint_carrier_lca_impacts_total_rule(self, lca_category, year):
-        """ total lca impacts of all carriers """
+        """Total lca impacts of all carriers."""
 
         ### auxiliary calculations
         terms = []
         # This vectorizes over times and locations
         for carrier in self.sets["set_carriers"]:
             times = self.energy_system.time_steps.get_time_steps_year2operation(year)
-            expr = self.variables["carrier_lca_impacts"].loc[carrier, :, lca_category, times] * self.parameters.time_steps_operation_duration.loc[times]
-            terms.append(expr.sum(['set_nodes', 'set_time_steps_operation']))
+            expr = (
+                self.variables["carrier_lca_impacts"].loc[
+                    carrier, :, lca_category, times
+                ]
+                * self.parameters.time_steps_operation_duration.loc[times]
+            )
+            terms.append(expr.sum(["set_nodes", "set_time_steps_operation"]))
         term_summed_lca_impacts_carrier = lp_sum(terms)
 
         ### formulate constraint
-        lhs = self.variables["carrier_lca_impacts_total"].loc[lca_category, year] - term_summed_lca_impacts_carrier
+        lhs = (
+            self.variables["carrier_lca_impacts_total"].loc[lca_category, year]
+            - term_summed_lca_impacts_carrier
+        )
         rhs = 0
         constraints = lhs == rhs
 
         ### return
-        self.constraints.add_constraint("constraint_carrier_lca_impacts_total", constraints)
+        self.constraints.add_constraint(
+            "constraint_carrier_lca_impacts_total", constraints
+        )
 
     def constraint_availability_import_export(self):
         """node- and time-dependent carrier availability to import/export from outside
@@ -617,37 +641,56 @@ class CarrierRules(GenericRule):
         )
 
     def constraint_availability_import_export_total(self):
-        """node-dependent carrier availability to import from outside the system boundaries summed over entire optimization horizon
+        """Constrains total import / export availability.
+
+        node-dependent carrier availability to import from outside the system
+        boundaries summed over entire optimization horizon.
 
         .. math::
-           a_{c,n}^\\mathrm{import} \\geq \\sum_{y\\in\\mathcal{Y}} \\sum_{t\\in\\mathcal{T_y}}\\tau_t U_{c,n,t} \\\\
-           a_{c,n}^\\mathrm{export} \\geq \\sum_{y\\in\\mathcal{Y}} \\sum_{t\\in\\mathcal{T_y}}\\tau_t V_{c,n,t}
+           a_{c,n}^\\mathrm{import} \\geq \\sum_{y\\in\\mathcal{Y}}
+           \\sum_{t\\in\\mathcal{T_y}}\\tau_t U_{c,n,t}
+        .. math::
+           a_{c,n}^\\mathrm{export} \\geq \\sum_{y\\in\\mathcal{Y}}
+           \\sum_{t\\in\\mathcal{T_y}}\\tau_t V_{c,n,t}
 
         :return: constraints
         """
         m_imp = self.parameters.availability_import_total != np.inf
-        lhs_imp = ((self.variables['flow_import'] * self.get_year_time_step_duration_array()).sum(
-            ["set_time_steps_operation", "set_time_steps_yearly"])
-                   + (self.variables['flow_import'] * self.get_year_time_step_duration_array()).sum(
-                ['set_time_steps_operation']).shift(set_time_steps_yearly=1).sum(['set_time_steps_yearly']) *
-                   (self.system["interval_between_years"] - 1)).where(m_imp)
+        lhs_imp = (
+            (
+                self.variables["flow_import"] * self.get_year_time_step_duration_array()
+            ).sum(["set_time_steps_operation", "set_time_steps_yearly"])
+            + (self.variables["flow_import"] * self.get_year_time_step_duration_array())
+            .sum(["set_time_steps_operation"])
+            .shift(set_time_steps_yearly=1)
+            .sum(["set_time_steps_yearly"])
+            * (self.system["interval_between_years"] - 1)
+        ).where(m_imp)
 
         rhs_imp = self.parameters.availability_import_total.where(m_imp)
         constraints_imp = lhs_imp <= rhs_imp
 
         m_exp = self.parameters.availability_export_total != np.inf
-        lhs_exp = ((self.variables['flow_export'] * self.get_year_time_step_duration_array()).sum(
-            ["set_time_steps_operation", "set_time_steps_yearly"])
-                   + (self.variables['flow_export'] * self.get_year_time_step_duration_array()).sum(
-                    ['set_time_steps_operation']).shift(set_time_steps_yearly=1).sum(['set_time_steps_yearly']) *
-                   (self.system["interval_between_years"] - 1)).where(m_exp)
+        lhs_exp = (
+            (
+                self.variables["flow_export"] * self.get_year_time_step_duration_array()
+            ).sum(["set_time_steps_operation", "set_time_steps_yearly"])
+            + (self.variables["flow_export"] * self.get_year_time_step_duration_array())
+            .sum(["set_time_steps_operation"])
+            .shift(set_time_steps_yearly=1)
+            .sum(["set_time_steps_yearly"])
+            * (self.system["interval_between_years"] - 1)
+        ).where(m_exp)
 
         rhs_exp = self.parameters.availability_export_total.where(m_exp)
         constraints_exp = lhs_exp <= rhs_exp
 
-        self.constraints.add_constraint("constraint_availability_import_total", constraints_imp)
-        self.constraints.add_constraint("constraint_availability_export_total", constraints_exp)
-
+        self.constraints.add_constraint(
+            "constraint_availability_import_total", constraints_imp
+        )
+        self.constraints.add_constraint(
+            "constraint_availability_export_total", constraints_exp
+        )
 
     def constraint_cost_carrier(self):
         """Cost of importing and exporting carrier.
@@ -759,10 +802,18 @@ class CarrierRules(GenericRule):
         )
 
     def constraint_carrier_lca_impacts_block(self):
-        """ lca impacts of importing and exporting carrier"""
+        """lca impacts of importing and exporting carrier."""
 
         ### index sets
-        index_values, index_names = Element.create_custom_set(["set_carriers", "set_nodes", "set_lca_impact_categories", "set_time_steps_operation"], self.optimization_setup)
+        index_values, index_names = Element.create_custom_set(
+            [
+                "set_carriers",
+                "set_nodes",
+                "set_lca_impact_categories",
+                "set_time_steps_operation",
+            ],
+            self.optimization_setup,
+        )
         index = ZenIndex(index_values, index_names)
         times = index.get_unique(["set_time_steps_operation"])
 
@@ -770,28 +821,44 @@ class CarrierRules(GenericRule):
         # not necessary
 
         ### index loop
-        # we loop over the carriers and vectorize over the nodes, lca categories, and over the times after converting them from operation to yearly time steps
+        # we loop over the carriers and vectorize over the nodes, lca categories, and
+        #   over the times after converting them from operation to yearly time steps
         constraints = {}
         for carrier in index.get_unique(["set_carriers"]):
             ### auxiliary calculations
-            yearly_time_steps = [self.time_steps.convert_time_step_operation2year(t) for t in times]
+            yearly_time_steps = [
+                self.time_steps.convert_time_step_operation2year(t) for t in times
+            ]
 
             # get the time-dependent factor
-            mask = (self.parameters.availability_import.loc[carrier, :, times] != 0) | (self.parameters.availability_export.loc[carrier, :, times] != 0)
+            mask = (self.parameters.availability_import.loc[carrier, :, times] != 0) | (
+                self.parameters.availability_export.loc[carrier, :, times] != 0
+            )
             # make sure coordinates are the same
-            fac = self.parameters.carrier_lca_factors.loc[carrier, :, :, yearly_time_steps].assign_coords({'set_time_steps_yearly': times}).rename({"set_time_steps_yearly": "set_time_steps_operation"}).where(mask, 0)
-            term_flow_import_export = fac * self.variables["flow_import"].loc[carrier, :] - fac * self.variables["flow_export"].loc[carrier, :]
+            fac = (
+                self.parameters.carrier_lca_factors.loc[
+                    carrier, :, :, yearly_time_steps
+                ]
+                .assign_coords({"set_time_steps_yearly": times})
+                .rename({"set_time_steps_yearly": "set_time_steps_operation"})
+                .where(mask, 0)
+            )
+            term_flow_import_export = (
+                fac * self.variables["flow_import"].loc[carrier, :]
+                - fac * self.variables["flow_export"].loc[carrier, :]
+            )
 
             ### formulate constraint
-            lhs = (self.variables["carrier_lca_impacts"].loc[carrier, :, :, times] - term_flow_import_export)
+            lhs = (
+                self.variables["carrier_lca_impacts"].loc[carrier, :, :, times]
+                - term_flow_import_export
+            )
             rhs = 0
             constraints[carrier] = lhs == rhs
 
         ### return
-        self.constraints.add_constraint("constraint_carrier_lca_impacts",constraints)
-        # return self.constraints.return_constraints(constraints, model=self.model,
-        #                                           index_values=index.get_unique(["set_carriers"]),
-        #                                           index_names=["set_carriers"])
+        self.constraints.add_constraint("constraint_carrier_lca_impacts", constraints)
+
 
     def constraint_nodal_energy_balance(self):
         """Nodal energy balance for each time step.
