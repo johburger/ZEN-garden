@@ -546,14 +546,6 @@ class Technology(Element):
 
         # total carbon emissions of technologies
         rules.constraint_carbon_emissions_technology_total()
-        # LCA
-        if optimization_setup.system['load_lca_factors']:
-            # lca impacts
-            constraints.add_constraint_block(model, name='constraint_technology_lca_impacts', constraint=rules.constraint_technology_lca_impacts_block(),
-                                             doc='lca impacts of each technology at each location and time step')
-            # total LCA impacts
-            constraints.add_constraint_block(model, name='constraint_technology_lca_impacts_total', constraint=rules.constraint_technology_lca_impacts_total_block(),
-                                             doc='total lca impacts of all technologies per year')
 
         # min load constraints
         n_cons = len(model.constraints.items())
@@ -1163,7 +1155,7 @@ class TechnologyRules(GenericRule):
         market_share_unbounded.index.names = ["set_technologies", "set_other_technologies"]
         market_share_unbounded = market_share_unbounded.to_xarray().broadcast_like(capacity_previous.lower).fillna(0)
         mask_market_share_unbounded = market_share_unbounded != 0
-        if mask_market_share_unbounded.any() and 'distance' in transport_diff_type:
+        if mask_market_share_unbounded.any() and 'distance' in self.system.transport_diffusion_type:
             warnings.warn('Distance dependent transport diffusion limit is set but there is also technology spillover. This is not implemented at the moment!')
         # not included yet: create a mask based on the tech installation variables
         #  then use the mask to set the term_unbounded_addition to 0 where there are tech installation variables present
