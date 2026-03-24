@@ -1206,7 +1206,7 @@ class TechnologyRules(GenericRule):
             capacity_addition_unbounded_super = capacity_addition_unbounded_super.broadcast_like(tdr)
 
         lhs_sn = lp.merge([1 * capacity_addition_super, -1 * term_knowledge_no_spillover, -1 * term_unbounded_addition],
-                          compat="broadcast_equals", cls=LinearExpression).sum("set_super_location")
+                          compat="broadcast_equals", join="outer", cls=LinearExpression).sum("set_super_location")
         rhs_sn = ((tdr * capacity_existing_total_nosr_super).fillna(0) + capacity_addition_unbounded_super).sum("set_super_location")
         rhs_sn = rhs_sn.broadcast_like(lhs_sn.const)
         # mask for tdr == inf
@@ -1225,7 +1225,7 @@ class TechnologyRules(GenericRule):
             capacity_existing_total_kdr = capacity_existing_total_kdr.broadcast_like(super_loc).where(super_loc).sum("set_location")
 
             lhs_an = lp.merge([1 * capacity_addition_super, -1 * term_knowledge, -1 * term_unbounded_addition],
-                              compat="broadcast_equals", cls=LinearExpression)
+                              compat="broadcast_equals", join="outer", cls=LinearExpression)
             rhs_an = tdr * capacity_existing_total_kdr + capacity_addition_unbounded_super
             rhs_an = rhs_an.broadcast_like(lhs_an.const)
             # mask for tdr == inf
