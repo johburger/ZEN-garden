@@ -556,8 +556,18 @@ class TransportTechnologyRules(GenericRule):
                 "set_location": "set_edges",
             }
         )
-        # lhs_methane = lhs_methane.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
-        # lhs_nitrous = lhs_nitrous.rename({"set_technologies": "set_transport_technologies", "set_location": "set_edges"})
+        # lhs_methane = lhs_methane.rename(
+        #     {
+        #         "set_technologies": "set_transport_technologies",
+        #         "set_location": "set_edges",
+        #     }
+        # )
+        # lhs_nitrous = lhs_nitrous.rename(
+        #     {
+        #         "set_technologies": "set_transport_technologies",
+        #         "set_location": "set_edges",
+        #     }
+        # )
 
         rhs = 0
         # constraints_opex = lhs_opex == rhs
@@ -580,8 +590,12 @@ class TransportTechnologyRules(GenericRule):
         self.constraints.add_constraint(
             "constraint_gwp100_emissions_technology_transport", constraints_gwp100
         )
-        # self.constraints.add_constraint("constraint_methane_emissions_technology_transport", constraints_methane)
-        # self.constraints.add_constraint("constraint_nitrous_emissions_technology_transport", constraints_nitrous)
+        # self.constraints.add_constraint(
+        #     "constraint_methane_emissions_technology_transport", constraints_methane
+        # )
+        # self.constraints.add_constraint(
+        #     "constraint_nitrous_emissions_technology_transport", constraints_nitrous
+        # )
 
     def constraint_transport_technology_losses_flow(self):
         """Compute the flow losses for a carrier through a transport technology.

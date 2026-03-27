@@ -5,7 +5,6 @@ from zen_garden.wrapper.operation_scenarios import operation_scenarios
 
 
 def build_parser_op() -> argparse.ArgumentParser:
-
     # load parser from zen-garden
     parser = build_parser()
 
@@ -62,7 +61,6 @@ def build_parser_op() -> argparse.ArgumentParser:
 
 
 def create_zen_operation_cli() -> None:
-
     # create parser and parse command line argument
     parser = build_parser_op()
     args = parser.parse_args()
@@ -86,5 +84,4 @@ def create_zen_operation_cli() -> None:
 
 
 if __name__ == "__main__":
-
     create_zen_operation_cli()
