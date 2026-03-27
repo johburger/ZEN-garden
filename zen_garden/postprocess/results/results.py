@@ -35,12 +35,12 @@ class Results:
 
         :param path: Path to the results folder
         """
-        assert os.path.exists(
-            path
-        ), f"The output folder {Path(path).absolute()} does not exist."
-        assert (
-            len(os.listdir(path)) > 0
-        ), f"The output folder {Path(path).absolute()} is empty."
+        assert os.path.exists(path), (
+            f"The output folder {Path(path).absolute()} does not exist."
+        )
+        assert len(os.listdir(path)) > 0, (
+            f"The output folder {Path(path).absolute()} is empty."
+        )
         self.solution_loader = SolutionLoader(path, enable_cache=enable_cache)
         self.has_scenarios = len(self.solution_loader.scenarios) > 1
         first_scenario = next(iter(self.solution_loader.scenarios.values()))
@@ -144,7 +144,7 @@ class Results:
         Returns:
             Full timeseries
         """
-        assert component.timestep_type is not None, "Component has no " "timestep type."
+        assert component.timestep_type is not None, "Component has no timestep type."
 
         if index is None:
             index = tuple()
@@ -1026,7 +1026,6 @@ class Results:
         ans: dict[str, pd.DataFrame] = {}
 
         for component, factor in components.items():
-
             if component == "flow_transport_in":
                 full_ts = self.get_full_ts(
                     "flow_transport", scenario_name=scenario_name, year=year

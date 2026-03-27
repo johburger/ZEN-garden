@@ -126,7 +126,6 @@ def download_example_dataset(dataset):
 
     # search for example within ZIP file
     for file in zenodo_zip.filelist:
-
         # download all files in dataset example
         if file.filename.startswith(example_path):
             filename_ending = file.filename.split(example_path)[1]
@@ -168,7 +167,7 @@ def download_example_dataset(dataset):
         )
     if not config_found:
         raise FileNotFoundError(
-            "Config.json file could not be downloaded from the dataset " "examples!"
+            "Config.json file could not be downloaded from the dataset examples!"
         )
     if not notebook_found:
         warnings.warn(
@@ -693,9 +692,9 @@ class ScenarioDict(dict):
         for scenario_name, scenario_dict in sorted(
             scenarios.items(), key=lambda x: x[0]
         ):
-            assert (
-                type(scenario_dict) is dict
-            ), f"Scenario {scenario_name} is not a dictionary!"
+            assert type(scenario_dict) is dict, (
+                f"Scenario {scenario_name} is not a dictionary!"
+            )
             scenario_dict["base_scenario"] = scenario_name
             scenario_dict["sub_folder"] = ""
             scenario_dict["param_map"] = dict()
@@ -1192,9 +1191,9 @@ class InputDataChecks:
                 self.optimization_setup.system[set_name]
             )
             # check subsets of technology_subset
-            assert isinstance(
-                subsets, list
-            ), f"Subsets of {set_name} must be a list, dict not implemented"
+            assert isinstance(subsets, list), (
+                f"Subsets of {set_name} must be a list, dict not implemented"
+            )
             for subset in subsets:
                 for technology in self.optimization_setup.system[subset]:
                     if technology not in self.optimization_setup.paths[subset].keys():
@@ -1227,8 +1226,7 @@ class InputDataChecks:
             if carrier not in self.optimization_setup.paths["set_carriers"].keys():
                 # raise error if carrier is not in input data
                 raise FileNotFoundError(
-                    f"Carrier {carrier} selected in config does not exist in"
-                    "input data"
+                    f"Carrier {carrier} selected in config does not exist ininput data"
                 )
             elif (
                 "attributes.json"
@@ -1244,9 +1242,9 @@ class InputDataChecks:
         """
         dataset = os.path.basename(self.analysis.dataset)
         dirname = os.path.dirname(self.analysis.dataset)
-        assert os.path.exists(
-            dirname
-        ), f"Requested folder {dirname} is not a valid path"
+        assert os.path.exists(dirname), (
+            f"Requested folder {dirname} is not a valid path"
+        )
         assert os.path.exists(self.analysis.dataset), (
             f"The chosen dataset {dataset} does not exist at "
             f"{self.analysis.dataset} as it is specified in the config"
@@ -1343,9 +1341,9 @@ class InputDataChecks:
         :param name: name of conversion technology
         """
         # assert that conversion technology has at least an input/output carrier
-        assert (
-            len(input_carrier + output_carrier) > 0
-        ), f"Conversion technology {name} has neither an input nor an output carrier!"
+        assert len(input_carrier + output_carrier) > 0, (
+            f"Conversion technology {name} has neither an input nor an output carrier!"
+        )
         # check if reference carrier in input and output carriers and set
         # technology to correspondent carrier
         assert reference_carrier[0] in (input_carrier + output_carrier), (

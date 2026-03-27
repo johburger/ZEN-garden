@@ -230,9 +230,9 @@ class UnitHandling:
         dim_input = self.ureg.get_dimensionality(self.ureg(input_unit))
         dim_vector = pd.Series(index=self.dim_matrix.index, data=0)
         missing_dim = set(dim_input.keys()).difference(dim_vector.keys())
-        assert (
-            len(missing_dim) == 0
-        ), f"No base unit defined for dimensionalities <{missing_dim}>"
+        assert len(missing_dim) == 0, (
+            f"No base unit defined for dimensionalities <{missing_dim}>"
+        )
         if len(dim_input) > 0:  # check for content of dim_input to avoid Warning
             dim_vector[list(dim_input.keys())] = list(dim_input.values())
         # calculate dimensionless combined unit (e.g., tons and kilotons)
@@ -1172,7 +1172,7 @@ class UnitHandling:
             "distance": "[length]",
             "time": "[time]",
             "emissions": "[mass]",
-            "biodiversity": "[biodiversity]"
+            "biodiversity": "[biodiversity]",
         }
         unit = unit_specs["unit_in_base_units"]
         unit_category = unit_specs["unit_category"]
@@ -1395,8 +1395,8 @@ class Scaling:
         for name_var in model.variables:
             var = model.variables[name_var]
             mask = np.where(var.labels.data != -1)
-            var.solution.data[mask] = var.solution.data[mask] * (
-                self.D_c_inv[var.labels.data[mask]]
+            var.solution.data[mask] = (
+                var.solution.data[mask] * (self.D_c_inv[var.labels.data[mask]])
             )
 
     def analyze_numerics(self):

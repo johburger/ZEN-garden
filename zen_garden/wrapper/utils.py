@@ -88,9 +88,9 @@ def load_results(out_dir: Path, scenario: str) -> dict:
     """
     r = Results(path=out_dir)
 
-    assert "capacity_addition" in r.get_component_names(
-        "variable"
-    ), "Results have no variable named capacity addition"
+    assert "capacity_addition" in r.get_component_names("variable"), (
+        "Results have no variable named capacity addition"
+    )
 
     system = r.get_system()
     solver = r.get_solver()
@@ -290,7 +290,7 @@ def convert_to_original_units(
     if not np.isclose(unit_multiplier, 1):
         print(
             f"Multiplying capacity addition (unit:{capacity_addition_unit}) "
-            f"by a scale factor of {1/unit_multiplier} to convert to units "
+            f"by a scale factor of {1 / unit_multiplier} to convert to units "
             f"{capacity_existing_unit}"
         )
 
@@ -355,7 +355,6 @@ def add_capacity_additions(
     capacity_units = results["capacity_units"]
 
     for tech in elements:
-
         if tech not in capacity_addition.index.get_level_values(0):
             continue
 

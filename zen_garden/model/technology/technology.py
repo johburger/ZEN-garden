@@ -123,9 +123,15 @@ class Technology(Element):
             unit_category={"emissions": 1, "energy_quantity": -1},
         )
         self.biodiversity_intensity_technology = self.data_input.extract_input_data(
-            "biodiversity_intensity_technology", index_sets=[set_location], unit_category={"biodiversity": 1, "energy_quantity": -1})
+            "biodiversity_intensity_technology",
+            index_sets=[set_location],
+            unit_category={"biodiversity": 1, "energy_quantity": -1},
+        )
         self.gwp100_intensity_technology = self.data_input.extract_input_data(
-            "gwp100_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
+            "gwp100_intensity_technology",
+            index_sets=[set_location],
+            unit_category={"emissions": 1, "energy_quantity": -1},
+        )
         # self.methane_intensity_technology = self.data_input.extract_input_data(
         #     "methane_intensity_technology", index_sets=[set_location], unit_category={"emissions": 1, "energy_quantity": -1})
         # self.nitrous_intensity_technology = self.data_input.extract_input_data(
@@ -690,11 +696,19 @@ class Technology(Element):
             calling_class=cls,
         )
         # biodiversity intensity
-        optimization_setup.parameters.add_parameter(name="biodiversity_intensity_technology", index_names=["set_technologies", "set_location"],
-                                                    doc='Parameter which specifies the  biodiversity impact of each technology', calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="biodiversity_intensity_technology",
+            index_names=["set_technologies", "set_location"],
+            doc="Parameter which specifies the  biodiversity impact of each technology",
+            calling_class=cls,
+        )
         # GWP100 impact
-        optimization_setup.parameters.add_parameter(name="gwp100_intensity_technology", index_names=["set_technologies", "set_location"],
-                                                    doc='Parameter which specifies the GWP100 (all GHG) intensity of each technology', calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="gwp100_intensity_technology",
+            index_names=["set_technologies", "set_location"],
+            doc="Parameter which specifies the GWP100 (all GHG) intensity of each technology",
+            calling_class=cls,
+        )
         # methane emission intensity
         # optimization_setup.parameters.add_parameter(name="methane_intensity_technology", index_names=["set_technologies", "set_location"],
         #                                             doc='Parameter which specifies the methane emissions of each technology', calling_class=cls)
@@ -962,17 +976,43 @@ class Technology(Element):
             unit_category={"emissions": 1},
         )
         # biodiversity impact
-        variables.add_variable(model, name="biodiversity_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
-                               doc="biodiversity impact for operating technology at location l and time t", unit_category={"biodiversity": 1, "time": -1})
+        variables.add_variable(
+            model,
+            name="biodiversity_emissions_technology",
+            index_sets=cls.create_custom_set(
+                ["set_technologies", "set_location", "set_time_steps_operation"],
+                optimization_setup,
+            ),
+            doc="biodiversity impact for operating technology at location l and time t",
+            unit_category={"biodiversity": 1, "time": -1},
+        )
         # total biodiversity impact technology
-        variables.add_variable(model, name="biodiversity_emissions_technology_total", index_sets=sets["set_time_steps_yearly"],
-                               doc="total biodiversity impact for operating technology at location l and time t", unit_category={"biodiversity": 1})
+        variables.add_variable(
+            model,
+            name="biodiversity_emissions_technology_total",
+            index_sets=sets["set_time_steps_yearly"],
+            doc="total biodiversity impact for operating technology at location l and time t",
+            unit_category={"biodiversity": 1},
+        )
         # GWP100 impact
-        variables.add_variable(model, name="gwp100_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
-                               doc="GWP100 impact for operating technology at location l and time t", unit_category={"emissions": 1, "time": -1})
+        variables.add_variable(
+            model,
+            name="gwp100_emissions_technology",
+            index_sets=cls.create_custom_set(
+                ["set_technologies", "set_location", "set_time_steps_operation"],
+                optimization_setup,
+            ),
+            doc="GWP100 impact for operating technology at location l and time t",
+            unit_category={"emissions": 1, "time": -1},
+        )
         # total GWP100 impact technology
-        variables.add_variable(model, name="gwp100_emissions_technology_total", index_sets=sets["set_time_steps_yearly"],
-                               doc="total GWP100 impact for operating technology at location l and time t", unit_category={"emissions": 1})
+        variables.add_variable(
+            model,
+            name="gwp100_emissions_technology_total",
+            index_sets=sets["set_time_steps_yearly"],
+            doc="total GWP100 impact for operating technology at location l and time t",
+            unit_category={"emissions": 1},
+        )
         # methane emissions
         # variables.add_variable(model, name="methane_emissions_technology", index_sets=cls.create_custom_set(["set_technologies", "set_location", "set_time_steps_operation"], optimization_setup),
         #     doc="methane emissions for operating technology at location l and time t", unit_category={"emissions": 1, "time": -1})
@@ -985,7 +1025,6 @@ class Technology(Element):
         # # total nitrous oxide emissions technology
         # variables.add_variable(model, name="nitrous_emissions_technology_total", index_sets=sets["set_time_steps_yearly"],
         #     doc="total nitrous oxide emissions for operating technology at location l and time t", unit_category={"emissions": 1})
-
 
         # install technology
         # Note: binary variables are written into the lp file by linopy even if they
@@ -2000,7 +2039,7 @@ class TechnologyRules(GenericRule):
         )
 
     def constraint_biodiversity_emissions_technology_total(self):
-        """ calculate total biodiversity impact of each technology
+        """calculate total biodiversity impact of each technology
 
         .. math::
             E_y^{\\mathcal{H}} = \\sum_{p\\in\\mathcal{P}} \\sum_{t\\in\\mathcal{T}}\\sum_{h\\in\\mathcal{H}} \\kappa_{h,p,t}^{biodiversity} \\tau_{t}
@@ -2010,17 +2049,23 @@ class TechnologyRules(GenericRule):
         :math:`\\tau_{t}`: duration of time step :math:`t`
 
         """
-        term_summed_biodiversity_emissions_technology = (self.variables["biodiversity_emissions_technology"] * self.get_year_time_step_duration_array()).sum(
-            ["set_technologies", "set_location", "set_time_steps_operation"])
-        lhs = self.variables["biodiversity_emissions_technology_total"] - term_summed_biodiversity_emissions_technology
+        term_summed_biodiversity_emissions_technology = (
+            self.variables["biodiversity_emissions_technology"]
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_technologies", "set_location", "set_time_steps_operation"])
+        lhs = (
+            self.variables["biodiversity_emissions_technology_total"]
+            - term_summed_biodiversity_emissions_technology
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_biodiversity_emissions_technology_total",constraints)
-
+        self.constraints.add_constraint(
+            "constraint_biodiversity_emissions_technology_total", constraints
+        )
 
     def constraint_gwp100_emissions_technology_total(self):
-        """ calculate total gwp100 emissions of each technology
+        """calculate total gwp100 emissions of each technology
 
         .. math::
             E_y^{\\mathcal{H}} = \\sum_{p\\in\\mathcal{P}} \\sum_{t\\in\\mathcal{T}}\\sum_{h\\in\\mathcal{H}} \\kappa_{h,p,t}^{gwp100} \\tau_{t}
@@ -2030,17 +2075,23 @@ class TechnologyRules(GenericRule):
         :math:`\\tau_{t}`: duration of time step :math:`t`
 
         """
-        term_summed_gwp100_emissions_technology = (self.variables["gwp100_emissions_technology"] * self.get_year_time_step_duration_array()).sum(
-            ["set_technologies", "set_location", "set_time_steps_operation"])
-        lhs = self.variables["gwp100_emissions_technology_total"] - term_summed_gwp100_emissions_technology
+        term_summed_gwp100_emissions_technology = (
+            self.variables["gwp100_emissions_technology"]
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_technologies", "set_location", "set_time_steps_operation"])
+        lhs = (
+            self.variables["gwp100_emissions_technology_total"]
+            - term_summed_gwp100_emissions_technology
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_gwp100_emissions_technology_total",constraints)
-
+        self.constraints.add_constraint(
+            "constraint_gwp100_emissions_technology_total", constraints
+        )
 
     def constraint_methane_emissions_technology_total(self):
-        """ calculate total methane emissions of each technology
+        """calculate total methane emissions of each technology
 
         .. math::
             E_y^{\\mathcal{H}} = \\sum_{p\\in\\mathcal{P}} \\sum_{t\\in\\mathcal{T}}\\sum_{h\\in\\mathcal{H}} \\kappa_{h,p,t}^{methane} \\tau_{t}
@@ -2050,16 +2101,23 @@ class TechnologyRules(GenericRule):
         :math:`\\tau_{t}`: duration of time step :math:`t`
 
         """
-        term_summed_methane_emissions_technology = (self.variables["methane_emissions_technology"] * self.get_year_time_step_duration_array()).sum(
-            ["set_technologies", "set_location", "set_time_steps_operation"])
-        lhs = self.variables["methane_emissions_technology_total"] - term_summed_methane_emissions_technology
+        term_summed_methane_emissions_technology = (
+            self.variables["methane_emissions_technology"]
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_technologies", "set_location", "set_time_steps_operation"])
+        lhs = (
+            self.variables["methane_emissions_technology_total"]
+            - term_summed_methane_emissions_technology
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_methane_emissions_technology_total",constraints)
+        self.constraints.add_constraint(
+            "constraint_methane_emissions_technology_total", constraints
+        )
 
     def constraint_nitrous_emissions_technology_total(self):
-        """ calculate total nitrous emissions of each technology
+        """calculate total nitrous emissions of each technology
 
         .. math::
             E_y^{\\mathcal{H}} = \\sum_{p\\in\\mathcal{P}} \\sum_{t\\in\\mathcal{T}}\\sum_{h\\in\\mathcal{H}} \\kappa_{h,p,t}^{nitrous} \\tau_{t}
@@ -2069,13 +2127,20 @@ class TechnologyRules(GenericRule):
         :math:`\\tau_{t}`: duration of time step :math:`t`
 
         """
-        term_summed_nitrous_emissions_technology = (self.variables["nitrous_emissions_technology"] * self.get_year_time_step_duration_array()).sum(
-            ["set_technologies", "set_location", "set_time_steps_operation"])
-        lhs = self.variables["nitrous_emissions_technology_total"] - term_summed_nitrous_emissions_technology
+        term_summed_nitrous_emissions_technology = (
+            self.variables["nitrous_emissions_technology"]
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_technologies", "set_location", "set_time_steps_operation"])
+        lhs = (
+            self.variables["nitrous_emissions_technology_total"]
+            - term_summed_nitrous_emissions_technology
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_nitrous_emissions_technology_total",constraints)
+        self.constraints.add_constraint(
+            "constraint_nitrous_emissions_technology_total", constraints
+        )
 
     def constraint_technology_on_off(self):
         """If technology is on, the binary variable is 1, else 0.

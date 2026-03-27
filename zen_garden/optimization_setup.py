@@ -136,9 +136,9 @@ class OptimizationSetup(object):
         ## General Paths
         # define path to access dataset related to the current analysis
         self.path_data = self.analysis.dataset
-        assert os.path.exists(
-            self.path_data
-        ), f"Folder for input data {self.analysis.dataset} does not exist!"
+        assert os.path.exists(self.path_data), (
+            f"Folder for input data {self.analysis.dataset} does not exist!"
+        )
         self.input_data_checks.check_primary_folder_structure()
         self.paths = dict()
         # create a dictionary with the keys based on the folders in path_data
@@ -527,9 +527,9 @@ class OptimizationSetup(object):
         element = self.get_element(cls, element_name)
         # assert that _element exists and has attribute
         assert element, f"Element {element_name} not in class {cls.__name__}"
-        assert hasattr(
-            element, attribute_name
-        ), f"Element {element_name} does not have attribute {attribute_name}"
+        assert hasattr(element, attribute_name), (
+            f"Element {element_name} does not have attribute {attribute_name}"
+        )
         attribute_value = getattr(element, attribute_name)
         return attribute_value
 

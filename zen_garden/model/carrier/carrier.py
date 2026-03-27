@@ -107,54 +107,68 @@ class Carrier(Element):
             "availability_import_yearly",
             index_sets=["set_nodes", "set_time_steps_yearly"],
             time_steps="set_time_steps_yearly",
-            unit_category={"energy_quantity": 1})
+            unit_category={"energy_quantity": 1},
+        )
         self.availability_export_yearly = self.data_input.extract_input_data(
             "availability_export_yearly",
             index_sets=["set_nodes", "set_time_steps_yearly"],
             time_steps="set_time_steps_yearly",
-            unit_category={"energy_quantity": 1})
+            unit_category={"energy_quantity": 1},
+        )
         self.carbon_intensity_carrier_import = self.data_input.extract_input_data(
             "carbon_intensity_carrier_import",
             index_sets=["set_nodes", "set_time_steps_yearly"],
             time_steps="set_time_steps_yearly",
-            unit_category={"emissions": 1, "energy_quantity": -1})
+            unit_category={"emissions": 1, "energy_quantity": -1},
+        )
         self.carbon_intensity_carrier_export = self.data_input.extract_input_data(
             "carbon_intensity_carrier_export",
             index_sets=["set_nodes", "set_time_steps_yearly"],
             time_steps="set_time_steps_yearly",
-            unit_category={"emissions": 1, "energy_quantity": -1})
+            unit_category={"emissions": 1, "energy_quantity": -1},
+        )
         self.min_energy_production = self.data_input.extract_input_data(
-            "min_energy_production", index_sets=[],
-            unit_category={"energy_quantitiy": 1})
+            "min_energy_production",
+            index_sets=[],
+            unit_category={"energy_quantitiy": 1},
+        )
         self.min_energy_production *= (
-                self.energy_system.system.unaggregated_time_steps_per_year
-                / self.energy_system.system.total_hours_per_year)
+            self.energy_system.system.unaggregated_time_steps_per_year
+            / self.energy_system.system.total_hours_per_year
+        )
         self.min_item_production = self.data_input.extract_input_data(
-            "min_item_production", index_sets=[], unit_category={})
+            "min_item_production", index_sets=[], unit_category={}
+        )
         self.min_total_protein_production = self.data_input.extract_input_data(
-            "min_total_protein_production", index_sets=[],
-            unit_category={"emissions": 1, "energy_quantity": -1})
+            "min_total_protein_production",
+            index_sets=[],
+            unit_category={"emissions": 1, "energy_quantity": -1},
+        )
         # specifically added impact parameters for agriculture study
         self.biodiversity_intensity_carrier_import = self.data_input.extract_input_data(
             "biodiversity_intensity_carrier_import",
             index_sets=["set_nodes", "set_time_steps_yearly"],
             time_steps="set_time_steps_yearly",
-            unit_category={"biodiversity": 1, "energy_quantity": -1})
+            unit_category={"biodiversity": 1, "energy_quantity": -1},
+        )
         self.biodiversity_intensity_carrier_export = self.data_input.extract_input_data(
             "biodiversity_intensity_carrier_export",
             index_sets=["set_nodes", "set_time_steps_yearly"],
             time_steps="set_time_steps_yearly",
-            unit_category={"biodiversity": 1, "energy_quantity": -1})
+            unit_category={"biodiversity": 1, "energy_quantity": -1},
+        )
         self.gwp100_intensity_carrier_import = self.data_input.extract_input_data(
             "gwp100_intensity_carrier_import",
             index_sets=["set_nodes", "set_time_steps_yearly"],
             time_steps="set_time_steps_yearly",
-            unit_category={"emissions": 1, "energy_quantity": -1})
+            unit_category={"emissions": 1, "energy_quantity": -1},
+        )
         self.gwp100_intensity_carrier_export = self.data_input.extract_input_data(
             "gwp100_intensity_carrier_export",
             index_sets=["set_nodes", "set_time_steps_yearly"],
             time_steps="set_time_steps_yearly",
-            unit_category={"emissions": 1, "energy_quantity": -1})
+            unit_category={"emissions": 1, "energy_quantity": -1},
+        )
         # self.methane_intensity_carrier_import = self.data_input.extract_input_data(
         #     "methane_intensity_carrier_import", index_sets=["set_nodes", "set_time_steps_yearly"],
         #     time_steps="set_time_steps_yearly", unit_category={"emissions": 1, "energy_quantity": -1})
@@ -269,31 +283,50 @@ class Carrier(Element):
             doc="Parameter which specifies the carbon intensity of carrier export",
             calling_class=cls,
         )
-        optimization_setup.parameters.add_parameter(name="min_energy_production",
-                                                    index_names=["set_carriers"], doc='Parameter which specifies the minimum energy production of carrier', calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="min_item_production",
-                                                    index_names=["set_carriers"], doc='Parameter which specifies the minimum item production of carrier', calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="min_total_protein_production",
-                                                    index_names=["set_carriers"], doc='Parameter which specifies the minimum total protein production over all protein carriers', calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="min_energy_production",
+            index_names=["set_carriers"],
+            doc="Parameter which specifies the minimum energy production of carrier",
+            calling_class=cls,
+        )
+        optimization_setup.parameters.add_parameter(
+            name="min_item_production",
+            index_names=["set_carriers"],
+            doc="Parameter which specifies the minimum item production of carrier",
+            calling_class=cls,
+        )
+        optimization_setup.parameters.add_parameter(
+            name="min_total_protein_production",
+            index_names=["set_carriers"],
+            doc="Parameter which specifies the minimum total protein production over all protein carriers",
+            calling_class=cls,
+        )
         # biodiversity impact carrier import and export
         optimization_setup.parameters.add_parameter(
             name="biodiversity_intensity_carrier_import",
-                                                    index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
-                                                    doc='Parameter which specifies the biodiversity impact of carrier import',
-                                                    calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="biodiversity_intensity_carrier_export",
-                                                    index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
-                                                    doc='Parameter which specifies the biodiversity impact of carrier export',
-                                                    calling_class=cls)
+            index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+            doc="Parameter which specifies the biodiversity impact of carrier import",
+            calling_class=cls,
+        )
+        optimization_setup.parameters.add_parameter(
+            name="biodiversity_intensity_carrier_export",
+            index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+            doc="Parameter which specifies the biodiversity impact of carrier export",
+            calling_class=cls,
+        )
         # global warming potential over 100 years carrier import and export
-        optimization_setup.parameters.add_parameter(name="gwp100_intensity_carrier_import",
-                                                    index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
-                                                    doc='Parameter which specifies the GWP100 (all GHG) of carrier import',
-                                                    calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="gwp100_intensity_carrier_export",
-                                                    index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
-                                                    doc='Parameter which specifies the GWP100 (all GHG) of carrier export',
-                                                    calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="gwp100_intensity_carrier_import",
+            index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+            doc="Parameter which specifies the GWP100 (all GHG) of carrier import",
+            calling_class=cls,
+        )
+        optimization_setup.parameters.add_parameter(
+            name="gwp100_intensity_carrier_export",
+            index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+            doc="Parameter which specifies the GWP100 (all GHG) of carrier export",
+            calling_class=cls,
+        )
         # methane intensity carrier import and export
         # optimization_setup.parameters.add_parameter(name="methane_intensity_carrier_import",
         #                                             index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
@@ -386,17 +419,43 @@ class Carrier(Element):
             unit_category={"emissions": 1},
         )
         # biodiversity impact
-        variables.add_variable(model, name="biodiversity_emissions_carrier", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup),
-                               doc="biodiversity impact of importing and exporting carrier", unit_category={"biodiversity": 1, "time": -1})
+        variables.add_variable(
+            model,
+            name="biodiversity_emissions_carrier",
+            index_sets=cls.create_custom_set(
+                ["set_carriers", "set_nodes", "set_time_steps_operation"],
+                optimization_setup,
+            ),
+            doc="biodiversity impact of importing and exporting carrier",
+            unit_category={"biodiversity": 1, "time": -1},
+        )
         # biodiversity impact carrier
-        variables.add_variable(model, name="biodiversity_emissions_carrier_total", index_sets=sets["set_time_steps_yearly"],
-                               doc="total biodiversity impact of importing and exporting carrier", unit_category={"biodiversity": 1})
+        variables.add_variable(
+            model,
+            name="biodiversity_emissions_carrier_total",
+            index_sets=sets["set_time_steps_yearly"],
+            doc="total biodiversity impact of importing and exporting carrier",
+            unit_category={"biodiversity": 1},
+        )
         # global warming potential over 100 years
-        variables.add_variable(model, name="gwp100_emissions_carrier", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup),
-                               doc="global warming potential over 100 years of importing and exporting carrier", unit_category={"emissions": 1, "time": -1})
+        variables.add_variable(
+            model,
+            name="gwp100_emissions_carrier",
+            index_sets=cls.create_custom_set(
+                ["set_carriers", "set_nodes", "set_time_steps_operation"],
+                optimization_setup,
+            ),
+            doc="global warming potential over 100 years of importing and exporting carrier",
+            unit_category={"emissions": 1, "time": -1},
+        )
         # global warming potential over 100 years carrier
-        variables.add_variable(model, name="gwp100_emissions_carrier_total", index_sets=sets["set_time_steps_yearly"],
-                               doc="total global warming potential over 100 years of importing and exporting carrier", unit_category={"emissions": 1})
+        variables.add_variable(
+            model,
+            name="gwp100_emissions_carrier_total",
+            index_sets=sets["set_time_steps_yearly"],
+            doc="total global warming potential over 100 years of importing and exporting carrier",
+            unit_category={"emissions": 1},
+        )
         # methane emissions
         # variables.add_variable(model, name="methane_emissions_carrier", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup),
         #                        doc="methane emissions of importing and exporting carrier", unit_category={"emissions": 1, "time": -1})
@@ -1067,9 +1126,8 @@ class CarrierRules(GenericRule):
         ### return
         self.constraints.add_constraint("constraint_nodal_energy_balance", constraints)
 
-
     def constraint_min_energy_production(self):
-        """ ensures minimum energy production of the agricultural system
+        """ensures minimum energy production of the agricultural system
 
         .. math::
             \\sum{n \\in \\mathcal{N}, t \\in \\mathcal{T}} \\overline{U}_{electricity,n,t} \\geq e_{min}
@@ -1078,45 +1136,108 @@ class CarrierRules(GenericRule):
         :math:`e_{min}`: minimum energy production of the agricultural system
 
         """
-        lhs = (self.variables["flow_export"].sel({'set_carriers': 'electricity'}) * self.get_year_time_step_duration_array()).sum(
-            ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
-        rhs = self.parameters.min_energy_production.sel({'set_carriers': 'electricity'})
+        lhs = (
+            self.variables["flow_export"].sel({"set_carriers": "electricity"})
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+        rhs = self.parameters.min_energy_production.sel({"set_carriers": "electricity"})
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_energy_production", constraints)
 
-
     def constraint_min_item_production(self):
-        """ ensures minimum production of individual items based on total food production"""
-        term_item_production = (self.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) * self.get_year_time_step_duration_array()).sum(
-            ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
-        term_food = (self.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) * self.get_year_time_step_duration_array()).sum(
-            ["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
-        min_item_production = self.parameters.min_item_production.sel({'set_carriers': self.system.set_food_carriers})
-        lhs = lp.merge([term_item_production, - min_item_production * term_food], compat='broadcast_equals', cls=LinearExpression)
+        """ensures minimum production of individual items based on total food production"""
+        term_item_production = (
+            self.variables["flow_export"].sel(
+                {"set_carriers": self.system.set_food_carriers}
+            )
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+        term_food = (
+            self.variables["flow_export"].sel(
+                {"set_carriers": self.system.set_food_carriers}
+            )
+            * self.get_year_time_step_duration_array()
+        ).sum(
+            [
+                "set_time_steps_yearly",
+                "set_time_steps_operation",
+                "set_nodes",
+                "set_carriers",
+            ]
+        )
+        min_item_production = self.parameters.min_item_production.sel(
+            {"set_carriers": self.system.set_food_carriers}
+        )
+        lhs = lp.merge(
+            [term_item_production, -min_item_production * term_food],
+            compat="broadcast_equals",
+            cls=LinearExpression,
+        )
         rhs = 0
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_item_production", constraints)
 
-
     def constraint_min_total_protein_production(self):
-        """ ensures minimum total protein production based on total food production"""
-        protein = (self.variables["flow_export"].sel({'set_carriers': self.system.set_protein_carriers}) *
-                   self.get_year_time_step_duration_array()).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
-        food = (self.variables["flow_export"].sel({'set_carriers': self.system.set_food_carriers}) *
-                self.get_year_time_step_duration_array()).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes", "set_carriers"])
-        assert len(self.optimization_setup.variables.units['flow_export'].loc[
-                       self.system.set_protein_carriers].unique()) == 1, "All protein carriers must have the same unit"
-        assert len(self.optimization_setup.variables.units['flow_export'].loc[
-                       self.system.set_food_carriers].unique()) == 1, "All food carriers must have the same unit"
+        """ensures minimum total protein production based on total food production"""
+        protein = (
+            self.variables["flow_export"].sel(
+                {"set_carriers": self.system.set_protein_carriers}
+            )
+            * self.get_year_time_step_duration_array()
+        ).sum(
+            [
+                "set_time_steps_yearly",
+                "set_time_steps_operation",
+                "set_nodes",
+                "set_carriers",
+            ]
+        )
+        food = (
+            self.variables["flow_export"].sel(
+                {"set_carriers": self.system.set_food_carriers}
+            )
+            * self.get_year_time_step_duration_array()
+        ).sum(
+            [
+                "set_time_steps_yearly",
+                "set_time_steps_operation",
+                "set_nodes",
+                "set_carriers",
+            ]
+        )
+        assert (
+            len(
+                self.optimization_setup.variables.units["flow_export"]
+                .loc[self.system.set_protein_carriers]
+                .unique()
+            )
+            == 1
+        ), "All protein carriers must have the same unit"
+        assert (
+            len(
+                self.optimization_setup.variables.units["flow_export"]
+                .loc[self.system.set_food_carriers]
+                .unique()
+            )
+            == 1
+        ), "All food carriers must have the same unit"
         # use beef_energy to read in the minimum total protein production including the correct units.
-        min_total_protein_production = self.parameters.min_total_protein_production.sel({'set_carriers': 'beef_energy'})
-        lhs = lp.merge([protein, - min_total_protein_production * food], compat='broadcast_equals', cls=LinearExpression)
+        min_total_protein_production = self.parameters.min_total_protein_production.sel(
+            {"set_carriers": "beef_energy"}
+        )
+        lhs = lp.merge(
+            [protein, -min_total_protein_production * food],
+            compat="broadcast_equals",
+            cls=LinearExpression,
+        )
         rhs = 0
         constraints = lhs >= rhs
-        self.constraints.add_constraint("constraint_min_total_protein_production", constraints)
+        self.constraints.add_constraint(
+            "constraint_min_total_protein_production", constraints
+        )
 
     def constraint_biodiversity_emissions_carrier(self):
-        """ biodiversity impact of importing and exporting carrier
+        """biodiversity impact of importing and exporting carrier
 
         .. math::
            \\kappa_{c,n,t}^{\\mathrm{biodiversity,carrier}} = \\underline{\\epsilon_c} \\underline{U}_{c,n,t} - \\overline{\\epsilon_c} \\overline{U}_{c,n,t}
@@ -1131,18 +1252,27 @@ class CarrierRules(GenericRule):
         # create times xarray with 1 where the operation time step is in the year
         times = self.get_year_time_step_array()
         # convert the carbon intensity carrier from yearly to operation time steps
-        biodiversity_intensity_carrier_import = (self.parameters.biodiversity_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        biodiversity_intensity_carrier_export = (self.parameters.biodiversity_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        lhs = (self.variables["biodiversity_emissions_carrier"]
-               - (self.variables["flow_import"]*biodiversity_intensity_carrier_import
-               - self.variables["flow_export"]*biodiversity_intensity_carrier_export))
+        biodiversity_intensity_carrier_import = (
+            self.parameters.biodiversity_intensity_carrier_import.broadcast_like(times)
+            * times
+        ).sum("set_time_steps_yearly")
+        biodiversity_intensity_carrier_export = (
+            self.parameters.biodiversity_intensity_carrier_export.broadcast_like(times)
+            * times
+        ).sum("set_time_steps_yearly")
+        lhs = self.variables["biodiversity_emissions_carrier"] - (
+            self.variables["flow_import"] * biodiversity_intensity_carrier_import
+            - self.variables["flow_export"] * biodiversity_intensity_carrier_export
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_biodiversity_emissions_carrier",constraints)
+        self.constraints.add_constraint(
+            "constraint_biodiversity_emissions_carrier", constraints
+        )
 
     def constraint_biodiversity_emissions_carrier_total(self):
-        """ total biodiversity impact of importing and exporting carrier
+        """total biodiversity impact of importing and exporting carrier
 
         .. math::
             E_y^{\\mathcal{C}} = \\sum_{c\\in\\mathcal{C}}\\sum_{n\\in\\mathcal{N}}\\sum_{t\\in\\mathcal{T}} \\tau_t \\kappa_{c,n,t}^{\\mathrm{biodiversity,carrier}}
@@ -1152,16 +1282,22 @@ class CarrierRules(GenericRule):
 
         """
         term_summed_biodiversity_emissions_carrier = (
-                self.variables["biodiversity_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
-            ["set_carriers", "set_nodes", "set_time_steps_operation"])
-        lhs = self.variables["biodiversity_emissions_carrier_total"] - term_summed_biodiversity_emissions_carrier
+            self.variables["biodiversity_emissions_carrier"]
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = (
+            self.variables["biodiversity_emissions_carrier_total"]
+            - term_summed_biodiversity_emissions_carrier
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_biodiversity_emissions_carrier_total",constraints)
+        self.constraints.add_constraint(
+            "constraint_biodiversity_emissions_carrier_total", constraints
+        )
 
     def constraint_gwp100_emissions_carrier(self):
-        """ gwp100 emissions of importing and exporting carrier
+        """gwp100 emissions of importing and exporting carrier
 
         .. math::
            \\kappa_{c,n,t}^{\\mathrm{gwp100,carrier}} = \\underline{\\epsilon_c} \\underline{U}_{c,n,t} - \\overline{\\epsilon_c} \\overline{U}_{c,n,t}
@@ -1176,18 +1312,27 @@ class CarrierRules(GenericRule):
         # create times xarray with 1 where the operation time step is in the year
         times = self.get_year_time_step_array()
         # convert the gwp100 intensity carrier from yearly to operation time steps
-        gwp100_intensity_carrier_import = (self.parameters.gwp100_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        gwp100_intensity_carrier_export = (self.parameters.gwp100_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        lhs = (self.variables["gwp100_emissions_carrier"]
-               - (self.variables["flow_import"]*gwp100_intensity_carrier_import
-               - self.variables["flow_export"]*gwp100_intensity_carrier_export))
+        gwp100_intensity_carrier_import = (
+            self.parameters.gwp100_intensity_carrier_import.broadcast_like(times)
+            * times
+        ).sum("set_time_steps_yearly")
+        gwp100_intensity_carrier_export = (
+            self.parameters.gwp100_intensity_carrier_export.broadcast_like(times)
+            * times
+        ).sum("set_time_steps_yearly")
+        lhs = self.variables["gwp100_emissions_carrier"] - (
+            self.variables["flow_import"] * gwp100_intensity_carrier_import
+            - self.variables["flow_export"] * gwp100_intensity_carrier_export
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_gwp100_emissions_carrier",constraints)
+        self.constraints.add_constraint(
+            "constraint_gwp100_emissions_carrier", constraints
+        )
 
     def constraint_gwp100_emissions_carrier_total(self):
-        """ total gwp100 emissions of importing and exporting carrier
+        """total gwp100 emissions of importing and exporting carrier
 
         .. math::
             E_y^{\\mathcal{C}} = \\sum_{c\\in\\mathcal{C}}\\sum_{n\\in\\mathcal{N}}\\sum_{t\\in\\mathcal{T}} \\tau_t \\kappa_{c,n,t}^{\\mathrm{gwp100,carrier}}
@@ -1197,16 +1342,22 @@ class CarrierRules(GenericRule):
 
         """
         term_summed_gwp100_emissions_carrier = (
-                self.variables["gwp100_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
-            ["set_carriers", "set_nodes", "set_time_steps_operation"])
-        lhs = self.variables["gwp100_emissions_carrier_total"] - term_summed_gwp100_emissions_carrier
+            self.variables["gwp100_emissions_carrier"]
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = (
+            self.variables["gwp100_emissions_carrier_total"]
+            - term_summed_gwp100_emissions_carrier
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_gwp100_emissions_carrier_total",constraints)
+        self.constraints.add_constraint(
+            "constraint_gwp100_emissions_carrier_total", constraints
+        )
 
     def constraint_methane_emissions_carrier(self):
-        """ methane emissions of importing and exporting carrier
+        """methane emissions of importing and exporting carrier
 
         .. math::
            \\kappa_{c,n,t}^{\\mathrm{methane,carrier}} = \\underline{\\epsilon_c} \\underline{U}_{c,n,t} - \\overline{\\epsilon_c} \\overline{U}_{c,n,t}
@@ -1221,18 +1372,27 @@ class CarrierRules(GenericRule):
         # create times xarray with 1 where the operation time step is in the year
         times = self.get_year_time_step_array()
         # convert the methane intensity carrier from yearly to operation time steps
-        methane_intensity_carrier_import = (self.parameters.methane_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        methane_intensity_carrier_export = (self.parameters.methane_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        lhs = (self.variables["methane_emissions_carrier"]
-               - (self.variables["flow_import"]*methane_intensity_carrier_import
-               - self.variables["flow_export"]*methane_intensity_carrier_export))
+        methane_intensity_carrier_import = (
+            self.parameters.methane_intensity_carrier_import.broadcast_like(times)
+            * times
+        ).sum("set_time_steps_yearly")
+        methane_intensity_carrier_export = (
+            self.parameters.methane_intensity_carrier_export.broadcast_like(times)
+            * times
+        ).sum("set_time_steps_yearly")
+        lhs = self.variables["methane_emissions_carrier"] - (
+            self.variables["flow_import"] * methane_intensity_carrier_import
+            - self.variables["flow_export"] * methane_intensity_carrier_export
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_methane_emissions_carrier",constraints)
+        self.constraints.add_constraint(
+            "constraint_methane_emissions_carrier", constraints
+        )
 
     def constraint_methane_emissions_carrier_total(self):
-        """ total methane emissions of importing and exporting carrier
+        """total methane emissions of importing and exporting carrier
 
         .. math::
             E_y^{\\mathcal{C}} = \\sum_{c\\in\\mathcal{C}}\\sum_{n\\in\\mathcal{N}}\\sum_{t\\in\\mathcal{T}} \\tau_t \\kappa_{c,n,t}^{\\mathrm{methane,carrier}}
@@ -1242,16 +1402,22 @@ class CarrierRules(GenericRule):
 
         """
         term_summed_methane_emissions_carrier = (
-                self.variables["methane_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
-            ["set_carriers", "set_nodes", "set_time_steps_operation"])
-        lhs = self.variables["methane_emissions_carrier_total"] - term_summed_methane_emissions_carrier
+            self.variables["methane_emissions_carrier"]
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = (
+            self.variables["methane_emissions_carrier_total"]
+            - term_summed_methane_emissions_carrier
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_methane_emissions_carrier_total",constraints)
+        self.constraints.add_constraint(
+            "constraint_methane_emissions_carrier_total", constraints
+        )
 
     def constraint_nitrous_emissions_carrier(self):
-        """ nitrous emissions of importing and exporting carrier
+        """nitrous emissions of importing and exporting carrier
 
         .. math::
            \\kappa_{c,n,t}^{\\mathrm{nitrous,carrier}} = \\underline{\\epsilon_c} \\underline{U}_{c,n,t} - \\overline{\\epsilon_c} \\overline{U}_{c,n,t}
@@ -1266,18 +1432,27 @@ class CarrierRules(GenericRule):
         # create times xarray with 1 where the operation time step is in the year
         times = self.get_year_time_step_array()
         # convert the nitrous intensity carrier from yearly to operation time steps
-        nitrous_intensity_carrier_import = (self.parameters.nitrous_intensity_carrier_import.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        nitrous_intensity_carrier_export = (self.parameters.nitrous_intensity_carrier_export.broadcast_like(times) * times).sum("set_time_steps_yearly")
-        lhs = (self.variables["nitrous_emissions_carrier"]
-               - (self.variables["flow_import"]*nitrous_intensity_carrier_import
-               - self.variables["flow_export"]*nitrous_intensity_carrier_export))
+        nitrous_intensity_carrier_import = (
+            self.parameters.nitrous_intensity_carrier_import.broadcast_like(times)
+            * times
+        ).sum("set_time_steps_yearly")
+        nitrous_intensity_carrier_export = (
+            self.parameters.nitrous_intensity_carrier_export.broadcast_like(times)
+            * times
+        ).sum("set_time_steps_yearly")
+        lhs = self.variables["nitrous_emissions_carrier"] - (
+            self.variables["flow_import"] * nitrous_intensity_carrier_import
+            - self.variables["flow_export"] * nitrous_intensity_carrier_export
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_nitrous_emissions_carrier",constraints)
+        self.constraints.add_constraint(
+            "constraint_nitrous_emissions_carrier", constraints
+        )
 
     def constraint_nitrous_emissions_carrier_total(self):
-        """ total nitrous emissions of importing and exporting carrier
+        """total nitrous emissions of importing and exporting carrier
 
         .. math::
             E_y^{\\mathcal{C}} = \\sum_{c\\in\\mathcal{C}}\\sum_{n\\in\\mathcal{N}}\\sum_{t\\in\\mathcal{T}} \\tau_t \\kappa_{c,n,t}^{\\mathrm{nitrous,carrier}}
@@ -1287,10 +1462,16 @@ class CarrierRules(GenericRule):
 
         """
         term_summed_nitrous_emissions_carrier = (
-                self.variables["nitrous_emissions_carrier"] * self.get_year_time_step_duration_array()).sum(
-            ["set_carriers", "set_nodes", "set_time_steps_operation"])
-        lhs = self.variables["nitrous_emissions_carrier_total"] - term_summed_nitrous_emissions_carrier
+            self.variables["nitrous_emissions_carrier"]
+            * self.get_year_time_step_duration_array()
+        ).sum(["set_carriers", "set_nodes", "set_time_steps_operation"])
+        lhs = (
+            self.variables["nitrous_emissions_carrier_total"]
+            - term_summed_nitrous_emissions_carrier
+        )
         rhs = 0
         constraints = lhs == rhs
 
-        self.constraints.add_constraint("constraint_nitrous_emissions_carrier_total",constraints)
+        self.constraints.add_constraint(
+            "constraint_nitrous_emissions_carrier_total", constraints
+        )

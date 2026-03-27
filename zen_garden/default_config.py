@@ -172,9 +172,7 @@ class Solver(Subscriptable):
     save_parameters: bool = True
     selected_saved_parameters: list = []  # if empty, all parameters are saved
     selected_saved_variables: list = []  # if empty, all variables are saved
-    selected_saved_duals: list = (
-        []
-    )  # if empty, all duals are saved (if save_duals is True)
+    selected_saved_duals: list = []  # if empty, all duals are saved (if save_duals is True)
     linear_regression_check: dict[str, float] = {
         "eps_intercept": 0.1,
         "epsRvalue": 1 - (1e-5),
@@ -212,7 +210,9 @@ class Analysis(Subscriptable):
     """
 
     dataset: str = ""
-    objective: Literal["total_cost", "total_carbon_emissions", "total_food", "total_energy"] = "total_cost"
+    objective: Literal[
+        "total_cost", "total_carbon_emissions", "total_food", "total_energy"
+    ] = "total_cost"
     sense: str = "min"
     subsets: Subsets = Subsets()
     header_data_inputs: HeaderDataInputs = HeaderDataInputs()

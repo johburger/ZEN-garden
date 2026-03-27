@@ -179,7 +179,6 @@ class Scenario:
             return {}
 
     def _read_ureg(self) -> pint.UnitRegistry:
-
         # suppress pint output about redefining units
         logging.getLogger("pint").setLevel(logging.ERROR)
         # load ureg
@@ -213,7 +212,7 @@ class Scenario:
 
     def convert_year2ts(self, year: int) -> int:
         """Converts the year to the corresponding time step."""
-        assert isinstance(year, int), f"Year must be an integer, not " f"{type(year)}."
+        assert isinstance(year, int), f"Year must be an integer, not {type(year)}."
         ry = self.system.reference_year
         del_y = self.system.interval_between_years
         all_years = [ry + i * del_y for i in range(self.system.optimized_years)]
@@ -224,7 +223,7 @@ class Scenario:
         ):
             warnings.warn(
                 f"Selecting the yearly time steps ({year}) instead of the "
-                f"actual year ({ry + del_y*year}) is deprecated. Please use "
+                f"actual year ({ry + del_y * year}) is deprecated. Please use "
                 "the actual year.",
                 DeprecationWarning,
                 stacklevel=2,
@@ -851,7 +850,7 @@ def get_doc(h5_file: h5py.File, component_name: str, version: str) -> str:
         doc = h5_file[component_name].attrs["docstring"].decode()
     if ";" in doc and ":" in doc:
         doc = "\n".join(
-            [f'{v.split(":")[0]}: {v.split(":")[1]}' for v in doc.split(";")]
+            [f"{v.split(':')[0]}: {v.split(':')[1]}" for v in doc.split(";")]
         )
     return doc
 
@@ -954,8 +953,8 @@ def _get_time_steps_file(scenario):
         if "dict_all_sequence_time_steps" in i and ".lock" not in i
     ]
     time_steps_file_name = np.unique(time_steps_file_name)
-    assert (
-        len(time_steps_file_name) == 1
-    ), f"Multiple time steps files found: {time_steps_file_name}"
+    assert len(time_steps_file_name) == 1, (
+        f"Multiple time steps files found: {time_steps_file_name}"
+    )
     time_steps_file_name = time_steps_file_name[0]
     return time_steps_file_name

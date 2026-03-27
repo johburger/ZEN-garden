@@ -79,9 +79,21 @@ class ConversionTechnology(Technology):
             time_steps="set_time_steps_yearly",
             unit_category={},
         )
-        self.area_requirement = self.data_input.extract_input_data("area_requirement", index_sets=["set_nodes"], unit_category={"distance": 2, "energy_quantity": -1, "time": 1})
-        self.cost_activity_change = self.data_input.extract_input_data("cost_activity_change", index_sets=["set_nodes"], unit_category={"energy_quantity": -1, "time": 1})
-        self.cost_supplementary_activity = self.data_input.extract_input_data("cost_supplementary_activity", index_sets=["set_nodes"], unit_category={"energy_quantity": -1, "time": 1})
+        self.area_requirement = self.data_input.extract_input_data(
+            "area_requirement",
+            index_sets=["set_nodes"],
+            unit_category={"distance": 2, "energy_quantity": -1, "time": 1},
+        )
+        self.cost_activity_change = self.data_input.extract_input_data(
+            "cost_activity_change",
+            index_sets=["set_nodes"],
+            unit_category={"energy_quantity": -1, "time": 1},
+        )
+        self.cost_supplementary_activity = self.data_input.extract_input_data(
+            "cost_supplementary_activity",
+            index_sets=["set_nodes"],
+            unit_category={"energy_quantity": -1, "time": 1},
+        )
         # self.convert_to_fraction_of_capex()
 
     def get_conversion_factor(self):
@@ -298,13 +310,25 @@ class ConversionTechnology(Technology):
             calling_class=cls,
         )
         # area of capacity
-        optimization_setup.parameters.add_parameter(name="area_requirement", index_names=["set_conversion_technologies", "set_nodes"],
-            doc="Parameter which specifies the area occupation per installed capacity", calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="area_requirement",
+            index_names=["set_conversion_technologies", "set_nodes"],
+            doc="Parameter which specifies the area occupation per installed capacity",
+            calling_class=cls,
+        )
         # social cost for agriculture model
-        optimization_setup.parameters.add_parameter(name="cost_activity_change", index_names=["set_conversion_technologies", "set_nodes"],
-            doc="Parameters specifying social cost for activity_change for agriculture model.", calling_class=cls)
-        optimization_setup.parameters.add_parameter(name="cost_supplementary_activity", index_names=["set_conversion_technologies", "set_nodes"],
-            doc="Parameters specifying social cost for supplementary_activity for agriculture model.", calling_class=cls)
+        optimization_setup.parameters.add_parameter(
+            name="cost_activity_change",
+            index_names=["set_conversion_technologies", "set_nodes"],
+            doc="Parameters specifying social cost for activity_change for agriculture model.",
+            calling_class=cls,
+        )
+        optimization_setup.parameters.add_parameter(
+            name="cost_supplementary_activity",
+            index_names=["set_conversion_technologies", "set_nodes"],
+            doc="Parameters specifying social cost for supplementary_activity for agriculture model.",
+            calling_class=cls,
+        )
 
         # add params of the child classes
         for subclass in cls.__subclasses__():
@@ -743,10 +767,28 @@ class ConversionTechnologyRules(GenericRule):
             ),
         )
         # additional impact categories
-        term_reference_flow_biodiversity_emissions = self.get_flow_expression_conversion(techs, nodes,
-                                                                                         factor=self.parameters.biodiversity_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
-        term_reference_flow_gwp100_emissions = self.get_flow_expression_conversion(techs, nodes,
-                                                                                   factor=self.parameters.gwp100_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
+        term_reference_flow_biodiversity_emissions = (
+            self.get_flow_expression_conversion(
+                techs,
+                nodes,
+                factor=self.parameters.biodiversity_intensity_technology.rename(
+                    {
+                        "set_technologies": "set_conversion_technologies",
+                        "set_location": "set_nodes",
+                    }
+                ),
+            )
+        )
+        term_reference_flow_gwp100_emissions = self.get_flow_expression_conversion(
+            techs,
+            nodes,
+            factor=self.parameters.gwp100_intensity_technology.rename(
+                {
+                    "set_technologies": "set_conversion_technologies",
+                    "set_location": "set_nodes",
+                }
+            ),
+        )
         # term_reference_flow_methane_emissions = self.get_flow_expression_conversion(techs, nodes,
         #     factor=self.parameters.methane_intensity_technology.rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}))
         # term_reference_flow_nitrous_emissions = self.get_flow_expression_conversion(techs, nodes,
@@ -768,8 +810,22 @@ class ConversionTechnologyRules(GenericRule):
                 "set_location": "set_nodes",
             }
         ) - term_reference_flow_emissions
-        lhs_biodiversity_emissions = ((1*self.variables["biodiversity_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_biodiversity_emissions)
-        lhs_gwp100_emissions = ((1*self.variables["gwp100_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_gwp100_emissions)
+        lhs_biodiversity_emissions = (
+            1 * self.variables["biodiversity_emissions_technology"].loc[techs, nodes, :]
+        ).rename(
+            {
+                "set_technologies": "set_conversion_technologies",
+                "set_location": "set_nodes",
+            }
+        ) - term_reference_flow_biodiversity_emissions
+        lhs_gwp100_emissions = (
+            1 * self.variables["gwp100_emissions_technology"].loc[techs, nodes, :]
+        ).rename(
+            {
+                "set_technologies": "set_conversion_technologies",
+                "set_location": "set_nodes",
+            }
+        ) - term_reference_flow_gwp100_emissions
         # lhs_methane_emissions = ((1*self.variables["methane_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_methane_emissions)
         # lhs_nitrous_emissions = ((1*self.variables["nitrous_emissions_technology"].loc[techs, nodes, :]).rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"}) - term_reference_flow_nitrous_emissions)
 
@@ -787,9 +843,17 @@ class ConversionTechnologyRules(GenericRule):
         self.constraints.add_constraint(
             "constraint_carbon_emissions_technology_conversion", constraints_emissions
         )
-        self.constraints.add_constraint("constraint_carbon_emissions_technology_conversion", constraints_emissions)
-        self.constraints.add_constraint("constraint_biodiversity_emissions_technology_conversion", constraints_biodiversity_emissions)
-        self.constraints.add_constraint("constraint_gwp100_emissions_technology_conversion", constraints_gwp100_emissions)
+        self.constraints.add_constraint(
+            "constraint_carbon_emissions_technology_conversion", constraints_emissions
+        )
+        self.constraints.add_constraint(
+            "constraint_biodiversity_emissions_technology_conversion",
+            constraints_biodiversity_emissions,
+        )
+        self.constraints.add_constraint(
+            "constraint_gwp100_emissions_technology_conversion",
+            constraints_gwp100_emissions,
+        )
         # self.constraints.add_constraint("constraint_methane_emissions_technology_conversion", constraints_methane_emissions)
         # self.constraints.add_constraint("constraint_nitrous_emissions_technology_conversion", constraints_nitrous_emissions)
 
@@ -987,7 +1051,6 @@ class ConversionTechnologyRules(GenericRule):
         self.constraints.add_constraint("constraint_carrier_conversion", constraints)
 
     def constraint_area_requirement(self):
-
         # get the mask for area requirements which is zero
         mask_occupation = self.parameters.area_requirement == 0
         mask_area = self.parameters.area_of_nodes == np.inf
@@ -996,8 +1059,19 @@ class ConversionTechnologyRules(GenericRule):
 
         techs = self.sets["set_conversion_technologies"]
         nodes = self.sets["set_nodes"]
-        term_capacity = self.variables["capacity"].loc[techs, "power", nodes].rename({"set_technologies": "set_conversion_technologies", "set_location": "set_nodes"})
-        term_capacity *= self.parameters.area_requirement.broadcast_like(term_capacity.lower)
+        term_capacity = (
+            self.variables["capacity"]
+            .loc[techs, "power", nodes]
+            .rename(
+                {
+                    "set_technologies": "set_conversion_technologies",
+                    "set_location": "set_nodes",
+                }
+            )
+        )
+        term_capacity *= self.parameters.area_requirement.broadcast_like(
+            term_capacity.lower
+        )
         lhs = term_capacity.sum("set_conversion_technologies")
         rhs = self.parameters.area_of_nodes.broadcast_like(lhs.const)
         constraints = lhs <= rhs
@@ -1005,25 +1079,58 @@ class ConversionTechnologyRules(GenericRule):
         self.constraints.add_constraint("constraint_area_requirement", constraints)
 
     def constraint_social_cost(self):
-
-        mask_technology_type = pd.Series(index=xr.DataArray(self.sets["set_technologies"]), data=0)
+        mask_technology_type = pd.Series(
+            index=xr.DataArray(self.sets["set_technologies"]), data=0
+        )
         mask_technology_type.index.name = "set_technologies"
-        mask_technology_type[mask_technology_type.index.isin(self.sets["set_conversion_technologies"])] = 1
+        mask_technology_type[
+            mask_technology_type.index.isin(self.sets["set_conversion_technologies"])
+        ] = 1
         mask_technology_type = mask_technology_type.to_xarray()
 
-        capacity_addition = self.variables['capacity_addition'].where(mask_technology_type)
+        capacity_addition = self.variables["capacity_addition"].where(
+            mask_technology_type
+        )
         cost_activity_change = self.parameters.cost_activity_change.rename(
-            {'set_conversion_technologies': 'set_technologies', 'set_nodes': 'set_location'}).broadcast_like(capacity_addition.lower)
-        cost_supplementary_activity = self.parameters.cost_supplementary_activity.rename(
-            {'set_conversion_technologies': 'set_technologies', 'set_nodes': 'set_location'}).broadcast_like(capacity_addition.lower)
-        lhs_ac = (capacity_addition * cost_activity_change).sum('set_technologies').sum('set_location')
+            {
+                "set_conversion_technologies": "set_technologies",
+                "set_nodes": "set_location",
+            }
+        ).broadcast_like(capacity_addition.lower)
+        cost_supplementary_activity = (
+            self.parameters.cost_supplementary_activity.rename(
+                {
+                    "set_conversion_technologies": "set_technologies",
+                    "set_nodes": "set_location",
+                }
+            ).broadcast_like(capacity_addition.lower)
+        )
+        lhs_ac = (
+            (capacity_addition * cost_activity_change)
+            .sum("set_technologies")
+            .sum("set_location")
+        )
         rhs_ac = self.parameters.activity_change_limit
-        lhs_sa = (capacity_addition * cost_supplementary_activity).sum('set_technologies').sum('set_location')
+        lhs_sa = (
+            (capacity_addition * cost_supplementary_activity)
+            .sum("set_technologies")
+            .sum("set_location")
+        )
         rhs_sa = self.parameters.supplementary_activity_limit
 
-        if not ((self.parameters.cost_activity_change == 0).all() or (self.parameters.activity_change_limit == np.inf)):
+        if not (
+            (self.parameters.cost_activity_change == 0).all()
+            or (self.parameters.activity_change_limit == np.inf)
+        ):
             constraints_ac = lhs_ac <= rhs_ac
-            self.constraints.add_constraint("constraint_activity_change", constraints_ac)
-        if not ((self.parameters.cost_supplementary_activity == 0).all() or (self.parameters.supplementary_activity_limit == np.inf)):
+            self.constraints.add_constraint(
+                "constraint_activity_change", constraints_ac
+            )
+        if not (
+            (self.parameters.cost_supplementary_activity == 0).all()
+            or (self.parameters.supplementary_activity_limit == np.inf)
+        ):
             constraints_sa = lhs_sa <= rhs_sa
-            self.constraints.add_constraint("constraint_supplementary_activity", constraints_sa)
+            self.constraints.add_constraint(
+                "constraint_supplementary_activity", constraints_sa
+            )

@@ -487,9 +487,9 @@ class GenericRule(object):
         :param array: xarray to map and expand
         :param mapping: pd.Series with mapping values
         """
-        assert isinstance(mapping, pd.Series) or isinstance(
-            mapping.index, pd.Index
-        ), "Mapping must be a pd.Series or with a single-level pd.Index"
+        assert isinstance(mapping, pd.Series) or isinstance(mapping.index, pd.Index), (
+            "Mapping must be a pd.Series or with a single-level pd.Index"
+        )
         # get mapping values
         array = array.sel({mapping.name: mapping.values})
         # rename

@@ -222,9 +222,9 @@ class TimeStepsDicts(object):
         counter = 0
         time_steps_start = []
         time_steps_end = []
-        assert (
-            system.interval_between_years == 1 or not system.multiyear_periodicity
-        ), "The interval between years should be 1 for multiyear storage periodicity."
+        assert system.interval_between_years == 1 or not system.multiyear_periodicity, (
+            "The interval between years should be 1 for multiyear storage periodicity."
+        )
         if not system.multiyear_periodicity:
             while counter < len(sequence_time_steps):
                 time_steps_start.append(sequence_time_steps[counter])

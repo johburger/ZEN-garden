@@ -186,9 +186,7 @@ class DataInput:
             df_input, time_steps, file_name, index_name_list
         )
 
-        assert df_input.columns is not None, (
-            f"Input file '{file_name}' has " "no columns"
-        )
+        assert df_input.columns is not None, f"Input file '{file_name}' has no columns"
         # set index by index_name_list
         missing_index = list(
             set(index_name_list)
@@ -393,9 +391,9 @@ class DataInput:
             attribute_name, attribute_dict
         )
         if subelement is not None:
-            assert (
-                subelement in attribute_value.keys()
-            ), f"{subelement} not in {attribute_name} of {self.element.name}"
+            assert subelement in attribute_value.keys(), (
+                f"{subelement} not in {attribute_name} of {self.element.name}"
+            )
             attribute_unit = attribute_value[subelement]["unit"]
             attribute_value = attribute_value[subelement]["default_value"]
         if return_unit:
@@ -587,12 +585,12 @@ class DataInput:
                     try:
                         self.optimization_setup.year_specific_ts[i][
                             (self.element._name, file_name)
-                        ] = (df_output_specific * scenario_factor)
+                        ] = df_output_specific * scenario_factor
                     except Exception:
                         self.optimization_setup.year_specific_ts[i] = {}
                         self.optimization_setup.year_specific_ts[i][
                             (self.element._name, file_name)
-                        ] = (df_output_specific * scenario_factor)
+                        ] = df_output_specific * scenario_factor
 
     def extract_yearly_variation(self, file_name, index_sets):
         """Reads the yearly variation of a time dependent quantity.
@@ -852,9 +850,9 @@ class DataInput:
             breakpoints = df_input_nonlinear[breakpoint_variable].to_list()
 
             pwa_dict[breakpoint_variable] = breakpoints
-            pwa_dict["pwa_variables"] = (
-                []
-            )  # select only those variables that are modeled as pwa
+            pwa_dict[
+                "pwa_variables"
+            ] = []  # select only those variables that are modeled as pwa
             pwa_dict["bounds"] = {}  # save bounds of variables
             linear_dict = {}
             # min and max total capacity of technology

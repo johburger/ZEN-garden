@@ -121,7 +121,7 @@ class Postprocess:
         # check whether valid mode
         if mode not in ["a", "w"]:
             ValueError(
-                f"Invalid file write mode {mode} (valid options are 'a' or " "'w')."
+                f"Invalid file write mode {mode} (valid options are 'a' or 'w')."
             )
 
         # set the format
@@ -332,7 +332,6 @@ class Postprocess:
         # dataframe serialization
         data_frames = {}
         for name, arr in self.model.solution.items():
-
             # skip variables not selected to be saved
             if (
                 self.solver.selected_saved_variables
@@ -380,7 +379,6 @@ class Postprocess:
         # dataframe serialization
         data_frames = {}
         for name in self.model.constraints:
-
             arr = self.model.constraints[name].dual
 
             # skip variables not selected to be saved
@@ -680,7 +678,7 @@ class Postprocess:
                 return units
             else:
                 raise AssertionError(
-                    "The length of the units does not match the length of the " "index"
+                    "The length of the units does not match the length of the index"
                 )
         else:
             return None
@@ -698,8 +696,7 @@ class Postprocess:
         """
         if mode == "w" and not self.overwrite and os.path.exists(file_name):
             raise FileExistsError(
-                "File already exists. Please set overwrite=True to overwrite "
-                "the file."
+                "File already exists. Please set overwrite=True to overwrite the file."
             )
         with pd.HDFStore(
             file_name, mode=mode, complevel=complevel, complib=complib
@@ -748,13 +745,12 @@ class Postprocess:
             docstring = None
         if "units" in input_dict:
             units = input_dict["units"]
-            assert isinstance(
-                units, pd.Series
-            ), f"Units must be a pandas Series, but is {type(units)}"
+            assert isinstance(units, pd.Series), (
+                f"Units must be a pandas Series, but is {type(units)}"
+            )
             df = input_dict["dataframe"]
             assert units.index.intersection(df.index).equals(units.index), (
-                f"Units index {units.index} does not match dataframe "
-                f"index {df.index}"
+                f"Units index {units.index} does not match dataframe index {df.index}"
             )
             units.name = "units"
             has_units = True
@@ -766,6 +762,6 @@ class Postprocess:
             or set(input_dict.keys()) == set(expected_keys).union(["units"])
         ):
             raise ValueError(
-                f"Expected keys are {expected_keys}, but got " f"{input_dict.keys()}"
+                f"Expected keys are {expected_keys}, but got {input_dict.keys()}"
             )
         return input_dict, units, docstring, has_units

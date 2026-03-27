@@ -45,8 +45,7 @@ def validate_inputs(
     folder_output = Path(folder_output)
     if not (folder_output / dataset.name).exists():
         raise FileNotFoundError(
-            f"Results for dataset {dataset} do not exist"
-            f" in the folder {folder_output}."
+            f"Results for dataset {dataset} do not exist in the folder {folder_output}."
         )
 
     if job_index is None:
