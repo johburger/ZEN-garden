@@ -3,6 +3,37 @@
 This file gets automatically updated in ZEN-garden's continuous integration 
 procedures. Do not edit the file manually.
 
+## [v2.9.8] - 2026-03-27 
+
+### Bug Fixes 🐛
+- remove lines causing TypeError in ZEN-temple [[🔀 PR #1233](https://github.com/ZEN-universe/ZEN-garden/pull/1233) @manud99]
+
+### Documentation Changes 📝
+- fix tuorial on adding technologies and carriers. The exercise questions previously did not match the solution. [[🔀 PR #1232](https://github.com/ZEN-universe/ZEN-garden/pull/1232) @jojoethz]
+- update the contribution guide to include new rules on formatting and linting. [[🔀 PR #1234](https://github.com/ZEN-universe/ZEN-garden/pull/1234) @csfunke]
+- create a new section in the developer guide on testing. [[🔀 PR #1234](https://github.com/ZEN-universe/ZEN-garden/pull/1234) @csfunke]
+- add warnings and link to Python. New Python users find a link to Python.org. Also added warnings for the following issues: File paths that exceed 260 characters may lead to errors with Windows and special characters are not compatible with ZEN-garden. [[🔀 PR #1228](https://github.com/ZEN-universe/ZEN-garden/pull/1228) @johburger]
+
+### Maintenance Tasks 🧹
+- remove test dataset that was accidentally pushed to the ZEN-garden root directory. [[🔀 PR #1239](https://github.com/ZEN-universe/ZEN-garden/pull/1239) @csfunke]
+
+## [v2.9.7] - 2026-02-10 
+
+### Bug Fixes 🐛
+- make the solver dir path relative to the config path, not the cwd. [[🔀 PR #1226](https://github.com/ZEN-universe/ZEN-garden/pull/1226) @jacob-mannhardt]
+
+### Documentation Changes 📝
+- Format docstrings so that equations and line breaks are consistent. Also replace `\mathrm{}` for text within equations with `\text{}` [[🔀 PR #1224](https://github.com/ZEN-universe/ZEN-garden/pull/1224) @johburger]
+
+## [v2.9.6] - 2026-02-09 
+
+### Bug Fixes 🐛
+- Fixes bug when data folder is not in the cwd but in a different location. Allows the path to be different and saves the results there. [[🔀 PR #1222](https://github.com/ZEN-universe/ZEN-garden/pull/1222) @jacob-mannhardt]
+
+### Maintenance Tasks 🧹
+- reformat and lint ZEN-garden code to match style guidelines. The code now passes checks from the formatter ``Black`` and the linter ``Ruff``. [[🔀 PR #1220](https://github.com/ZEN-universe/ZEN-garden/pull/1220) @csfunke]
+- enforce code formatting (via ``Black``) and linting (via ``Ruff``). All future pull requests must pass these checks to be eligible for merge into the ``main`` branch of ZEN-garden. These checks can be tested locally in a terminal by (i) activating the ZEN-garden environment, (ii) navigating the the ZEN-garden root folder, and (iii) typing ``black .`` and ``ruff --check .`` . [[🔀 PR #1220](https://github.com/ZEN-universe/ZEN-garden/pull/1220) @csfunke]
+
 ## [v2.9.5] - 2026-02-06 
 
 ### Bug Fixes 🐛
@@ -104,4 +135,4 @@ procedures. Do not edit the file manually.
 
 ## [v0.1.0] - [v2.8.4]
 
-No release notes exist for ZEN garden versions 0.1.0 -> 2.8.4 are unavailable.
+No release notes exist for ZEN garden versions 0.1.0 -> 2.8.4.

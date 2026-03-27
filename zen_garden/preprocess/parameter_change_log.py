@@ -2,7 +2,7 @@ def parameter_change_log():
     log_dict = {
         "min_full_load_hours_fraction": {
             "default_value": 0,  # only 0, 1, or 'inf' are allowed
-            "unit": "min_load"
+            "unit": "min_load",
         },
         "min_energy_production": {
             "default_value": 0,
