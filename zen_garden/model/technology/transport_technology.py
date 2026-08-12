@@ -1,4 +1,4 @@
-"""Class defining the parameters, variables and constraints that hold for all transport
+﻿"""Class defining the parameters, variables and constraints that hold for all transport
 technologies. The class takes the abstract optimization model as an input, and returns
 the parameters, variables and constraints that hold for the transport technologies.
 """
@@ -137,8 +137,8 @@ class TransportTechnology(Technology):
                 )
                 self.capex_per_distance_transport = self.data_input.extract_input_data(
                     "capex_per_distance_transport",
-                    index_sets=["set_edges", "set_time_steps_yearly"],
-                    time_steps="set_time_steps_yearly",
+                    index_sets=["set_edges", "set_years"],
+                    time_steps="set_years",
                     unit_category={
                         "money": 1,
                         "energy_quantity": -1,
@@ -153,14 +153,14 @@ class TransportTechnology(Technology):
             else:
                 self.capex_specific_transport = self.data_input.extract_input_data(
                     "capex_specific_transport",
-                    index_sets=["set_edges", "set_time_steps_yearly"],
-                    time_steps="set_time_steps_yearly",
+                    index_sets=["set_edges", "set_years"],
+                    time_steps="set_years",
                     unit_category={"money": 1, "energy_quantity": -1, "time": 1},
                 )
                 self.capex_per_distance_transport = self.data_input.extract_input_data(
                     "capex_per_distance_transport",
-                    index_sets=["set_edges", "set_time_steps_yearly"],
-                    time_steps="set_time_steps_yearly",
+                    index_sets=["set_edges", "set_years"],
+                    time_steps="set_years",
                     unit_category={"money": 1, "distance": -1},
                 )
 
@@ -168,8 +168,7 @@ class TransportTechnology(Technology):
             if "capex_per_distance_transport" in self.data_input.attribute_dict:
                 self.capex_per_distance_transport = self.data_input.extract_input_data(
                     "capex_per_distance_transport",
-                    index_sets=["set_edges", "set_time_steps_yearly"],
-                    time_steps="set_time_steps_yearly",
+                    index_sets=["set_edges", "set_years"],
                     unit_category={
                         "money": 1,
                         "distance": -1,
@@ -183,8 +182,7 @@ class TransportTechnology(Technology):
             elif "capex_specific_transport" in self.data_input.attribute_dict:
                 self.capex_specific_transport = self.data_input.extract_input_data(
                     "capex_specific_transport",
-                    index_sets=["set_edges", "set_time_steps_yearly"],
-                    time_steps="set_time_steps_yearly",
+                    index_sets=["set_edges", "set_years"],
                     unit_category={"money": 1, "energy_quantity": -1, "time": 1},
                 )
             else:
@@ -197,7 +195,7 @@ class TransportTechnology(Technology):
         if "opex_specific_fixed_per_distance" in self.data_input.attribute_dict:
             self.opex_specific_fixed_per_distance = self.data_input.extract_input_data(
                 "opex_specific_fixed_per_distance",
-                index_sets=["set_edges", "set_time_steps_yearly"],
+                index_sets=["set_edges", "set_years"],
                 unit_category={
                     "money": 1,
                     "distance": -1,
@@ -211,8 +209,7 @@ class TransportTechnology(Technology):
         elif "opex_specific_fixed" in self.data_input.attribute_dict:
             self.opex_specific_fixed = self.data_input.extract_input_data(
                 "opex_specific_fixed",
-                index_sets=["set_edges", "set_time_steps_yearly"],
-                time_steps="set_time_steps_yearly",
+                index_sets=["set_edges", "set_years"],
                 unit_category={"money": 1, "energy_quantity": -1, "time": 1},
             )
         else:
@@ -314,7 +311,7 @@ class TransportTechnology(Technology):
             index_names=[
                 "set_transport_technologies",
                 "set_edges",
-                "set_time_steps_yearly",
+                "set_years",
             ],
             doc="capex per unit for transport technologies",
             calling_class=cls,
@@ -325,7 +322,7 @@ class TransportTechnology(Technology):
             index_names=[
                 "set_transport_technologies",
                 "set_edges",
-                "set_time_steps_yearly",
+                "set_years",
             ],
             doc="capex per distance for transport technologies",
             calling_class=cls,
@@ -669,7 +666,7 @@ class TransportTechnologyRules(GenericRule):
         """
         ### index sets
         index_values, index_list = Element.create_custom_set(
-            ["set_transport_technologies", "set_edges", "set_time_steps_yearly"],
+            ["set_transport_technologies", "set_edges", "set_years"],
             self.optimization_setup,
         )
         # check if we even need to continue
@@ -681,9 +678,7 @@ class TransportTechnologyRules(GenericRule):
                 "set_transport_technologies"
             ],
             self.parameters.capex_per_distance_transport.coords["set_edges"],
-            self.parameters.capex_per_distance_transport.coords[
-                "set_time_steps_yearly"
-            ],
+            self.parameters.capex_per_distance_transport.coords["set_years"],
         ]
 
         ### masks
