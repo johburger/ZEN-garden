@@ -777,7 +777,6 @@ class Variable(Component):
             "distance": "[length]",
             "time": "[time]",
             "emissions": "[mass]",
-            "biodiversity": "[biodiversity]",
         }
         for dim, dim_name in distinct_dims.items():
             if dim in unit_category:

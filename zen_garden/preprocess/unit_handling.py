@@ -1171,8 +1171,7 @@ class UnitHandling:
             "money": "[currency]",
             "distance": "[length]",
             "time": "[time]",
-            "emissions": "[mass]",
-            "biodiversity": "[biodiversity]",
+            "emissions": "[mass]"
         }
         unit = unit_specs["unit_in_base_units"]
         unit_category = unit_specs["unit_category"]

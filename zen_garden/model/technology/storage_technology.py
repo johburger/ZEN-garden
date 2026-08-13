@@ -535,22 +535,6 @@ class StorageTechnologyRules(GenericRule):
             self.parameters.carbon_intensity_technology
             * self.get_flow_expression_storage()
         )
-        lhs_biodiversity = self.variables["biodiversity_emissions_technology"].sel(
-            {"set_technologies": techs, "set_location": nodes}
-        ) - (
-            self.parameters.biodiversity_intensity_technology
-            * self.get_flow_expression_storage()
-        )
-        lhs_gwp100 = self.variables["gwp100_emissions_technology"].sel(
-            {"set_technologies": techs, "set_location": nodes}
-        ) - (
-            self.parameters.gwp100_intensity_technology
-            * self.get_flow_expression_storage()
-        )
-        # lhs_methane = (self.variables["methane_emissions_technology"].sel({"set_technologies": techs, "set_location": nodes})
-        #                - (self.parameters.methane_intensity_technology * self.get_flow_expression_storage()))
-        # lhs_nitrous = (self.variables["nitrous_emissions_technology"].sel({"set_technologies": techs, "set_location": nodes})
-        #                - (self.parameters.nitrous_intensity_technology * self.get_flow_expression_storage()))
 
         lhs_opex = lhs_opex.rename(
             {
@@ -564,27 +548,9 @@ class StorageTechnologyRules(GenericRule):
                 "set_location": "set_nodes",
             }
         )
-        lhs_biodiversity = lhs_biodiversity.rename(
-            {
-                "set_technologies": "set_storage_technologies",
-                "set_location": "set_nodes",
-            }
-        )
-        lhs_gwp100 = lhs_gwp100.rename(
-            {
-                "set_technologies": "set_storage_technologies",
-                "set_location": "set_nodes",
-            }
-        )
-        # lhs_methane = lhs_methane.rename({"set_technologies": "set_storage_technologies", "set_location": "set_nodes"})
-        # lhs_nitrous = lhs_nitrous.rename({"set_technologies": "set_storage_technologies", "set_location": "set_nodes"})
         rhs = 0
         constraints_opex = lhs_opex == rhs
         constraints_emissions = lhs_emissions == rhs
-        constraints_biodiversity = lhs_biodiversity == rhs
-        constraints_gwp100 = lhs_gwp100 == rhs
-        # constraints_methane = lhs_methane == rhs
-        # constraints_nitrous = lhs_nitrous == rhs
 
         self.constraints.add_constraint(
             "constraint_opex_technology_storage", constraints_opex
@@ -592,15 +558,6 @@ class StorageTechnologyRules(GenericRule):
         self.constraints.add_constraint(
             "constraint_carbon_emissions_technology_storage", constraints_emissions
         )
-        self.constraints.add_constraint(
-            "constraint_biodiversity_emissions_technology_storage",
-            constraints_biodiversity,
-        )
-        self.constraints.add_constraint(
-            "constraint_gwp100_emissions_technology_storage", constraints_gwp100
-        )
-        # self.constraints.add_constraint("constraint_methane_emissions_technology_storage", constraints_methane)
-        # self.constraints.add_constraint("constraint_nitrous_emissions_technology_storage", constraints_nitrous)
 
     def constraint_storage_level_max(self):
         """Limit maximum storage level to capacity.

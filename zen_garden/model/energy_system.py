@@ -154,17 +154,6 @@ class EnergySystem:
             index_sets=["set_years"],
             unit_category={"emissions": 1},
         )
-        # annual limits on additional impacts: biodiversity, gwp100, methane, nitrous
-        self.biodiversity_emissions_annual_limit = self.data_input.extract_input_data(
-            "biodiversity_emissions_annual_limit",
-            index_sets=["set_years"],
-            unit_category={"biodiversity": 1},
-        )
-        self.gwp100_emissions_annual_limit = self.data_input.extract_input_data(
-            "gwp100_emissions_annual_limit",
-            index_sets=["set_years"],
-            unit_category={"emissions": 1},
-        )
         _fraction_year = (
             self.system.unaggregated_time_steps_per_year
             / self.system.total_hours_per_year
@@ -472,19 +461,6 @@ class EnergySystem:
             "until the end of the entire time horizon",
             calling_class=cls,
         )
-        # additional impacts: biodiversity, gwp100, methane, nitrous
-        parameters.add_parameter(
-            name="biodiversity_emissions_annual_limit",
-            set_time_steps="set_years",
-            doc="Parameter which specifies the annual limit on biodiversity impact",
-            calling_class=cls,
-        )
-        parameters.add_parameter(
-            name="gwp100_emissions_annual_limit",
-            set_time_steps="set_years",
-            doc="Parameter which specifies the annual limit on all GWP100 affecting emissions",
-            calling_class=cls,
-        )
         # carbon emissions budget
         parameters.add_parameter(
             name="carbon_emissions_cumulative_existing",
@@ -593,44 +569,6 @@ class EnergySystem:
         #     doc="net_present_cost of energy system",
         #     unit_category={"money": 1},
         # )
-        # (cumulative) biodiversity impacts
-        variables.add_variable(
-            model,
-            name="biodiversity_emissions_annual",
-            index_sets=sets["set_years"],
-            doc="annual biodiversity impacts of energy system",
-            unit_category={"biodiversity": 1},
-        )
-        variables.add_variable(
-            model,
-            name="biodiversity_emissions_cumulative",
-            index_sets=sets["set_years"],
-            doc="cumulative biodiversity emissions of energy system over time for each year",
-            unit_category={"biodiversity": 1},
-        )
-        # (cumulative) GWP100 emissions
-        variables.add_variable(
-            model,
-            name="gwp100_emissions_annual",
-            index_sets=sets["set_years"],
-            doc="annual gwp100 emissions of energy system",
-            unit_category={"emissions": 1},
-        )
-        variables.add_variable(
-            model,
-            name="gwp100_emissions_cumulative",
-            index_sets=sets["set_years"],
-            doc="cumulative gwp100 emissions of energy system over time for each year",
-            unit_category={"emissions": 1},
-        )
-        # (cumulative) methane emissions
-        # variables.add_variable(model, name="methane_emissions_annual", index_sets=sets["set_years"], doc="annual methane emissions of energy system", unit_category={"emissions": 1})
-        # variables.add_variable(model, name="methane_emissions_cumulative", index_sets=sets["set_years"],
-        #                        doc="cumulative methane emissions of energy system over time for each year", unit_category={"emissions": 1})
-        # # (cumulative) nitrous emissions
-        # variables.add_variable(model, name="nitrous_emissions_annual", index_sets=sets["set_years"], doc="annual nitrous emissions of energy system", unit_category={"emissions": 1})
-        # variables.add_variable(model, name="nitrous_emissions_cumulative", index_sets=sets["set_years"],
-        #                        doc="cumulative nitrous emissions of energy system over time for each year", unit_category={"emissions": 1})
 
     def construct_constraints(self):
         """Constructs the constraints of the class <EnergySystem>."""
@@ -655,10 +593,6 @@ class EnergySystem:
 
         # cost of carbon emissions
         # self.rules.constraint_cost_carbon_emissions_total()
-
-        # additional impacts: biodiversity, gwp100, methane, nitrous
-        self.rules.constraint_additional_impact_emissions_annual()
-        self.rules.constraint_additional_impact_emissions_cumulative()
 
         # costs
         # self.rules.constraint_cost_total()
@@ -913,139 +847,6 @@ class EnergySystemRules(GenericRule):
         self.constraints.add_constraint(
             "constraint_carbon_emissions_annual", constraints
         )
-
-    def constraint_additional_impact_emissions_annual(self):
-        """add up all additional impacts from technologies and carriers and apply the time dependent annual limit
-
-        .. math::
-            E_y = E_{y,\\mathcal{H}} + E_{y,\\mathcal{C}} \n
-            E_y\\leq e_y
-
-        :math:`E_{y,\\mathcal{H}}`: `impact' emissions from technologies in year :math:`y` \n
-        :math:`E_{y,\\mathcal{C}}`: `impact' emissions from carriers in year :math
-
-        """
-
-        lhs_annual_biodiversity = (
-            self.variables["biodiversity_emissions_annual"]
-            - self.variables["biodiversity_emissions_technology_total"]
-            - self.variables["biodiversity_emissions_carrier_total"]
-        )
-        lhs_annual_gwp100 = (
-            self.variables["gwp100_emissions_annual"]
-            - self.variables["gwp100_emissions_technology_total"]
-            - self.variables["gwp100_emissions_carrier_total"]
-        )
-        # lhs_annual_methane = (self.variables["methane_emissions_annual"]
-        #        - self.variables["methane_emissions_technology_total"]
-        #        - self.variables["methane_emissions_carrier_total"])
-        # lhs_annual_nitrous = (self.variables["nitrous_emissions_annual"]
-        #        - self.variables["nitrous_emissions_technology_total"]
-        #        - self.variables["nitrous_emissions_carrier_total"])
-
-        rhs_annual = 0
-        constraints_annual_biodiversity = lhs_annual_biodiversity == rhs_annual
-        constraints_annual_gwp100 = lhs_annual_gwp100 == rhs_annual
-        # constraints_annual_methane = lhs_annual_methane == rhs_annual
-        # constraints_annual_nitrous = lhs_annual_nitrous == rhs_annual
-
-        lhs_annual_limit_biodiversity = self.variables["biodiversity_emissions_annual"]
-        rhs_annual_limit_biodiversity = (
-            self.parameters.biodiversity_emissions_annual_limit
-        )
-        constraints_annual_limit_biodiversity = (
-            lhs_annual_limit_biodiversity <= rhs_annual_limit_biodiversity
-        )
-        lhs_annual_limit_gwp100 = self.variables["gwp100_emissions_annual"]
-        rhs_annual_limit_gwp100 = self.parameters.gwp100_emissions_annual_limit
-        constraints_annual_limit_gwp100 = (
-            lhs_annual_limit_gwp100 <= rhs_annual_limit_gwp100
-        )
-        # lhs_annual_limit_methane = self.variables["methane_emissions_annual"]
-        # rhs_annual_limit_methane = self.parameters.methane_emissions_annual_limit
-        # constraints_annual_limit_methane = lhs_annual_limit_methane <= rhs_annual_limit_methane
-        # lhs_annual_limit_nitrous = self.variables["nitrous_emissions_annual"]
-        # rhs_annual_limit_nitrous = self.parameters.nitrous_emissions_annual_limit
-        # constraints_annual_limit_nitrous = lhs_annual_limit_nitrous <= rhs_annual_limit_nitrous
-
-        self.constraints.add_constraint(
-            "constraint_biodiversity_emissions_annual", constraints_annual_biodiversity
-        )
-        self.constraints.add_constraint(
-            "constraint_biodiversity_emissions_annual_limit",
-            constraints_annual_limit_biodiversity,
-        )
-        self.constraints.add_constraint(
-            "constraint_gwp100_emissions_annual", constraints_annual_gwp100
-        )
-        self.constraints.add_constraint(
-            "constraint_gwp100_emissions_annual_limit", constraints_annual_limit_gwp100
-        )
-        # self.constraints.add_constraint("constraint_methane_emissions_annual",constraints_annual_methane)
-        # self.constraints.add_constraint("constraint_methane_emissions_annual_limit", constraints_annual_limit_methane)
-        # self.constraints.add_constraint("constraint_nitrous_emissions_annual",constraints_annual_nitrous)
-        # self.constraints.add_constraint("constraint_nitrous_emissions_annual_limit", constraints_annual_limit_nitrous)
-
-    def constraint_additional_impact_emissions_cumulative(self):
-        """cumulative additional impacts over time
-
-        .. math::
-            \\mathrm{First\\ planning\\ period}\\ y = y_0,\\quad E_y^\\mathrm{cum} = E_y
-        .. math::
-            \\mathrm{Subsequent\\ periods}\\ y > y_0, \\quad E_y^{cum} = E_{y-1}^{cum} + (dy-1)E_{y-1}+E_y
-
-        :math:`dy`: interval between planning periods \n
-        :math:`E_y`: annual additional impact emissions in year :math:`y` \n
-        :math:`E_y^{cum}`: cumulative additional impact emissions in year :math:`y`
-
-        """
-
-        lhs_biodiversity = (
-            self.variables["biodiversity_emissions_cumulative"]
-            - self.variables["biodiversity_emissions_cumulative"].shift(
-                set_years=1
-            )
-            - self.variables["biodiversity_emissions_annual"].shift(
-                set_years=1
-            )
-            * (self.system.interval_between_years - 1)
-            - self.variables["biodiversity_emissions_annual"]
-        )
-        lhs_gwp100 = (
-            self.variables["gwp100_emissions_cumulative"]
-            - self.variables["gwp100_emissions_cumulative"].shift(
-                set_years=1
-            )
-            - self.variables["gwp100_emissions_annual"].shift(set_years=1)
-            * (self.system.interval_between_years - 1)
-            - self.variables["gwp100_emissions_annual"]
-        )
-        # lhs_methane = (
-        #         self.variables["methane_emissions_cumulative"]
-        #         - self.variables["methane_emissions_cumulative"].shift(set_years=1)
-        #         - self.variables["methane_emissions_annual"].shift(set_years=1) * (self.system.interval_between_years - 1)
-        #         - self.variables["methane_emissions_annual"]
-        # )
-        # lhs_nitrous = (
-        #         self.variables["nitrous_emissions_cumulative"]
-        #         - self.variables["nitrous_emissions_cumulative"].shift(set_years=1)
-        #         - self.variables["nitrous_emissions_annual"].shift(set_years=1) * (self.system.interval_between_years - 1)
-        #         - self.variables["nitrous_emissions_annual"]
-        # )
-        rhs = 0
-        constraints_biodiversity = lhs_biodiversity == rhs
-        constraints_gwp100 = lhs_gwp100 == rhs
-        # constraints_methane = lhs_methane == rhs
-        # constraints_nitrous = lhs_nitrous == rhs
-
-        self.constraints.add_constraint(
-            "constraint_biodiversity_emissions_cumulative", constraints_biodiversity
-        )
-        self.constraints.add_constraint(
-            "constraint_gwp100_emissions_cumulative", constraints_gwp100
-        )
-        # self.constraints.add_constraint("constraint_methane_emissions_cumulative",constraints_methane)
-        # self.constraints.add_constraint("constraint_nitrous_emissions_cumulative",constraints_nitrous)
 
     def constraint_cost_carbon_emissions_total(self):
         """Carbon cost associated with the carbon emissions of the system in each year.
