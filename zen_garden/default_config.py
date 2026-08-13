@@ -1,4 +1,4 @@
-"""Set default configurations in ZEN_garden.
+﻿"""Set default configurations in ZEN_garden.
 
 This module defines default values for all configurations in ZEN_garden. The
 class :class:`Config` serves as a container grouping all model configurations.
@@ -95,11 +95,11 @@ class HeaderDataInputs(Subscriptable):
     set_nodes: str = "node"
     set_edges: str = "edge"
     set_location: str = "location"
-    set_time_steps: str = "time"  # IMPORTANT: time must be unique
+    set_hours: str = "time"  # IMPORTANT: time must be unique
     set_time_steps_operation: str = "time_operation"
     set_time_steps_storage_level: str = "time_storage_level"
-    set_time_steps_yearly: str = "year"  # IMPORTANT: year must be unique
-    set_time_steps_yearly_entire_horizon: str = "year_entire_horizon"
+    set_years: str = "year"  # IMPORTANT: year must be unique
+    set_years_entire_horizon: str = "year_entire_horizon"
     set_carriers: str = "carrier"
     set_input_carriers: str = "carrier"
     set_output_carriers: str = "carrier"
@@ -169,10 +169,16 @@ class Solver(Subscriptable):
     keep_files: bool = False
     io_api: str = "lp"
     save_duals: bool = False
+    save_reduced_costs: bool = False
     save_parameters: bool = True
     selected_saved_parameters: list = []  # if empty, all parameters are saved
     selected_saved_variables: list = []  # if empty, all variables are saved
-    selected_saved_duals: list = []  # if empty, all duals are saved (if save_duals is True)
+    selected_saved_duals: list = (
+        []
+    )  # if empty, all duals are saved (if save_duals is True)
+    selected_saved_reduced_costs: list = (
+        []
+    )  # if empty, all reduced costs are saved (if save_reduced_costs is True)
     linear_regression_check: dict[str, float] = {
         "eps_intercept": 0.1,
         "epsRvalue": 1 - (1e-5),
@@ -234,5 +240,6 @@ class Config(Subscriptable):
     analysis: Analysis = Analysis()
     solver: Solver = Solver()
     system: System = System()
+    plugins: dict[str, Any] = {}
 
     scenarios: dict[str, Any] = {"": {}}

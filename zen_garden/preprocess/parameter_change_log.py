@@ -4,6 +4,14 @@ def parameter_change_log():
             "default_value": 0,  # only 0, 1, or 'inf' are allowed
             "unit": "min_load",
         },
+        "capacity_lower_limit": {
+            "default_value": 0,  # only 0, 1, or 'inf' are allowed
+            "unit": "capacity_limit",
+        },
+        "capacity_lower_limit_energy": {
+            "default_value": 0,  # only 0, 1, or 'inf' are allowed
+            "unit": "capacity_limit_energy",
+        },
         "min_energy_production": {
             "default_value": 0,
             "unit": "availability_import_yearly",
@@ -11,6 +19,7 @@ def parameter_change_log():
         "min_total_protein_production": {
             "default_value": 0,
             "unit": "methane_intensity_carrier_export",
+        },
         },
         #    "new_parameter_name": {
         #       "default_value": 0, # only 0, 1, or 'inf' are allowed

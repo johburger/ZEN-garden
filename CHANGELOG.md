@@ -3,6 +3,52 @@
 This file gets automatically updated in ZEN-garden's continuous integration 
 procedures. Do not edit the file manually.
 
+## [Unversioned Changes] - 2026-08-11 
+
+### Maintenance Tasks 🧹
+- move code from results class to compute energy balance dataframes to ZEN-temple. [[🔀 PR #1281](https://github.com/ZEN-universe/ZEN-garden/pull/1281) @manud99]
+
+## [v2.13.0] - 2026-07-01 
+
+### New Features ✨
+- Infer the time step type from the index sets in `extract_input_data()`, and remove `time_step` argument. Align the time step naming internally to `set_hours` and `set_years` to make them clearer [[🔀 PR #1282](https://github.com/ZEN-universe/ZEN-garden/pull/1282) @jacob-mannhardt]
+
+## [v2.12.2] - 2026-06-17 
+
+### Bug Fixes 🐛
+- make code compatible with Pandas v3.0.0. [[🔀 PR #1278](https://github.com/ZEN-universe/ZEN-garden/pull/1278) @csfunke]
+
+### Maintenance Tasks 🧹
+- upgrade `black` to patch security vulnerability. [[🔀 PR #1276](https://github.com/ZEN-universe/ZEN-garden/pull/1276) @csfunke]
+- Add a test for the comparisons module to `test_4a` [[🔀 PR #1269](https://github.com/ZEN-universe/ZEN-garden/pull/1269) @jacob-mannhardt]
+
+## [v2.12.1] - 2026-06-03 
+
+### Bug Fixes 🐛
+- Fix a small bug in the comparison module that broke the routine. [[🔀 PR #1267](https://github.com/ZEN-universe/ZEN-garden/pull/1267) @jacob-mannhardt]
+
+## [v2.12.0] - 2026-05-19 
+
+### New Features ✨
+- install `pre-commit` to run `ruff --fix` and `black` before creating new commits. [[🔀 PR #1258](https://github.com/ZEN-universe/ZEN-garden/pull/1258) @manud99]
+
+### Documentation Changes 📝
+- update links in plugin documentation [[🔀 PR #1254](https://github.com/ZEN-universe/ZEN-garden/pull/1254) @JeanWi]
+- add plugin architecture to api reference [[🔀 PR #1254](https://github.com/ZEN-universe/ZEN-garden/pull/1254) @JeanWi]
+
+## [v2.11.0] - 2026-04-10 
+
+### New Features ✨
+- implement a plugin architecture that allows easy extension of the core ZEN-garden code. [[🔀 PR #1252](https://github.com/ZEN-universe/ZEN-garden/pull/1252) @csfunke]
+
+## [v2.10.0] - 2026-04-08 
+
+### New Features ✨
+- add option to export reduced costs to reduced_costs_dict.h5 [[🔀 PR #1231](https://github.com/ZEN-universe/ZEN-garden/pull/1231) @JeanWi]
+
+### Documentation Changes 📝
+- Fix wrong country index in tutorial example. The capacity_DE variable in docs/files/tutorial/01_analyze_outputs.rst was mistakenly using "CH" instead of "DE" as the index argument in r.get_total(...), which would have returned Swiss instead of German capacity. [[🔀 PR #1244](https://github.com/ZEN-universe/ZEN-garden/pull/1244) @felixduemig]
+
 ## [v2.9.8] - 2026-03-27 
 
 ### Bug Fixes 🐛

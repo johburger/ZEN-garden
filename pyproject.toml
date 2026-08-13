@@ -16,7 +16,7 @@ authors = [
   {name = "Giovanni Sansavini"},
   ]
 # do not change version manually! Done by bump2version
-version = "2.9.8"
+version = "2.13.0"
 requires-python= ">=3.11,<3.14"
 description="ZEN-garden is an optimization model of energy systems and value chains."
 readme = "README.md"
@@ -26,18 +26,18 @@ dependencies = [
     "xarray",
     "cython",
     "numpy",
-    "pandas<3.0.0",
+    "pandas>3.0.0",
     "scipy",
     "pint",
     "tables",
     "pydantic",
-    "tsam",
+    "tsam<4.0",
     "h5py",
     "filelock",
     "ordered-set",
     "pyogrio",
     "psutil",
-    "linopy",
+    "linopy==0.6.7",
     "requests",
     "ipykernel",
     "zen-temple>=0.7.3"
@@ -61,9 +61,10 @@ dev = [
     "coverage",
     "pytest-xdist",
     "pytest-cov",
-    "black==25.12.0",
+    "black==26.5.1",
     "ruff==0.14.13",
-    "mypy==1.19.1"
+    "mypy==1.19.1",
+    "pre-commit",
 ]
 
 vis = [
