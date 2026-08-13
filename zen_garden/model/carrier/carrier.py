@@ -96,26 +96,22 @@ class Carrier(Element):
         )
         self.availability_import_yearly = self.data_input.extract_input_data(
             "availability_import_yearly",
-            index_sets=["set_nodes", "set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_nodes", "set_years"],
             unit_category={"energy_quantity": 1},
         )
         self.availability_export_yearly = self.data_input.extract_input_data(
             "availability_export_yearly",
-            index_sets=["set_nodes", "set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_nodes", "set_years"],
             unit_category={"energy_quantity": 1},
         )
         self.carbon_intensity_carrier_import = self.data_input.extract_input_data(
             "carbon_intensity_carrier_import",
-            index_sets=["set_nodes", "set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_nodes", "set_years"],
             unit_category={"emissions": 1, "energy_quantity": -1},
         )
         self.carbon_intensity_carrier_export = self.data_input.extract_input_data(
             "carbon_intensity_carrier_export",
-            index_sets=["set_nodes", "set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_nodes", "set_years"],
             unit_category={"emissions": 1, "energy_quantity": -1},
         )
         self.min_energy_production = self.data_input.extract_input_data(
@@ -138,40 +134,36 @@ class Carrier(Element):
         # specifically added impact parameters for agriculture study
         self.biodiversity_intensity_carrier_import = self.data_input.extract_input_data(
             "biodiversity_intensity_carrier_import",
-            index_sets=["set_nodes", "set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_nodes", "set_years"],
             unit_category={"biodiversity": 1, "energy_quantity": -1},
         )
         self.biodiversity_intensity_carrier_export = self.data_input.extract_input_data(
             "biodiversity_intensity_carrier_export",
-            index_sets=["set_nodes", "set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_nodes", "set_years"],
             unit_category={"biodiversity": 1, "energy_quantity": -1},
         )
         self.gwp100_intensity_carrier_import = self.data_input.extract_input_data(
             "gwp100_intensity_carrier_import",
-            index_sets=["set_nodes", "set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_nodes", "set_years"],
             unit_category={"emissions": 1, "energy_quantity": -1},
         )
         self.gwp100_intensity_carrier_export = self.data_input.extract_input_data(
             "gwp100_intensity_carrier_export",
-            index_sets=["set_nodes", "set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_nodes", "set_years"],
             unit_category={"emissions": 1, "energy_quantity": -1},
         )
         # self.methane_intensity_carrier_import = self.data_input.extract_input_data(
-        #     "methane_intensity_carrier_import", index_sets=["set_nodes", "set_time_steps_yearly"],
-        #     time_steps="set_time_steps_yearly", unit_category={"emissions": 1, "energy_quantity": -1})
+        #     "methane_intensity_carrier_import", index_sets=["set_nodes", "set_years"],
+        #     time_steps="set_years", unit_category={"emissions": 1, "energy_quantity": -1})
         # self.methane_intensity_carrier_export = self.data_input.extract_input_data(
-        #     "methane_intensity_carrier_export", index_sets=["set_nodes", "set_time_steps_yearly"],
-        #     time_steps="set_time_steps_yearly", unit_category={"emissions": 1, "energy_quantity": -1})
+        #     "methane_intensity_carrier_export", index_sets=["set_nodes", "set_years"],
+        #     time_steps="set_years", unit_category={"emissions": 1, "energy_quantity": -1})
         # self.nitrous_intensity_carrier_import = self.data_input.extract_input_data(
-        #     "nitrous_intensity_carrier_import", index_sets=["set_nodes", "set_time_steps_yearly"],
-        #     time_steps="set_time_steps_yearly", unit_category={"emissions": 1, "energy_quantity": -1})
+        #     "nitrous_intensity_carrier_import", index_sets=["set_nodes", "set_years"],
+        #     time_steps="set_years", unit_category={"emissions": 1, "energy_quantity": -1})
         # self.nitrous_intensity_carrier_export = self.data_input.extract_input_data(
-        #     "nitrous_intensity_carrier_export", index_sets=["set_nodes", "set_time_steps_yearly"],
-        #     time_steps="set_time_steps_yearly", unit_category={"emissions": 1, "energy_quantity": -1})
+        #     "nitrous_intensity_carrier_export", index_sets=["set_nodes", "set_years"],
+        #     time_steps="set_years", unit_category={"emissions": 1, "energy_quantity": -1})
 
     def overwrite_time_steps(self, base_time_steps):
         """Overwrites set_time_steps_operation.
@@ -295,45 +287,45 @@ class Carrier(Element):
         # biodiversity impact carrier import and export
         optimization_setup.parameters.add_parameter(
             name="biodiversity_intensity_carrier_import",
-            index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+            index_names=["set_carriers", "set_nodes", "set_years"],
             doc="Parameter which specifies the biodiversity impact of carrier import",
             calling_class=cls,
         )
         optimization_setup.parameters.add_parameter(
             name="biodiversity_intensity_carrier_export",
-            index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+            index_names=["set_carriers", "set_nodes", "set_years"],
             doc="Parameter which specifies the biodiversity impact of carrier export",
             calling_class=cls,
         )
         # global warming potential over 100 years carrier import and export
         optimization_setup.parameters.add_parameter(
             name="gwp100_intensity_carrier_import",
-            index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+            index_names=["set_carriers", "set_nodes", "set_years"],
             doc="Parameter which specifies the GWP100 (all GHG) of carrier import",
             calling_class=cls,
         )
         optimization_setup.parameters.add_parameter(
             name="gwp100_intensity_carrier_export",
-            index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+            index_names=["set_carriers", "set_nodes", "set_years"],
             doc="Parameter which specifies the GWP100 (all GHG) of carrier export",
             calling_class=cls,
         )
         # methane intensity carrier import and export
         # optimization_setup.parameters.add_parameter(name="methane_intensity_carrier_import",
-        #                                             index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+        #                                             index_names=["set_carriers", "set_nodes", "set_years"],
         #                                             doc='Parameter which specifies the impact of methane emissions of carrier import',
         #                                             calling_class=cls)
         # optimization_setup.parameters.add_parameter(name="methane_intensity_carrier_export",
-        #                                             index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+        #                                             index_names=["set_carriers", "set_nodes", "set_years"],
         #                                             doc='Parameter which specifies the impact of methane emissions of carrier export',
         #                                             calling_class=cls)
         # # nitrous oxide intensity carrier import and export
         # optimization_setup.parameters.add_parameter(name="nitrous_intensity_carrier_import",
-        #                                             index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+        #                                             index_names=["set_carriers", "set_nodes", "set_years"],
         #                                             doc='Parameter which specifies the impact of nitrous oxide emissions of carrier import',
         #                                             calling_class=cls)
         # optimization_setup.parameters.add_parameter(name="nitrous_intensity_carrier_export",
-        #                                             index_names=["set_carriers", "set_nodes", "set_time_steps_yearly"],
+        #                                             index_names=["set_carriers", "set_nodes", "set_years"],
         #                                             doc='Parameter which specifies the impact of nitrous oxide emissions of carrier export',
         #                                             calling_class=cls)
 
@@ -451,13 +443,13 @@ class Carrier(Element):
         # variables.add_variable(model, name="methane_emissions_carrier", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup),
         #                        doc="methane emissions of importing and exporting carrier", unit_category={"emissions": 1, "time": -1})
         # # methane emissions carrier
-        # variables.add_variable(model, name="methane_emissions_carrier_total", index_sets=sets["set_time_steps_yearly"],
+        # variables.add_variable(model, name="methane_emissions_carrier_total", index_sets=sets["set_years"],
         #                        doc="total methane emissions of importing and exporting carrier", unit_category={"emissions": 1})
         # # nitrous oxide emissions
         # variables.add_variable(model, name="nitrous_emissions_carrier", index_sets=cls.create_custom_set(["set_carriers", "set_nodes", "set_time_steps_operation"], optimization_setup),
         #                        doc="nitrous oxide emissions of importing and exporting carrier", unit_category={"emissions": 1, "time": -1})
         # # nitrous oxide emissions carrier
-        # variables.add_variable(model, name="nitrous_emissions_carrier_total", index_sets=sets["set_time_steps_yearly"],
+        # variables.add_variable(model, name="nitrous_emissions_carrier_total", index_sets=sets["set_years"],
         #                        doc="total nitrous oxide emissions of importing and exporting carrier", unit_category={"emissions": 1})
         # shed demand
         variables.add_variable(
@@ -1130,7 +1122,7 @@ class CarrierRules(GenericRule):
         lhs = (
             self.variables["flow_export"].sel({"set_carriers": "electricity"})
             * self.get_year_time_step_duration_array()
-        ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+        ).sum(["set_years", "set_time_steps_operation", "set_nodes"])
         rhs = self.parameters.min_energy_production.sel({"set_carriers": "electricity"})
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_energy_production", constraints)
@@ -1142,7 +1134,7 @@ class CarrierRules(GenericRule):
                 {"set_carriers": self.system.set_food_carriers}
             )
             * self.get_year_time_step_duration_array()
-        ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+        ).sum(["set_years", "set_time_steps_operation", "set_nodes"])
         term_food = (
             self.variables["flow_export"].sel(
                 {"set_carriers": self.system.set_food_carriers}
@@ -1150,7 +1142,7 @@ class CarrierRules(GenericRule):
             * self.get_year_time_step_duration_array()
         ).sum(
             [
-                "set_time_steps_yearly",
+                "set_years",
                 "set_time_steps_operation",
                 "set_nodes",
                 "set_carriers",
@@ -1177,7 +1169,7 @@ class CarrierRules(GenericRule):
             * self.get_year_time_step_duration_array()
         ).sum(
             [
-                "set_time_steps_yearly",
+                "set_years",
                 "set_time_steps_operation",
                 "set_nodes",
                 "set_carriers",
@@ -1190,7 +1182,7 @@ class CarrierRules(GenericRule):
             * self.get_year_time_step_duration_array()
         ).sum(
             [
-                "set_time_steps_yearly",
+                "set_years",
                 "set_time_steps_operation",
                 "set_nodes",
                 "set_carriers",
@@ -1246,11 +1238,11 @@ class CarrierRules(GenericRule):
         biodiversity_intensity_carrier_import = (
             self.parameters.biodiversity_intensity_carrier_import.broadcast_like(times)
             * times
-        ).sum("set_time_steps_yearly")
+        ).sum("set_years")
         biodiversity_intensity_carrier_export = (
             self.parameters.biodiversity_intensity_carrier_export.broadcast_like(times)
             * times
-        ).sum("set_time_steps_yearly")
+        ).sum("set_years")
         lhs = self.variables["biodiversity_emissions_carrier"] - (
             self.variables["flow_import"] * biodiversity_intensity_carrier_import
             - self.variables["flow_export"] * biodiversity_intensity_carrier_export
@@ -1306,11 +1298,11 @@ class CarrierRules(GenericRule):
         gwp100_intensity_carrier_import = (
             self.parameters.gwp100_intensity_carrier_import.broadcast_like(times)
             * times
-        ).sum("set_time_steps_yearly")
+        ).sum("set_years")
         gwp100_intensity_carrier_export = (
             self.parameters.gwp100_intensity_carrier_export.broadcast_like(times)
             * times
-        ).sum("set_time_steps_yearly")
+        ).sum("set_years")
         lhs = self.variables["gwp100_emissions_carrier"] - (
             self.variables["flow_import"] * gwp100_intensity_carrier_import
             - self.variables["flow_export"] * gwp100_intensity_carrier_export
@@ -1366,11 +1358,11 @@ class CarrierRules(GenericRule):
         methane_intensity_carrier_import = (
             self.parameters.methane_intensity_carrier_import.broadcast_like(times)
             * times
-        ).sum("set_time_steps_yearly")
+        ).sum("set_years")
         methane_intensity_carrier_export = (
             self.parameters.methane_intensity_carrier_export.broadcast_like(times)
             * times
-        ).sum("set_time_steps_yearly")
+        ).sum("set_years")
         lhs = self.variables["methane_emissions_carrier"] - (
             self.variables["flow_import"] * methane_intensity_carrier_import
             - self.variables["flow_export"] * methane_intensity_carrier_export
@@ -1426,11 +1418,11 @@ class CarrierRules(GenericRule):
         nitrous_intensity_carrier_import = (
             self.parameters.nitrous_intensity_carrier_import.broadcast_like(times)
             * times
-        ).sum("set_time_steps_yearly")
+        ).sum("set_years")
         nitrous_intensity_carrier_export = (
             self.parameters.nitrous_intensity_carrier_export.broadcast_like(times)
             * times
-        ).sum("set_time_steps_yearly")
+        ).sum("set_years")
         lhs = self.variables["nitrous_emissions_carrier"] - (
             self.variables["flow_import"] * nitrous_intensity_carrier_import
             - self.variables["flow_export"] * nitrous_intensity_carrier_export

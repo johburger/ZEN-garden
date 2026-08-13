@@ -157,18 +157,14 @@ class EnergySystem:
         # annual limits on additional impacts: biodiversity, gwp100, methane, nitrous
         self.biodiversity_emissions_annual_limit = self.data_input.extract_input_data(
             "biodiversity_emissions_annual_limit",
-            index_sets=["set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_years"],
             unit_category={"biodiversity": 1},
         )
         self.gwp100_emissions_annual_limit = self.data_input.extract_input_data(
             "gwp100_emissions_annual_limit",
-            index_sets=["set_time_steps_yearly"],
-            time_steps="set_time_steps_yearly",
+            index_sets=["set_years"],
             unit_category={"emissions": 1},
         )
-        # self.methane_emissions_annual_limit = self.data_input.extract_input_data("methane_emissions_annual_limit", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"emissions": 1})
-        # self.nitrous_emissions_annual_limit = self.data_input.extract_input_data("nitrous_emissions_annual_limit", index_sets=["set_time_steps_yearly"], time_steps="set_time_steps_yearly", unit_category={"emissions": 1})
         _fraction_year = (
             self.system.unaggregated_time_steps_per_year
             / self.system.total_hours_per_year
@@ -479,18 +475,16 @@ class EnergySystem:
         # additional impacts: biodiversity, gwp100, methane, nitrous
         parameters.add_parameter(
             name="biodiversity_emissions_annual_limit",
-            set_time_steps="set_time_steps_yearly",
+            set_time_steps="set_years",
             doc="Parameter which specifies the annual limit on biodiversity impact",
             calling_class=cls,
         )
         parameters.add_parameter(
             name="gwp100_emissions_annual_limit",
-            set_time_steps="set_time_steps_yearly",
+            set_time_steps="set_years",
             doc="Parameter which specifies the annual limit on all GWP100 affecting emissions",
             calling_class=cls,
         )
-        # parameters.add_parameter(name="methane_emissions_annual_limit", set_time_steps="set_time_steps_yearly", doc='Parameter which specifies the annual limit on methane emissions', calling_class=cls)
-        # parameters.add_parameter(name="nitrous_emissions_annual_limit", set_time_steps="set_time_steps_yearly", doc='Parameter which specifies the annual limit on nitrous oxide emissions', calling_class=cls)
         # carbon emissions budget
         parameters.add_parameter(
             name="carbon_emissions_cumulative_existing",
@@ -579,7 +573,7 @@ class EnergySystem:
         # variables.add_variable(
         #     model,
         #     name="cost_carbon_emissions_total",
-        #     index_sets=sets["set_time_steps_yearly"],
+        #     index_sets=sets["set_years"],
         #     doc="total cost of carbon emissions of energy system",
         #     unit_category={"money": 1},
         # )
@@ -587,7 +581,7 @@ class EnergySystem:
         # variables.add_variable(
         #     model,
         #     name="cost_total",
-        #     index_sets=sets["set_time_steps_yearly"],
+        #     index_sets=sets["set_years"],
         #     doc="total cost of energy system",
         #     unit_category={"money": 1},
         # )
@@ -595,7 +589,7 @@ class EnergySystem:
         # variables.add_variable(
         #     model,
         #     name="net_present_cost",
-        #     index_sets=sets["set_time_steps_yearly"],
+        #     index_sets=sets["set_years"],
         #     doc="net_present_cost of energy system",
         #     unit_category={"money": 1},
         # )
@@ -618,7 +612,7 @@ class EnergySystem:
         variables.add_variable(
             model,
             name="gwp100_emissions_annual",
-            index_sets=sets["set_time_steps_yearly"],
+            index_sets=sets["set_years"],
             doc="annual gwp100 emissions of energy system",
             unit_category={"emissions": 1},
         )
@@ -630,12 +624,12 @@ class EnergySystem:
             unit_category={"emissions": 1},
         )
         # (cumulative) methane emissions
-        # variables.add_variable(model, name="methane_emissions_annual", index_sets=sets["set_time_steps_yearly"], doc="annual methane emissions of energy system", unit_category={"emissions": 1})
-        # variables.add_variable(model, name="methane_emissions_cumulative", index_sets=sets["set_time_steps_yearly"],
+        # variables.add_variable(model, name="methane_emissions_annual", index_sets=sets["set_years"], doc="annual methane emissions of energy system", unit_category={"emissions": 1})
+        # variables.add_variable(model, name="methane_emissions_cumulative", index_sets=sets["set_years"],
         #                        doc="cumulative methane emissions of energy system over time for each year", unit_category={"emissions": 1})
         # # (cumulative) nitrous emissions
-        # variables.add_variable(model, name="nitrous_emissions_annual", index_sets=sets["set_time_steps_yearly"], doc="annual nitrous emissions of energy system", unit_category={"emissions": 1})
-        # variables.add_variable(model, name="nitrous_emissions_cumulative", index_sets=sets["set_time_steps_yearly"],
+        # variables.add_variable(model, name="nitrous_emissions_annual", index_sets=sets["set_years"], doc="annual nitrous emissions of energy system", unit_category={"emissions": 1})
+        # variables.add_variable(model, name="nitrous_emissions_cumulative", index_sets=sets["set_years"],
         #                        doc="cumulative nitrous emissions of energy system over time for each year", unit_category={"emissions": 1})
 
     def construct_constraints(self):
@@ -1009,10 +1003,10 @@ class EnergySystemRules(GenericRule):
         lhs_biodiversity = (
             self.variables["biodiversity_emissions_cumulative"]
             - self.variables["biodiversity_emissions_cumulative"].shift(
-                set_time_steps_yearly=1
+                set_years=1
             )
             - self.variables["biodiversity_emissions_annual"].shift(
-                set_time_steps_yearly=1
+                set_years=1
             )
             * (self.system.interval_between_years - 1)
             - self.variables["biodiversity_emissions_annual"]
@@ -1020,22 +1014,22 @@ class EnergySystemRules(GenericRule):
         lhs_gwp100 = (
             self.variables["gwp100_emissions_cumulative"]
             - self.variables["gwp100_emissions_cumulative"].shift(
-                set_time_steps_yearly=1
+                set_years=1
             )
-            - self.variables["gwp100_emissions_annual"].shift(set_time_steps_yearly=1)
+            - self.variables["gwp100_emissions_annual"].shift(set_years=1)
             * (self.system.interval_between_years - 1)
             - self.variables["gwp100_emissions_annual"]
         )
         # lhs_methane = (
         #         self.variables["methane_emissions_cumulative"]
-        #         - self.variables["methane_emissions_cumulative"].shift(set_time_steps_yearly=1)
-        #         - self.variables["methane_emissions_annual"].shift(set_time_steps_yearly=1) * (self.system.interval_between_years - 1)
+        #         - self.variables["methane_emissions_cumulative"].shift(set_years=1)
+        #         - self.variables["methane_emissions_annual"].shift(set_years=1) * (self.system.interval_between_years - 1)
         #         - self.variables["methane_emissions_annual"]
         # )
         # lhs_nitrous = (
         #         self.variables["nitrous_emissions_cumulative"]
-        #         - self.variables["nitrous_emissions_cumulative"].shift(set_time_steps_yearly=1)
-        #         - self.variables["nitrous_emissions_annual"].shift(set_time_steps_yearly=1) * (self.system.interval_between_years - 1)
+        #         - self.variables["nitrous_emissions_cumulative"].shift(set_years=1)
+        #         - self.variables["nitrous_emissions_annual"].shift(set_years=1) * (self.system.interval_between_years - 1)
         #         - self.variables["nitrous_emissions_annual"]
         # )
         rhs = 0
@@ -1173,7 +1167,7 @@ class EnergySystemRules(GenericRule):
         return (
             model.variables["flow_export"].sel({"set_carriers": "electricity"})
             * self.get_year_time_step_duration_array()
-        ).sum(["set_time_steps_yearly", "set_time_steps_operation", "set_nodes"])
+        ).sum(["set_years", "set_time_steps_operation", "set_nodes"])
 
     def objective_total_food(self, model):
         """objective function to maximize food production
@@ -1193,7 +1187,7 @@ class EnergySystemRules(GenericRule):
             * self.get_year_time_step_duration_array()
         ).sum(
             [
-                "set_time_steps_yearly",
+                "set_years",
                 "set_time_steps_operation",
                 "set_nodes",
                 "set_carriers",

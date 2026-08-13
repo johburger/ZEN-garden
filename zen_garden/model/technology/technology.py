@@ -1056,7 +1056,7 @@ class Technology(Element):
         # variables.add_variable(
         #     model,
         #     name="methane_emissions_technology_total",
-        #     index_sets=sets["set_time_steps_yearly"],
+        #     index_sets=sets["set_years"],
         #     doc="total methane emissions for operating technology at location l and time t",
         #     unit_category={"emissions": 1},
         # )
@@ -1075,7 +1075,7 @@ class Technology(Element):
         # variables.add_variable(
         #     model,
         #     name="nitrous_emissions_technology_total",
-        #     index_sets=sets["set_time_steps_yearly"],
+        #     index_sets=sets["set_years"],
         #     doc="total nitrous oxide emissions for operating technology at location l and time t",
         #     unit_category={"emissions": 1},
         # )
