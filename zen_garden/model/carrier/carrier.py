@@ -106,11 +106,6 @@ class Carrier(Element):
         self.min_item_production = self.data_input.extract_input_data(
             "min_item_production", index_sets=[], unit_category={}
         )
-        self.min_total_protein_production = self.data_input.extract_input_data(
-            "min_total_protein_production",
-            index_sets=[],
-            unit_category={"emissions": 1, "energy_quantity": -1},
-        )
 
     def overwrite_time_steps(self, base_time_steps):
         """Overwrites set_time_steps_operation.
@@ -223,12 +218,6 @@ class Carrier(Element):
             name="min_item_production",
             index_names=["set_carriers"],
             doc="Parameter which specifies the minimum item production of carrier",
-            calling_class=cls,
-        )
-        optimization_setup.parameters.add_parameter(
-            name="min_total_protein_production",
-            index_names=["set_carriers"],
-            doc="Parameter which specifies the minimum total protein production over all protein carriers",
             calling_class=cls,
         )
 
@@ -369,7 +358,6 @@ class Carrier(Element):
         rules.constraint_min_energy_production()
         # min item and protein production
         rules.constraint_min_item_production()
-        rules.constraint_min_total_protein_production()
 
         # add pe.Sets of the child classes
         for subclass in cls.__subclasses__():
@@ -1002,62 +990,3 @@ class CarrierRules(GenericRule):
         rhs = 0
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_item_production", constraints)
-
-    def constraint_min_total_protein_production(self):
-        """ensures minimum total protein production based on total food production"""
-        protein = (
-            self.variables["flow_export"].sel(
-                {"set_carriers": self.system.set_protein_carriers}
-            )
-            * self.get_year_time_step_duration_array()
-        ).sum(
-            [
-                "set_years",
-                "set_time_steps_operation",
-                "set_nodes",
-                "set_carriers",
-            ]
-        )
-        food = (
-            self.variables["flow_export"].sel(
-                {"set_carriers": self.system.set_food_carriers}
-            )
-            * self.get_year_time_step_duration_array()
-        ).sum(
-            [
-                "set_years",
-                "set_time_steps_operation",
-                "set_nodes",
-                "set_carriers",
-            ]
-        )
-        assert (
-            len(
-                self.optimization_setup.variables.units["flow_export"]
-                .loc[self.system.set_protein_carriers]
-                .unique()
-            )
-            == 1
-        ), "All protein carriers must have the same unit"
-        assert (
-            len(
-                self.optimization_setup.variables.units["flow_export"]
-                .loc[self.system.set_food_carriers]
-                .unique()
-            )
-            == 1
-        ), "All food carriers must have the same unit"
-        # use beef_energy to read in the minimum total protein production including the correct units.
-        min_total_protein_production = self.parameters.min_total_protein_production.sel(
-            {"set_carriers": "beef_energy"}
-        )
-        lhs = lp.merge(
-            [protein, -min_total_protein_production * food],
-            compat="broadcast_equals",
-            cls=LinearExpression,
-        )
-        rhs = 0
-        constraints = lhs >= rhs
-        self.constraints.add_constraint(
-            "constraint_min_total_protein_production", constraints
-        )
