@@ -120,11 +120,11 @@ class Technology(Element):
             unit_category={"energy_quantity": 1, "time": -1},
         )
 
-        self.carbon_intensity_technology = self.data_input.extract_input_data(
-            "carbon_intensity_technology",
-            index_sets=[set_location],
-            unit_category={"emissions": 1, "energy_quantity": -1},
-        )
+        # self.carbon_intensity_technology = self.data_input.extract_input_data(
+        #     "carbon_intensity_technology",
+        #     index_sets=[set_location],
+        #     unit_category={"emissions": 1, "energy_quantity": -1},
+        # )
         # extract existing capacity
         self.set_technologies_existing = (
             self.data_input.extract_set_technologies_existing()
@@ -689,12 +689,12 @@ class Technology(Element):
             calling_class=cls,
         )
         # carbon intensity
-        optimization_setup.parameters.add_parameter(
-            name="carbon_intensity_technology",
-            index_names=["set_technologies", "set_location"],
-            doc="Parameter which specifies the carbon intensity of each technology",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="carbon_intensity_technology",
+        #     index_names=["set_technologies", "set_location"],
+        #     doc="Parameter which specifies the carbon intensity of each technology",
+        #     calling_class=cls,
+        # )
         # calculate additional existing parameters
         optimization_setup.parameters.add_parameter(
             name="existing_capacities",
@@ -936,24 +936,24 @@ class Technology(Element):
         #     unit_category={"money": 1},
         # )
         # carbon emissions
-        variables.add_variable(
-            model,
-            name="carbon_emissions_technology",
-            index_sets=cls.create_custom_set(
-                ["set_technologies", "set_location", "set_time_steps_operation"],
-                optimization_setup,
-            ),
-            doc="carbon emissions for operating technology at location l and time t",
-            unit_category={"emissions": 1, "time": -1},
-        )
-        # total carbon emissions technology
-        variables.add_variable(
-            model,
-            name="carbon_emissions_technology_total",
-            index_sets=sets["set_years"],
-            doc="total carbon emissions for operating technology",
-            unit_category={"emissions": 1},
-        )
+        # variables.add_variable(
+        #     model,
+        #     name="carbon_emissions_technology",
+        #     index_sets=cls.create_custom_set(
+        #         ["set_technologies", "set_location", "set_time_steps_operation"],
+        #         optimization_setup,
+        #     ),
+        #     doc="carbon emissions for operating technology at location l and time t",
+        #     unit_category={"emissions": 1, "time": -1},
+        # )
+        # # total carbon emissions technology
+        # variables.add_variable(
+        #     model,
+        #     name="carbon_emissions_technology_total",
+        #     index_sets=sets["set_years"],
+        #     doc="total carbon emissions for operating technology",
+        #     unit_category={"emissions": 1},
+        # )
 
         # install technology
         # Note: binary variables are written into the lp file by linopy even if they
@@ -1087,7 +1087,7 @@ class Technology(Element):
         # rules.constraint_cost_opex_yearly_total()
 
         # total carbon emissions of technologies
-        rules.constraint_carbon_emissions_technology_total()
+        # rules.constraint_carbon_emissions_technology_total()
 
         # min load constraints
         n_cons = len(model.constraints.items())

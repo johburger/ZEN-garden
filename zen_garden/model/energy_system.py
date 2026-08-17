@@ -149,58 +149,47 @@ class EnergySystem:
             "discount_rate", index_sets=[], unit_category={}
         )
         # carbon emissions limit
-        self.carbon_emissions_annual_limit = self.data_input.extract_input_data(
-            "carbon_emissions_annual_limit",
-            index_sets=["set_years"],
-            unit_category={"emissions": 1},
-        )
+        # self.carbon_emissions_annual_limit = self.data_input.extract_input_data(
+        #     "carbon_emissions_annual_limit",
+        #     index_sets=["set_years"],
+        #     unit_category={"emissions": 1},
+        # )
         _fraction_year = (
             self.system.unaggregated_time_steps_per_year
             / self.system.total_hours_per_year
         )
-        self.carbon_emissions_annual_limit = (
-            self.carbon_emissions_annual_limit * _fraction_year
-        )  # reduce to fraction of year
-        self.carbon_emissions_budget = self.data_input.extract_input_data(
-            "carbon_emissions_budget", index_sets=[], unit_category={"emissions": 1}
-        )
-        self.carbon_emissions_cumulative_existing = self.data_input.extract_input_data(
-            "carbon_emissions_cumulative_existing",
-            index_sets=[],
-            unit_category={"emissions": 1},
-        )
+        # self.carbon_emissions_annual_limit = (
+        #     self.carbon_emissions_annual_limit * _fraction_year
+        # )  # reduce to fraction of year
+        # self.carbon_emissions_budget = self.data_input.extract_input_data(
+        #     "carbon_emissions_budget", index_sets=[], unit_category={"emissions": 1}
+        # )
+        # self.carbon_emissions_cumulative_existing = self.data_input.extract_input_data(
+        #     "carbon_emissions_cumulative_existing",
+        #     index_sets=[],
+        #     unit_category={"emissions": 1},
+        # )
 
-        self.carbon_emissions_annual_limit = (
-            self.carbon_emissions_annual_limit * _fraction_year
-        )  # reduce to fraction of year
-        self.carbon_emissions_budget = self.data_input.extract_input_data(
-            "carbon_emissions_budget", index_sets=[], unit_category={"emissions": 1}
-        )
-        self.carbon_emissions_cumulative_existing = self.data_input.extract_input_data(
-            "carbon_emissions_cumulative_existing",
-            index_sets=[],
-            unit_category={"emissions": 1},
-        )
         # price carbon emissions
-        self.price_carbon_emissions = self.data_input.extract_input_data(
-            "price_carbon_emissions",
-            index_sets=["set_years"],
-            unit_category={"money": 1, "emissions": -1},
-        )
-        self.price_carbon_emissions_budget_overshoot = (
-            self.data_input.extract_input_data(
-                "price_carbon_emissions_budget_overshoot",
-                index_sets=[],
-                unit_category={"money": 1, "emissions": -1},
-            )
-        )
-        self.price_carbon_emissions_annual_overshoot = (
-            self.data_input.extract_input_data(
-                "price_carbon_emissions_annual_overshoot",
-                index_sets=[],
-                unit_category={"money": 1, "emissions": -1},
-            )
-        )
+        # self.price_carbon_emissions = self.data_input.extract_input_data(
+        #     "price_carbon_emissions",
+        #     index_sets=["set_years"],
+        #     unit_category={"money": 1, "emissions": -1},
+        # )
+        # self.price_carbon_emissions_budget_overshoot = (
+        #     self.data_input.extract_input_data(
+        #         "price_carbon_emissions_budget_overshoot",
+        #         index_sets=[],
+        #         unit_category={"money": 1, "emissions": -1},
+        #     )
+        # )
+        # self.price_carbon_emissions_annual_overshoot = (
+        #     self.data_input.extract_input_data(
+        #         "price_carbon_emissions_annual_overshoot",
+        #         index_sets=[],
+        #         unit_category={"money": 1, "emissions": -1},
+        #     )
+        # )
         # market share unbounded
         self.market_share_unbounded = self.data_input.extract_input_data(
             "market_share_unbounded", index_sets=[], unit_category={}
@@ -448,44 +437,44 @@ class EnergySystem:
             calling_class=cls,
         )
         # carbon emissions limit
-        parameters.add_parameter(
-            name="carbon_emissions_annual_limit",
-            set_time_steps="set_years",
-            doc="Parameter which specifies the total limit on carbon emissions",
-            calling_class=cls,
-        )
-        # carbon emissions budget
-        parameters.add_parameter(
-            name="carbon_emissions_budget",
-            doc="Parameter which specifies the total budget of carbon emissions "
-            "until the end of the entire time horizon",
-            calling_class=cls,
-        )
-        # carbon emissions budget
-        parameters.add_parameter(
-            name="carbon_emissions_cumulative_existing",
-            doc="Parameter which specifies the total previous carbon emissions",
-            calling_class=cls,
-        )
-        # carbon price
-        parameters.add_parameter(
-            name="price_carbon_emissions",
-            set_time_steps="set_years",
-            doc="Parameter which specifies the yearly carbon price",
-            calling_class=cls,
-        )
-        # carbon price of budget overshoot
-        parameters.add_parameter(
-            name="price_carbon_emissions_budget_overshoot",
-            doc="Parameter which specifies the carbon price for budget overshoot",
-            calling_class=cls,
-        )
-        # carbon price of annual overshoot
-        parameters.add_parameter(
-            name="price_carbon_emissions_annual_overshoot",
-            doc="Parameter which specifies the carbon price for annual overshoot",
-            calling_class=cls,
-        )
+        # parameters.add_parameter(
+        #     name="carbon_emissions_annual_limit",
+        #     set_time_steps="set_years",
+        #     doc="Parameter which specifies the total limit on carbon emissions",
+        #     calling_class=cls,
+        # )
+        # # carbon emissions budget
+        # parameters.add_parameter(
+        #     name="carbon_emissions_budget",
+        #     doc="Parameter which specifies the total budget of carbon emissions "
+        #     "until the end of the entire time horizon",
+        #     calling_class=cls,
+        # )
+        # # carbon emissions budget
+        # parameters.add_parameter(
+        #     name="carbon_emissions_cumulative_existing",
+        #     doc="Parameter which specifies the total previous carbon emissions",
+        #     calling_class=cls,
+        # )
+        # # carbon price
+        # parameters.add_parameter(
+        #     name="price_carbon_emissions",
+        #     set_time_steps="set_years",
+        #     doc="Parameter which specifies the yearly carbon price",
+        #     calling_class=cls,
+        # )
+        # # carbon price of budget overshoot
+        # parameters.add_parameter(
+        #     name="price_carbon_emissions_budget_overshoot",
+        #     doc="Parameter which specifies the carbon price for budget overshoot",
+        #     calling_class=cls,
+        # )
+        # # carbon price of annual overshoot
+        # parameters.add_parameter(
+        #     name="price_carbon_emissions_annual_overshoot",
+        #     doc="Parameter which specifies the carbon price for annual overshoot",
+        #     calling_class=cls,
+        # )
         # carbon price of overshoot
         parameters.add_parameter(
             name="market_share_unbounded",
@@ -511,40 +500,40 @@ class EnergySystem:
         sets = self.optimization_setup.sets
         model = self.optimization_setup.model
         # carbon emissions
-        variables.add_variable(
-            model,
-            name="carbon_emissions_annual",
-            index_sets=sets["set_years"],
-            doc="annual carbon emissions of energy system",
-            unit_category={"emissions": 1},
-        )
-        # cumulative carbon emissions
-        variables.add_variable(
-            model,
-            name="carbon_emissions_cumulative",
-            index_sets=sets["set_years"],
-            doc="cumulative carbon emissions of energy system over time for each year",
-            unit_category={"emissions": 1},
-        )
-        # carbon emission overshoot
-        variables.add_variable(
-            model,
-            name="carbon_emissions_budget_overshoot",
-            index_sets=sets["set_years"],
-            bounds=(0, np.inf),
-            doc="overshoot carbon emissions of energy system "
-            "at the end of the time horizon",
-            unit_category={"emissions": 1},
-        )
-        # carbon emission overshoot
-        variables.add_variable(
-            model,
-            name="carbon_emissions_annual_overshoot",
-            index_sets=sets["set_years"],
-            bounds=(0, np.inf),
-            doc="overshoot of the annual carbon emissions limit of energy system",
-            unit_category={"emissions": 1},
-        )
+        # variables.add_variable(
+        #     model,
+        #     name="carbon_emissions_annual",
+        #     index_sets=sets["set_years"],
+        #     doc="annual carbon emissions of energy system",
+        #     unit_category={"emissions": 1},
+        # )
+        # # cumulative carbon emissions
+        # variables.add_variable(
+        #     model,
+        #     name="carbon_emissions_cumulative",
+        #     index_sets=sets["set_years"],
+        #     doc="cumulative carbon emissions of energy system over time for each year",
+        #     unit_category={"emissions": 1},
+        # )
+        # # carbon emission overshoot
+        # variables.add_variable(
+        #     model,
+        #     name="carbon_emissions_budget_overshoot",
+        #     index_sets=sets["set_years"],
+        #     bounds=(0, np.inf),
+        #     doc="overshoot carbon emissions of energy system "
+        #     "at the end of the time horizon",
+        #     unit_category={"emissions": 1},
+        # )
+        # # carbon emission overshoot
+        # variables.add_variable(
+        #     model,
+        #     name="carbon_emissions_annual_overshoot",
+        #     index_sets=sets["set_years"],
+        #     bounds=(0, np.inf),
+        #     doc="overshoot of the annual carbon emissions limit of energy system",
+        #     unit_category={"emissions": 1},
+        # )
         # cost of carbon emissions
         # variables.add_variable(
         #     model,
@@ -577,19 +566,19 @@ class EnergySystem:
         # create the rules
         self.rules = EnergySystemRules(self.optimization_setup)
         # cumulative carbon emissions
-        self.rules.constraint_carbon_emissions_cumulative()
+        # self.rules.constraint_carbon_emissions_cumulative()
 
         # annual limit carbon emissions
-        self.rules.constraint_carbon_emissions_annual_limit()
+        # self.rules.constraint_carbon_emissions_annual_limit()
 
         # carbon emission budget limit
-        self.rules.constraint_carbon_emissions_budget()
+        # self.rules.constraint_carbon_emissions_budget()
 
         # net_present_cost
         # self.rules.constraint_net_present_cost()
 
         # total carbon emissions
-        self.rules.constraint_carbon_emissions_annual()
+        # self.rules.constraint_carbon_emissions_annual()
 
         # cost of carbon emissions
         # self.rules.constraint_cost_carbon_emissions_total()
@@ -598,10 +587,10 @@ class EnergySystem:
         # self.rules.constraint_cost_total()
 
         # disable carbon emissions budget overshoot
-        self.rules.constraint_carbon_emissions_budget_overshoot()
+        # self.rules.constraint_carbon_emissions_budget_overshoot()
 
         # disable annual carbon emissions overshoot
-        self.rules.constraint_carbon_emissions_annual_overshoot()
+        # self.rules.constraint_carbon_emissions_annual_overshoot()
 
     def construct_objective(self):
         """Constructs the pe.Objective of the class <EnergySystem>."""
@@ -610,10 +599,10 @@ class EnergySystem:
         # get selected objective rule
         if self.optimization_setup.analysis.objective == "total_cost":
             objective = self.rules.objective_total_cost(self.optimization_setup.model)
-        elif self.optimization_setup.analysis.objective == "total_carbon_emissions":
-            objective = self.rules.objective_total_carbon_emissions(
-                self.optimization_setup.model
-            )
+        # elif self.optimization_setup.analysis.objective == "total_carbon_emissions":
+        #     objective = self.rules.objective_total_carbon_emissions(
+        #         self.optimization_setup.model
+        #     )
         elif self.optimization_setup.analysis.objective == "total_energy":
             objective = self.rules.objective_total_energy(self.optimization_setup.model)
         elif self.optimization_setup.analysis.objective == "total_food":

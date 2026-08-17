@@ -489,7 +489,7 @@ class ConversionTechnology(Technology):
         # capacity factor constraint
         rules.constraint_capacity_factor_conversion()
         # opex and all impact emissions constraint for conversion technologies
-        rules.constraint_opex_emissions_technology_conversion()
+        # rules.constraint_opex_emissions_technology_conversion()
         # conversion factor
         rules.constraint_carrier_conversion()
         # minimum average annual capacity factor
@@ -788,9 +788,6 @@ class ConversionTechnologyRules(GenericRule):
         # self.constraints.add_constraint(
         #     "constraint_opex_technology_conversion", constraints_opex
         # )
-        self.constraints.add_constraint(
-            "constraint_carbon_emissions_technology_conversion", constraints_emissions
-        )
         self.constraints.add_constraint(
             "constraint_carbon_emissions_technology_conversion", constraints_emissions
         )
