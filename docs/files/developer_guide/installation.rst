@@ -89,6 +89,9 @@ In the new environment, setup the pre-commit hooks by running the following comm
     We strongly recommend working with conda environments. When installing the
     zen-garden conda environment via the ``zen_garden_env.yml``, the zen-garden
     package, as well as all other dependencies, are installed automatically.
+    The visualization platform is provided by the separate ZEN-temple package;
+    install it in this environment with ``pip install -e .`` from the
+    ZEN-temple repository if you need the ``zen-visualization`` command.
 
 **Next steps**
 

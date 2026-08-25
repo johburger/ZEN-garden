@@ -32,12 +32,15 @@ command-line interface.
     zen-garden --dataset="1_base_case"
     zen-visualization
 
-The first line downloads the example dataset ``1_base_case`` to the current 
+The first line downloads the example dataset ``1_base_case`` to the current
 working directory. The second line then runs ZEN-garden on this dataset.
 Finally, the third line opens the visualization platform, which allows users
-to explore the results of the model. If the visualization platform does not 
-open automatically, you can open it manually by typing  http://localhost:8000/ 
-in any browser of your choice.
+to explore the results of the model.
+The ``zen-visualization`` command is provided by the separate ZEN-temple
+package. Install it with ``pip install zen-temple`` before running the command,
+or install ZEN-temple from its repository in editable mode.
+If the visualization platform does not open automatically, you can open it
+manually by typing  http://localhost:8000/ in any browser of your choice.
 
 
 .. _qs_summary.python:
@@ -68,5 +71,3 @@ analyzing the results rather than the visualization platform.
 
     # extract optimal capacities
     print(r.get_total("capacity"))
-
-
