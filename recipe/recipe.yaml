@@ -1,0 +1,76 @@
+schema_version: 1
+
+context:
+  version: "2.13.0"
+  python_min: "3.11"
+
+package:
+  name: zen-garden
+  version: ${{ version }}
+
+# This source path keeps the recipe directly testable from this checkout. Before
+# submitting to conda-forge, replace it with the URL and SHA256 for the first
+# PyPI release that contains these dependency and CLI changes, for example:
+#
+# source:
+#   url: https://pypi.org/packages/source/z/zen-garden/zen_garden-${{ version }}.tar.gz
+#   sha256: <sha256-of-that-release>
+source:
+  path: ..
+
+build:
+  noarch: python
+  number: 0
+  script: ${{ PYTHON }} -m pip install . -vv --no-deps --no-build-isolation
+
+requirements:
+  host:
+    - python ${{ python_min }}.*
+    - pip
+    - flit-core >=3.2,<4
+  run:
+    - python >=3.11,<3.14
+    - xarray
+    - cython
+    - numpy
+    - pandas >3.0.0
+    - scipy
+    - pint
+    - pytables
+    - pydantic
+    - tsam <4.0
+    - h5py
+    - filelock
+    - ordered-set
+    - pyogrio
+    - psutil
+    - linopy ==0.6.7
+    - requests
+    - ipykernel
+    - tqdm
+    - pyyaml
+
+tests:
+  - python:
+      imports:
+        - zen_garden
+      python_version:
+        - ${{ python_min }}.*
+        - "*"
+      pip_check: true
+  - script:
+      - zen-garden --help
+
+about:
+  homepage: https://zen-garden.ethz.ch
+  repository: https://github.com/ZEN-universe/ZEN-garden
+  documentation: https://zen-garden.readthedocs.io/en/latest/
+  license: MIT
+  license_file: LICENSE.txt
+  summary: Optimization framework for energy transition pathways
+  description: |
+    ZEN-garden is an open-source optimization software to model multi-year energy system transition pathways.
+
+extra:
+  recipe-maintainers:
+    - johburger
