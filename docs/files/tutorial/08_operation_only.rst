@@ -144,7 +144,8 @@ wrapper to answer the following question:
 
 
    a. To answer this question, run the following code in a terminal window. The 
-      ZEN-garden environment must be activated for these commands to work:
+      The environment containing ZEN-garden and ZEN-temple must be activated for
+      these commands to work:
 
       .. code:: shell
 
@@ -221,16 +222,3 @@ wrapper to answer the following question:
    change the installed technology capacities. Since the gas boiler has 
    non-zero emissions, the minimum emissions optimization chooses to shed 
    heat demand rather than use the gas boiler.* 
-
-
-
-
-
-
-
-
-
-  
-
-
-

@@ -23,8 +23,9 @@ This tutorial assumes that you have installed and run the example dataset
 ``5_multiple_time_steps_per_year`` as described in the tutorial :ref:`setup 
 instructions <tutorials_intro.setup>`. It also assumes that the ZEN-garden conda 
 environment is already activated (:ref:`see instructions 
-<installation.activate>`). The raw results of each ZEN-garden simulation are 
-stored in the following path relative to the ``data`` folder: 
+<installation.activate>`) and the ZEN-temple package is installed (:ref:`see
+installation guide <installation.installation>`). The raw results of each ZEN-garden
+simulation are stored in the following path relative to the ``data`` folder:
 ``data\output\<dataset_name>``. 
 
 .. tip::
@@ -49,7 +50,7 @@ Use the following steps to run the visualization platform:
 
         cd /path/to/your/data
 
-2. Activate the ZEN-garden environment in case it is not already activated 
+2. Activate the environment containing ZEN-temple in case it is not already activated
    (see :ref:`instructions <installation.activate>`). Then, run the following 
    command:
 
