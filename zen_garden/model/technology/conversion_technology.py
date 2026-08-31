@@ -67,17 +67,22 @@ class ConversionTechnology(Technology):
         super().store_input_data()
         # get conversion efficiency and capex
         self.get_conversion_factor()
+        # self.capex_specific_conversion = self.data_input.extract_input_data(
+        #     "capex_specific_conversion",
+        #     index_sets=["set_nodes", "set_years"],
+        #     unit_category={"money": 1, "energy_quantity": -1, "time": 1},
+        # )
         # self.opex_specific_fixed = self.data_input.extract_input_data(
         #     "opex_specific_fixed",
         #     index_sets=["set_nodes", "set_years"],
         #     time_steps="set_years",
         #     unit_category={"money": 1, "energy_quantity": -1, "time": 1},
         # )
-        self.min_full_load_hours_fraction = self.data_input.extract_input_data(
-            "min_full_load_hours_fraction",
-            index_sets=["set_nodes", "set_years"],
-            unit_category={},
-        )
+        # self.min_full_load_hours_fraction = self.data_input.extract_input_data(
+        #     "min_full_load_hours_fraction",
+        #     index_sets=["set_nodes", "set_years"],
+        #     unit_category={},
+        # )
         self.area_requirement = self.data_input.extract_input_data(
             "area_requirement",
             index_sets=["set_nodes"],
@@ -127,21 +132,10 @@ class ConversionTechnology(Technology):
 
     def convert_to_fraction_of_capex(self):
         """This method retrieves the total capex and converts it to annualized capex."""
-        pwa_capex, self.capex_is_pwa = self.data_input.extract_pwa_capex()
         # annualize cost_capex_overnight
         fraction_year = self.calculate_fraction_of_year()
         self.opex_specific_fixed = self.opex_specific_fixed * fraction_year
-        if not self.capex_is_pwa:
-            self.capex_specific_conversion = pwa_capex["capex"] * fraction_year
-        else:
-            self.pwa_capex = pwa_capex
-            self.pwa_capex["capex"] = [
-                value * fraction_year for value in self.pwa_capex["capex"]
-            ]
-            # set bounds
-            self.pwa_capex["bounds"]["capex"] = tuple(
-                [(bound * fraction_year) for bound in self.pwa_capex["bounds"]["capex"]]
-            )
+        self.capex_specific_conversion = self.capex_specific_conversion * fraction_year
         # calculate capex of existing capacity
         self.capex_capacity_existing = self.calculate_capex_of_capacities_existing()
 
@@ -154,13 +148,7 @@ class ConversionTechnology(Technology):
         """
         if capacity == 0:
             return 0
-        # linear
-        if not self.capex_is_pwa:
-            capex = self.capex_specific_conversion[index[0]].iloc[0] * capacity
-        else:
-            capex = np.interp(
-                capacity, self.pwa_capex["capacity"], self.pwa_capex["capex"]
-            )
+        capex = self.capex_specific_conversion[index[0]].iloc[0] * capacity
         return capex
 
     ### --- getter/setter classmethods
@@ -279,7 +267,7 @@ class ConversionTechnology(Technology):
         #         "set_nodes",
         #         "set_years",
         #     ],
-        #     doc="Parameter specifying the slope of the capex if approximated linearly",
+        #     doc="Parameter specifying the slope of the linear capex",
         #     calling_class=cls,
         # )
         # slope of linearly modeled conversion efficiencies
@@ -294,18 +282,18 @@ class ConversionTechnology(Technology):
             doc="Parameter which specifies the conversion factor",
             calling_class=cls,
         )
-        # minimum annual average capacity factor
-        optimization_setup.parameters.add_parameter(
-            name="min_full_load_hours_fraction",
-            index_names=[
-                "set_conversion_technologies",
-                "set_nodes",
-                "set_years",
-            ],
-            doc="Minimum full load hours as a fraction of the total hours "
-            "per planning period",
-            calling_class=cls,
-        )
+        # # minimum annual average capacity factor
+        # optimization_setup.parameters.add_parameter(
+        #     name="min_full_load_hours_fraction",
+        #     index_names=[
+        #         "set_conversion_technologies",
+        #         "set_nodes",
+        #         "set_years",
+        #     ],
+        #     doc="Minimum full load hours as a fraction of the total hours "
+        #     "per planning period",
+        #     calling_class=cls,
+        # )
         # area of capacity
         optimization_setup.parameters.add_parameter(
             name="area_requirement",
@@ -317,13 +305,15 @@ class ConversionTechnology(Technology):
         optimization_setup.parameters.add_parameter(
             name="cost_activity_change",
             index_names=["set_conversion_technologies", "set_nodes"],
-            doc="Parameters specifying social cost for activity_change for agriculture model.",
+            doc="Parameters specifying social cost for activity_change for "
+                "agriculture model.",
             calling_class=cls,
         )
         optimization_setup.parameters.add_parameter(
             name="cost_supplementary_activity",
             index_names=["set_conversion_technologies", "set_nodes"],
-            doc="Parameters specifying social cost for supplementary_activity for agriculture model.",
+            doc="Parameters specifying social cost for supplementary_activity for "
+                "agriculture model.",
             calling_class=cls,
         )
 
@@ -450,31 +440,6 @@ class ConversionTechnology(Technology):
             doc="Carrier output of conversion technologies",
             unit_category={"energy_quantity": 1, "time": -1},
         )
-        ## pwa Variables - Capex
-        # pwa capacity
-        variables.add_variable(
-            model,
-            name="capacity_approximation",
-            index_sets=cls.create_custom_set(
-                ["set_conversion_technologies", "set_nodes", "set_years"],
-                optimization_setup,
-            ),
-            bounds=(0, np.inf),
-            doc="pwa variable for size of installed technology on edge i and time t",
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
-        # pwa capex technology
-        # variables.add_variable(
-        #     model,
-        #     name="capex_approximation",
-        #     index_sets=cls.create_custom_set(
-        #         ["set_conversion_technologies", "set_nodes", "set_years"],
-        #         optimization_setup,
-        #     ),
-        #     bounds=(0, np.inf),
-        #     doc="pwa variable for capex for installing technology on edge i and time t",
-        #     unit_category={"money": 1},
-        # )
 
     @classmethod
     def construct_constraints(cls, optimization_setup):
@@ -493,86 +458,16 @@ class ConversionTechnology(Technology):
         # conversion factor
         rules.constraint_carrier_conversion()
         # minimum average annual capacity factor
-        rules.constraint_minimum_full_load_hours()
+        # rules.constraint_minimum_full_load_hours()
         # area requirement
         rules.constraint_area_requirement()
         # social cost
         rules.constraint_social_cost()
 
-        # capex
-        # set_pwa_capex = cls.create_custom_set(
-        #     [
-        #         "set_conversion_technologies",
-        #         "set_capex_pwa",
-        #         "set_nodes",
-        #         "set_years",
-        #     ],
-        #     optimization_setup,
-        # )
-        # set_linear_capex = cls.create_custom_set(
-        #     [
-        #         "set_conversion_technologies",
-        #         "set_capex_linear",
-        #         "set_nodes",
-        #         "set_years",
-        #     ],
-        #     optimization_setup,
-        # )
-        # if len(set_pwa_capex[0]) > 0:
-        #     # if set_pwa_capex contains technologies:
-        #     pwa_breakpoints, pwa_values = cls.calculate_capex_pwa_breakpoints_values(
-        #         optimization_setup, set_pwa_capex[0]
-        #     )
-        #     constraints.add_pw_constraint(
-        #         model,
-        #         index_values=set_pwa_capex[0],
-        #         yvar="capex_approximation",
-        #         xvar="capacity_approximation",
-        #         break_points=pwa_breakpoints,
-        #         f_vals=pwa_values,
-        #         cons_type="EQ",
-        #         name="constraint_capex_pwa",
-        #     )
-        # if set_linear_capex[0]:
-        #     # if set_linear_capex contains technologies:
-        #     rules.constraint_linear_capex()
-        # Coupling constraints
-        rules.constraint_capacity_capex_coupling()
-
         # add constraints of the child classes
         for subclass in cls.__subclasses__():
             if np.size(optimization_setup.system[subclass.label]):
                 subclass.construct_constraints(optimization_setup)
-
-    @classmethod
-    def calculate_capex_pwa_breakpoints_values(cls, optimization_setup, set_pwa):
-        """Calculates breakpoints and function values for piecewise affine constraint.
-        Args:
-            optimization_setup: The OptimizationSetup the element is part of.
-            set_pwa: Set of variable indices in capex approximation for
-            which pwa is performed.
-        Returns:
-            pwa_breakpoints: Dict of pwa breakpoint values indexed by variable indices.
-            pwa_values: Dict of pwa function values indexed by variable indices.
-        """
-        pwa_breakpoints = {}
-        pwa_values = {}
-
-        # iterate through pwa variable's indices
-        for index in set_pwa:
-            pwa_breakpoints[index] = []
-            pwa_values[index] = []
-            if len(index) > 1:
-                tech = index[0]
-            else:
-                tech = index
-            # retrieve pwa variables
-            pwa_parameter = optimization_setup.get_attribute_of_specific_element(
-                cls, tech, "pwa_capex"
-            )
-            pwa_breakpoints[index] = pwa_parameter["capacity_addition"]
-            pwa_values[index] = pwa_parameter["capex"]
-        return pwa_breakpoints, pwa_values
 
 
 class ConversionTechnologyRules(GenericRule):
@@ -806,6 +701,8 @@ class ConversionTechnologyRules(GenericRule):
         technology :math:`h` at node :math:`p` in year :math:`y`
 
         """
+        techs = self.optimization_setup.sets["set_conversion_technologies"]
+        nodes = self.optimization_setup.sets["set_nodes"]
         capex_specific_conversion = self.parameters.capex_specific_conversion
         capex_specific_conversion = capex_specific_conversion.rename(
             {
@@ -813,22 +710,30 @@ class ConversionTechnologyRules(GenericRule):
                 for old, new in zip(
                     list(capex_specific_conversion.dims),
                     [
-                        "set_conversion_technologies",
-                        "set_nodes",
+                        "set_technologies",
+                        "set_location",
                         "set_years",
                     ],
                     strict=False,
                 )
             }
         )
+
+        capacity_addition = self.variables["capacity_addition"].loc[
+            techs, "power", nodes
+        ]
+        cost_capex_overnight = self.variables["cost_capex_overnight"].loc[
+            techs, "power", nodes
+        ]
+
         capex_specific_conversion = capex_specific_conversion.broadcast_like(
-            self.variables["capacity_approximation"].lower
+            capacity_addition.lower
         )
         mask = ~np.isnan(capex_specific_conversion)
         lhs = lp.merge(
             [
-                1 * self.variables["capex_approximation"],
-                -capex_specific_conversion * self.variables["capacity_approximation"],
+                1 * cost_capex_overnight,
+                -capex_specific_conversion * capacity_addition,
             ],
             compat="broadcast_equals",
             join="outer",
@@ -839,53 +744,6 @@ class ConversionTechnologyRules(GenericRule):
         constraints = lhs == rhs
 
         self.constraints.add_constraint("constraint_linear_capex", constraints)
-
-    def constraint_capacity_capex_coupling(self):
-        """Couples capacity variables based on modeling technique.
-
-        .. math::
-            \\Delta S_{h,p,y} = \\Delta S_{h,p,y}^\\mathrm{approx}
-
-        :math:`\\Delta S_{h,p,y}`: capacity addition of the technology :math:`h` at
-        node :math:`p` in year :math:`y` \n
-        :math:`\\Delta S_{h,p,y}^\\mathrm{approx}`: approximated capacity addition of
-        the technology :math:`h` at node :math:`p` in year :math:`y`
-
-        """
-        techs = self.sets["set_conversion_technologies"]
-        nodes = self.sets["set_nodes"]
-        capacity_addition = (
-            self.variables["capacity_addition"]
-            .loc[techs, "power", nodes]
-            .rename(
-                {
-                    "set_technologies": "set_conversion_technologies",
-                    "set_location": "set_nodes",
-                }
-            )
-        )
-        # cost_capex_overnight = (
-        #     self.variables["cost_capex_overnight"]
-        #     .loc[techs, "power", nodes]
-        #     .rename(
-        #         {
-        #             "set_technologies": "set_conversion_technologies",
-        #             "set_location": "set_nodes",
-        #         }
-        #     )
-        # )
-
-        ### formulate constraint
-        lhs_capacity = capacity_addition - self.variables["capacity_approximation"]
-        # lhs_capex = cost_capex_overnight - self.variables["capex_approximation"]
-        rhs = 0
-        constraints_capacity = lhs_capacity == rhs
-        # constraints_capex = lhs_capex == rhs
-        ### return
-        self.constraints.add_constraint(
-            "constraint_capacity_coupling", constraints_capacity
-        )
-        # self.constraints.add_constraint("constraint_capex_coupling", constraints_capex)
 
     def constraint_carrier_conversion(self):
         """Conversion factor between reference carrier and dependent carrier.

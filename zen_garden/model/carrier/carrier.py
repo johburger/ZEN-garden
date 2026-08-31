@@ -58,42 +58,42 @@ class Carrier(Element):
                 unit_category={"energy_quantity": 1, "time": -1},
             )
         )
-        self.raw_time_series["price_export"] = self.data_input.extract_input_data(
-            "price_export",
-            index_sets=["set_nodes", "set_hours"],
-            unit_category={"money": 1, "energy_quantity": -1},
-        )
-        self.raw_time_series["price_import"] = self.data_input.extract_input_data(
-            "price_import",
-            index_sets=["set_nodes", "set_hours"],
-            unit_category={"money": 1, "energy_quantity": -1},
-        )
+        # self.raw_time_series["price_export"] = self.data_input.extract_input_data(
+        #     "price_export",
+        #     index_sets=["set_nodes", "set_hours"],
+        #     unit_category={"money": 1, "energy_quantity": -1},
+        # )
+        # self.raw_time_series["price_import"] = self.data_input.extract_input_data(
+        #     "price_import",
+        #     index_sets=["set_nodes", "set_hours"],
+        #     unit_category={"money": 1, "energy_quantity": -1},
+        # )
         # non-time series input data
-        self.availability_import_yearly = self.data_input.extract_input_data(
-            "availability_import_yearly",
-            index_sets=["set_nodes", "set_years"],
-            unit_category={"energy_quantity": 1},
-        )
-        self.availability_export_yearly = self.data_input.extract_input_data(
-            "availability_export_yearly",
-            index_sets=["set_nodes", "set_years"],
-            unit_category={"energy_quantity": 1},
-        )
-        self.carbon_intensity_carrier_import = self.data_input.extract_input_data(
-            "carbon_intensity_carrier_import",
-            index_sets=["set_nodes", "set_years"],
-            unit_category={"emissions": 1, "energy_quantity": -1},
-        )
-        self.carbon_intensity_carrier_export = self.data_input.extract_input_data(
-            "carbon_intensity_carrier_export",
-            index_sets=["set_nodes", "set_years"],
-            unit_category={"emissions": 1, "energy_quantity": -1},
-        )
-        self.price_shed_demand = self.data_input.extract_input_data(
-            "price_shed_demand",
-            index_sets=[],
-            unit_category={"money": 1, "energy_quantity": -1},
-        )
+        # self.availability_import_yearly = self.data_input.extract_input_data(
+        #     "availability_import_yearly",
+        #     index_sets=["set_nodes", "set_years"],
+        #     unit_category={"energy_quantity": 1},
+        # )
+        # self.availability_export_yearly = self.data_input.extract_input_data(
+        #     "availability_export_yearly",
+        #     index_sets=["set_nodes", "set_years"],
+        #     unit_category={"energy_quantity": 1},
+        # )
+        # self.carbon_intensity_carrier_import = self.data_input.extract_input_data(
+        #     "carbon_intensity_carrier_import",
+        #     index_sets=["set_nodes", "set_years"],
+        #     unit_category={"emissions": 1, "energy_quantity": -1},
+        # )
+        # self.carbon_intensity_carrier_export = self.data_input.extract_input_data(
+        #     "carbon_intensity_carrier_export",
+        #     index_sets=["set_nodes", "set_years"],
+        #     unit_category={"emissions": 1, "energy_quantity": -1},
+        # )
+        # self.price_shed_demand = self.data_input.extract_input_data(
+        #     "price_shed_demand",
+        #     index_sets=[],
+        #     unit_category={"money": 1, "energy_quantity": -1},
+        # )
         self.min_energy_production = self.data_input.extract_input_data(
             "min_energy_production",
             index_sets=[],
@@ -158,56 +158,56 @@ class Carrier(Element):
             calling_class=cls,
         )
         # availability of carrier
-        optimization_setup.parameters.add_parameter(
-            name="availability_import_yearly",
-            index_names=["set_carriers", "set_nodes", "set_years"],
-            doc="Parameter which specifies the maximum energy that can be imported "
-            "from outside the system boundaries for the entire year",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="availability_import_yearly",
+        #     index_names=["set_carriers", "set_nodes", "set_years"],
+        #     doc="Parameter which specifies the maximum energy that can be imported "
+        #     "from outside the system boundaries for the entire year",
+        #     calling_class=cls,
+        # )
         # availability of carrier
-        optimization_setup.parameters.add_parameter(
-            name="availability_export_yearly",
-            index_names=["set_carriers", "set_nodes", "set_years"],
-            doc="Parameter which specifies the maximum energy that can be exported "
-            "to outside the system boundaries for the entire year",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="availability_export_yearly",
+        #     index_names=["set_carriers", "set_nodes", "set_years"],
+        #     doc="Parameter which specifies the maximum energy that can be exported "
+        #     "to outside the system boundaries for the entire year",
+        #     calling_class=cls,
+        # )
         # import price
-        optimization_setup.parameters.add_parameter(
-            name="price_import",
-            index_names=["set_carriers", "set_nodes", "set_time_steps_operation"],
-            doc="Parameter which specifies the import carrier price",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="price_import",
+        #     index_names=["set_carriers", "set_nodes", "set_time_steps_operation"],
+        #     doc="Parameter which specifies the import carrier price",
+        #     calling_class=cls,
+        # )
         # export price
-        optimization_setup.parameters.add_parameter(
-            name="price_export",
-            index_names=["set_carriers", "set_nodes", "set_time_steps_operation"],
-            doc="Parameter which specifies the export carrier price",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="price_export",
+        #     index_names=["set_carriers", "set_nodes", "set_time_steps_operation"],
+        #     doc="Parameter which specifies the export carrier price",
+        #     calling_class=cls,
+        # )
         # demand shedding price
-        optimization_setup.parameters.add_parameter(
-            name="price_shed_demand",
-            index_names=["set_carriers"],
-            doc="Parameter which specifies the price to shed demand",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="price_shed_demand",
+        #     index_names=["set_carriers"],
+        #     doc="Parameter which specifies the price to shed demand",
+        #     calling_class=cls,
+        # )
         # carbon intensity carrier import
-        optimization_setup.parameters.add_parameter(
-            name="carbon_intensity_carrier_import",
-            index_names=["set_carriers", "set_nodes", "set_years"],
-            doc="Parameter which specifies the carbon intensity of carrier import",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="carbon_intensity_carrier_import",
+        #     index_names=["set_carriers", "set_nodes", "set_years"],
+        #     doc="Parameter which specifies the carbon intensity of carrier import",
+        #     calling_class=cls,
+        # )
         # carbon intensity carrier exmport
-        optimization_setup.parameters.add_parameter(
-            name="carbon_intensity_carrier_export",
-            index_names=["set_carriers", "set_nodes", "set_years"],
-            doc="Parameter which specifies the carbon intensity of carrier export",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="carbon_intensity_carrier_export",
+        #     index_names=["set_carriers", "set_nodes", "set_years"],
+        #     doc="Parameter which specifies the carbon intensity of carrier export",
+        #     calling_class=cls,
+        # )
         optimization_setup.parameters.add_parameter(
             name="min_energy_production",
             index_names=["set_carriers"],
@@ -275,36 +275,36 @@ class Carrier(Element):
         #     unit_category={"money": 1},
         # )
         # carbon emissions
-        variables.add_variable(
-            model,
-            name="carbon_emissions_carrier",
-            index_sets=cls.create_custom_set(
-                ["set_carriers", "set_nodes", "set_time_steps_operation"],
-                optimization_setup,
-            ),
-            doc="carbon emissions of importing and exporting carrier",
-            unit_category={"emissions": 1, "time": -1},
-        )
-        # carbon emissions carrier
-        variables.add_variable(
-            model,
-            name="carbon_emissions_carrier_total",
-            index_sets=sets["set_years"],
-            doc="total carbon emissions of importing and exporting carrier",
-            unit_category={"emissions": 1},
-        )
+        # variables.add_variable(
+        #     model,
+        #     name="carbon_emissions_carrier",
+        #     index_sets=cls.create_custom_set(
+        #         ["set_carriers", "set_nodes", "set_time_steps_operation"],
+        #         optimization_setup,
+        #     ),
+        #     doc="carbon emissions of importing and exporting carrier",
+        #     unit_category={"emissions": 1, "time": -1},
+        # )
+        # # carbon emissions carrier
+        # variables.add_variable(
+        #     model,
+        #     name="carbon_emissions_carrier_total",
+        #     index_sets=sets["set_years"],
+        #     doc="total carbon emissions of importing and exporting carrier",
+        #     unit_category={"emissions": 1},
+        # )
         # shed demand
-        variables.add_variable(
-            model,
-            name="shed_demand",
-            index_sets=cls.create_custom_set(
-                ["set_carriers", "set_nodes", "set_time_steps_operation"],
-                optimization_setup,
-            ),
-            bounds=(0, np.inf),
-            doc="shed demand of carrier",
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
+        # variables.add_variable(
+        #     model,
+        #     name="shed_demand",
+        #     index_sets=cls.create_custom_set(
+        #         ["set_carriers", "set_nodes", "set_time_steps_operation"],
+        #         optimization_setup,
+        #     ),
+        #     bounds=(0, np.inf),
+        #     doc="shed demand of carrier",
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
         # cost of shed demand
         # variables.add_variable(
         #     model,
@@ -335,22 +335,22 @@ class Carrier(Element):
         rules.constraint_availability_import_export()
 
         # limit import/export flow by availability for each year
-        rules.constraint_availability_import_export_yearly()
+        # rules.constraint_availability_import_export_yearly()
 
         # cost for carrier
         # rules.constraint_cost_carrier()
 
         # cost and limit for shed demand
-        rules.constraint_cost_limit_shed_demand()
+        # rules.constraint_cost_limit_shed_demand()
 
         # total cost for carriers
         # rules.constraint_cost_carrier_total()
 
         # carbon emissions
-        rules.constraint_carbon_emissions_carrier()
+        # rules.constraint_carbon_emissions_carrier()
 
         # carbon emissions carrier
-        rules.constraint_carbon_emissions_carrier_total()
+        # rules.constraint_carbon_emissions_carrier_total()
 
         # energy balance
         rules.constraint_nodal_energy_balance()
@@ -569,7 +569,7 @@ class CarrierRules(GenericRule):
 
         """
         ### mask for finite price, otherwise the shed demand is zero
-        mask = self.parameters.price_shed_demand != np.inf
+        # mask = self.parameters.price_shed_demand != np.inf
 
         # cost of shedding demand
         # lhs_cost = (
@@ -582,8 +582,8 @@ class CarrierRules(GenericRule):
         # limit of shedding demand:
         #   either the demand (price != inf) or zero (price == inf)
         lhs_shed_demand = self.variables["shed_demand"]
-        rhs_shed_demand = self.parameters.demand.where(mask, 0.0)
-        constraints_shed_demand = lhs_shed_demand <= rhs_shed_demand
+        # rhs_shed_demand = self.parameters.demand.where(mask, 0.0)
+        constraints_shed_demand = lhs_shed_demand <= 0
 
         # self.constraints.add_constraint("constraint_cost_shed_demand", constraints_cost)
         self.constraints.add_constraint(
@@ -739,10 +739,10 @@ class CarrierRules(GenericRule):
                 in_vars_plus = in_vars_plus.reshape((-1, in_vars_plus.shape[-1])).T
                 in_coefs_plus = np.ones_like(in_vars_plus)
                 in_vars_minus = (
-                    self.variables["flow_transport_loss"]
+                    self.variables["flow_transport"]
                     .labels.loc[techs, edges_in, :]
                     .data
-                )
+                ) * 0
                 in_vars_minus = in_vars_minus.reshape((-1, in_vars_minus.shape[-1])).T
                 in_coefs_minus = np.ones_like(in_vars_minus)
                 in_vars = np.concatenate([in_vars_plus, in_vars_minus], axis=1)
@@ -914,7 +914,7 @@ class CarrierRules(GenericRule):
         term_carrier_export = self.variables["flow_export"].to_linexpr()
         term_carrier_demand = self.parameters.demand
         # shed demand
-        term_carrier_shed_demand = self.variables["shed_demand"].to_linexpr()
+        # term_carrier_shed_demand = self.variables["shed_demand"].to_linexpr()
 
         ### formulate the constraints
         lhs = lp.merge(
@@ -927,7 +927,7 @@ class CarrierRules(GenericRule):
                 term_flow_storage_discharge,
                 term_carrier_import,
                 -term_carrier_export,
-                term_carrier_shed_demand,
+                # term_carrier_shed_demand,
             ],
             compat="broadcast_equals",
             join="outer",

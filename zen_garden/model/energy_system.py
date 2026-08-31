@@ -191,16 +191,16 @@ class EnergySystem:
         #     )
         # )
         # market share unbounded
-        self.market_share_unbounded = self.data_input.extract_input_data(
-            "market_share_unbounded", index_sets=[], unit_category={}
-        )
+        # self.market_share_unbounded = self.data_input.extract_input_data(
+        #     "market_share_unbounded", index_sets=[], unit_category={}
+        # )
         # knowledge_spillover_rate
-        self.knowledge_depreciation_rate = self.data_input.extract_input_data(
-            "knowledge_depreciation_rate", index_sets=[], unit_category={}
-        )
-        self.knowledge_spillover_rate = self.data_input.extract_input_data(
-            "knowledge_spillover_rate", index_sets=[], unit_category={}
-        )
+        # self.knowledge_depreciation_rate = self.data_input.extract_input_data(
+        #     "knowledge_depreciation_rate", index_sets=[], unit_category={}
+        # )
+        # self.knowledge_spillover_rate = self.data_input.extract_input_data(
+        #     "knowledge_spillover_rate", index_sets=[], unit_category={}
+        # )
 
     def calculate_edges_from_nodes(self):
         """Calculates set_nodes_on_edges from set_nodes.
@@ -476,23 +476,23 @@ class EnergySystem:
         #     calling_class=cls,
         # )
         # carbon price of overshoot
-        parameters.add_parameter(
-            name="market_share_unbounded",
-            doc="Parameter which specifies the unbounded market share",
-            calling_class=cls,
-        )
-        # knowledge depreciation rate
-        parameters.add_parameter(
-            name="knowledge_depreciation_rate",
-            doc="Parameter which specifies the knowledge depreciation rate",
-            calling_class=cls,
-        )
-        # knowledge spillover rate
-        parameters.add_parameter(
-            name="knowledge_spillover_rate",
-            doc="Parameter which specifies the knowledge spillover rate",
-            calling_class=cls,
-        )
+        # parameters.add_parameter(
+        #     name="market_share_unbounded",
+        #     doc="Parameter which specifies the unbounded market share",
+        #     calling_class=cls,
+        # )
+        # # knowledge depreciation rate
+        # parameters.add_parameter(
+        #     name="knowledge_depreciation_rate",
+        #     doc="Parameter which specifies the knowledge depreciation rate",
+        #     calling_class=cls,
+        # )
+        # # knowledge spillover rate
+        # parameters.add_parameter(
+        #     name="knowledge_spillover_rate",
+        #     doc="Parameter which specifies the knowledge spillover rate",
+        #     calling_class=cls,
+        # )
 
     def construct_vars(self):
         """Constructs the pe.Vars of the class <EnergySystem>."""

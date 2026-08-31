@@ -243,9 +243,7 @@ class Element:
                 # if set is used to determine if on-off behavior is modeled
                 # exclude technologies which have no min_load
                 if "on_off" in index:
-                    append_element = cls.append_on_off_modeled(
-                        element, optimization_setup, index
-                    )
+                    append_element = False
                     continue
 
                 # split in capacity types of power and energy
@@ -282,27 +280,6 @@ class Element:
             list_sets.append(sets[index][element])
             return True
         return False
-
-    @classmethod
-    def append_set_capex_index(cls, element, optimization_setup, index):
-        """Checks if the capex of a technology needs to be modeled as pwa or linear.
-
-        :param element: technology in model
-        :param optimization_setup: The OptimizationSetup the element is part of
-        :param index: index to check
-        :return model_capex: Bool indicating if capex must be modeled as pwa or linear
-        """
-        if element in optimization_setup.sets["set_conversion_technologies"]:
-            capex_is_pwa = optimization_setup.get_attribute_of_specific_element(
-                cls, element, "capex_is_pwa"
-            )
-            if "linear" in index and capex_is_pwa:
-                return False
-            if "pwa" in index and not capex_is_pwa:
-                return False
-        else:
-            return False
-        return True
 
     @classmethod
     def append_on_off_modeled(cls, element, optimization_setup, index):

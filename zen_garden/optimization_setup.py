@@ -733,9 +733,9 @@ class OptimizationSetup(object):
         """
         decision_horizon = self.get_decision_horizon(step_horizon)
         # add newly capacity_addition of first year to existing capacity
-        self.add_new_capacity_addition(decision_horizon)
+        # self.add_new_capacity_addition(decision_horizon)
         # add cumulative carbon emissions to previous carbon emissions
-        self.add_carbon_emission_cumulative(decision_horizon)
+        # self.add_carbon_emission_cumulative(decision_horizon)
 
     def add_new_capacity_addition(self, decision_horizon):
         """Adds the newly built capacity to the existing capacity.

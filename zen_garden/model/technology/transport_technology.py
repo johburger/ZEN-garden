@@ -55,7 +55,7 @@ class TransportTechnology(Technology):
         #     self.carbon_intensity_technology *= self.distance
 
         # get transport loss factor
-        self.get_transport_loss_factor()
+        # self.get_transport_loss_factor()
         # get capex of transport technology
         # self.get_capex_transport()
         # annualize capex
@@ -261,12 +261,12 @@ class TransportTechnology(Technology):
         #     calling_class=cls,
         # )
         # carrier losses
-        optimization_setup.parameters.add_parameter(
-            name="transport_loss_factor",
-            index_names=["set_transport_technologies", "set_edges"],
-            doc="linear carrier losses due to transport with transport technologies",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="transport_loss_factor",
+        #     index_names=["set_transport_technologies", "set_edges"],
+        #     doc="linear carrier losses due to transport with transport technologies",
+        #     calling_class=cls,
+        # )
 
     @classmethod
     def construct_vars(cls, optimization_setup):
@@ -321,15 +321,15 @@ class TransportTechnology(Technology):
             unit_category={"energy_quantity": 1, "time": -1},
         )
         # loss of carrier on edge
-        variables.add_variable(
-            model,
-            name="flow_transport_loss",
-            index_sets=(index_values, index_names),
-            bounds=(0, np.inf),
-            doc="carrier flow lost due to resistances etc. by transporting carrier "
-            "through transport technology on edge i and time t",
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
+        # variables.add_variable(
+        #     model,
+        #     name="flow_transport_loss",
+        #     index_sets=(index_values, index_names),
+        #     bounds=(0, np.inf),
+        #     doc="carrier flow lost due to resistances etc. by transporting carrier "
+        #     "through transport technology on edge i and time t",
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
 
     @classmethod
     def construct_constraints(cls, optimization_setup):
@@ -346,7 +346,7 @@ class TransportTechnology(Technology):
         # rules.constraint_opex_emissions_technology_transport()
 
         # carrier flow Losses
-        rules.constraint_transport_technology_losses_flow()
+        # rules.constraint_transport_technology_losses_flow()
 
         # capex of transport technologies
         # rules.constraint_transport_technology_capex()
@@ -489,7 +489,7 @@ class TransportTechnologyRules(GenericRule):
         if len(self.sets["set_transport_technologies"]) == 0:
             return
         flow_transport = self.variables["flow_transport"]
-        flow_transport_loss = self.variables["flow_transport_loss"]
+        flow_transport_loss = 0
         # This mask checks the distance between nodes
         mask = (~np.isinf(self.parameters.distance)).broadcast_like(
             flow_transport.lower

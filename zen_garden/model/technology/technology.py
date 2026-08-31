@@ -47,21 +47,21 @@ class Technology(Element):
         super().store_scenario_dict()
         # set attributes of technology
         set_location = self.location_type
-        self.capacity_addition_min = self.data_input.extract_input_data(
-            "capacity_addition_min",
-            index_sets=[],
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
-        self.capacity_addition_max = self.data_input.extract_input_data(
-            "capacity_addition_max",
-            index_sets=[],
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
-        self.capacity_addition_unbounded = self.data_input.extract_input_data(
-            "capacity_addition_unbounded",
-            index_sets=[],
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
+        # self.capacity_addition_min = self.data_input.extract_input_data(
+        #     "capacity_addition_min",
+        #     index_sets=[],
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
+        # self.capacity_addition_max = self.data_input.extract_input_data(
+        #     "capacity_addition_max",
+        #     index_sets=[],
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
+        # self.capacity_addition_unbounded = self.data_input.extract_input_data(
+        #     "capacity_addition_unbounded",
+        #     index_sets=[],
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
         self.lifetime = self.data_input.extract_input_data(
             "lifetime", index_sets=[], unit_category={}
         )
@@ -77,23 +77,23 @@ class Technology(Element):
         #     )
         # else:
         #     self.depreciation_time = self.lifetime.copy()
-        self.construction_time = self.data_input.extract_input_data(
-            "construction_time", index_sets=[], unit_category={}
-        )
+        # self.construction_time = self.data_input.extract_input_data(
+        #     "construction_time", index_sets=[], unit_category={}
+        # )
         # maximum diffusion rate
-        self.max_diffusion_rate = self.data_input.extract_input_data(
-            "max_diffusion_rate",
-            index_sets=["set_years"],
-            unit_category={},
-        )
+        # self.max_diffusion_rate = self.data_input.extract_input_data(
+        #     "max_diffusion_rate",
+        #     index_sets=["set_years"],
+        #     unit_category={},
+        # )
 
         # add all raw time series to dict
         self.raw_time_series = {}
-        self.raw_time_series["min_load"] = self.data_input.extract_input_data(
-            "min_load",
-            index_sets=[set_location, "set_hours"],
-            unit_category={},
-        )
+        # self.raw_time_series["min_load"] = self.data_input.extract_input_data(
+        #     "min_load",
+        #     index_sets=[set_location, "set_hours"],
+        #     unit_category={},
+        # )
         self.raw_time_series["max_load"] = self.data_input.extract_input_data(
             "max_load",
             index_sets=[set_location, "set_hours"],
@@ -114,11 +114,11 @@ class Technology(Element):
         )
 
         # lower capacity limit
-        self.capacity_lower_limit = self.data_input.extract_input_data(
-            "capacity_lower_limit",
-            index_sets=[set_location, "set_years"],
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
+        # self.capacity_lower_limit = self.data_input.extract_input_data(
+        #     "capacity_lower_limit",
+        #     index_sets=[set_location, "set_years"],
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
 
         # self.carbon_intensity_technology = self.data_input.extract_input_data(
         #     "carbon_intensity_technology",
@@ -134,11 +134,11 @@ class Technology(Element):
             index_sets=[set_location, "set_technologies_existing"],
             unit_category={"energy_quantity": 1, "time": -1},
         )
-        self.capacity_investment_existing = self.data_input.extract_input_data(
-            "capacity_investment_existing",
-            index_sets=[set_location, "set_years"],
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
+        # self.capacity_investment_existing = self.data_input.extract_input_data(
+        #     "capacity_investment_existing",
+        #     index_sets=[set_location, "set_years"],
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
         self.lifetime_existing = self.data_input.extract_lifetime_existing(
             "capacity_existing", index_sets=[set_location, "set_technologies_existing"]
         )
@@ -433,7 +433,7 @@ class Technology(Element):
         # get params and system
         params = optimization_setup.parameters.dict_parameters
         system = optimization_setup.system
-        construction_time = params.construction_time[tech]
+        construction_time = 0
         # conservative estimate of construction time (ceil)
         del_construction_time = int(
             np.ceil(construction_time / system.interval_between_years)
@@ -520,44 +520,44 @@ class Technology(Element):
             calling_class=cls,
         )
         # existing capacity
-        optimization_setup.parameters.add_parameter(
-            name="capacity_investment_existing",
-            index_names=[
-                "set_technologies",
-                "set_capacity_types",
-                "set_location",
-                "set_years_entire_horizon",
-            ],
-            capacity_types=True,
-            doc="Parameter specifying the size of the previously invested capacities",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="capacity_investment_existing",
+        #     index_names=[
+        #         "set_technologies",
+        #         "set_capacity_types",
+        #         "set_location",
+        #         "set_years_entire_horizon",
+        #     ],
+        #     capacity_types=True,
+        #     doc="Parameter specifying the size of the previously invested capacities",
+        #     calling_class=cls,
+        # )
         # minimum capacity addition
-        optimization_setup.parameters.add_parameter(
-            name="capacity_addition_min",
-            index_names=["set_technologies", "set_capacity_types"],
-            capacity_types=True,
-            doc="Parameter which specifies the minimum capacity addition "
-            "that can be installed",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="capacity_addition_min",
+        #     index_names=["set_technologies", "set_capacity_types"],
+        #     capacity_types=True,
+        #     doc="Parameter which specifies the minimum capacity addition "
+        #     "that can be installed",
+        #     calling_class=cls,
+        # )
         # maximum capacity addition
-        optimization_setup.parameters.add_parameter(
-            name="capacity_addition_max",
-            index_names=["set_technologies", "set_capacity_types"],
-            capacity_types=True,
-            doc="Parameter which specifies the maximum capacity addition "
-            "that can be installed",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="capacity_addition_max",
+        #     index_names=["set_technologies", "set_capacity_types"],
+        #     capacity_types=True,
+        #     doc="Parameter which specifies the maximum capacity addition "
+        #     "that can be installed",
+        #     calling_class=cls,
+        # )
         # unbounded capacity addition
-        optimization_setup.parameters.add_parameter(
-            name="capacity_addition_unbounded",
-            index_names=["set_technologies"],
-            doc="Parameter which specifies the unbounded capacity addition that can be "
-            "added each year (only for delayed technology deployment)",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="capacity_addition_unbounded",
+        #     index_names=["set_technologies"],
+        #     doc="Parameter which specifies the unbounded capacity addition that can be "
+        #     "added each year (only for delayed technology deployment)",
+        #     calling_class=cls,
+        # )
         # lifetime existing technologies
         optimization_setup.parameters.add_parameter(
             name="lifetime_existing",
@@ -623,21 +623,21 @@ class Technology(Element):
         #     calling_class=cls,
         # )
         # construction_time newly built technologies
-        optimization_setup.parameters.add_parameter(
-            name="construction_time",
-            index_names=["set_technologies"],
-            doc="Parameter which specifies the construction time of a "
-            "newly built technology",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="construction_time",
+        #     index_names=["set_technologies"],
+        #     doc="Parameter which specifies the construction time of a "
+        #     "newly built technology",
+        #     calling_class=cls,
+        # )
         # maximum diffusion rate, i.e., increase in capacity
-        optimization_setup.parameters.add_parameter(
-            name="max_diffusion_rate",
-            index_names=["set_technologies", "set_years"],
-            doc="Parameter which specifies the maximum diffusion rate which is the "
-            "maximum increase in capacity between investment steps",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="max_diffusion_rate",
+        #     index_names=["set_technologies", "set_years"],
+        #     doc="Parameter which specifies the maximum diffusion rate which is the "
+        #     "maximum increase in capacity between investment steps",
+        #     calling_class=cls,
+        # )
         # capacity_limit of technologies
         optimization_setup.parameters.add_parameter(
             name="capacity_limit",
@@ -652,30 +652,30 @@ class Technology(Element):
             calling_class=cls,
         )
         # NEW: lower capacity limit of technologies
-        optimization_setup.parameters.add_parameter(
-            name="capacity_lower_limit",
-            index_names=[
-                "set_technologies",
-                "set_capacity_types",
-                "set_location",
-                "set_years",
-            ],
-            capacity_types=True,
-            doc="Parameter which specifies the lower capacity limit of technologies",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="capacity_lower_limit",
+        #     index_names=[
+        #         "set_technologies",
+        #         "set_capacity_types",
+        #         "set_location",
+        #         "set_years",
+        #     ],
+        #     capacity_types=True,
+        #     doc="Parameter which specifies the lower capacity limit of technologies",
+        #     calling_class=cls,
+        # )
         # minimum load relative to capacity
-        optimization_setup.parameters.add_parameter(
-            name="min_load",
-            index_names=[
-                "set_technologies",
-                "set_location",
-                "set_time_steps_operation",
-            ],
-            doc="Parameter which specifies the minimum load of technology "
-            "relative to installed capacity",
-            calling_class=cls,
-        )
+        # optimization_setup.parameters.add_parameter(
+        #     name="min_load",
+        #     index_names=[
+        #         "set_technologies",
+        #         "set_location",
+        #         "set_time_steps_operation",
+        #     ],
+        #     doc="Parameter which specifies the minimum load of technology "
+        #     "relative to installed capacity",
+        #     calling_class=cls,
+        # )
         # maximum load relative to capacity
         optimization_setup.parameters.add_parameter(
             name="max_load",
@@ -842,22 +842,22 @@ class Technology(Element):
             unit_category={"energy_quantity": 1, "time": -1},
         )
         # invested_capacity technology
-        variables.add_variable(
-            model,
-            name="capacity_investment",
-            index_sets=cls.create_custom_set(
-                [
-                    "set_technologies",
-                    "set_capacity_types",
-                    "set_location",
-                    "set_years",
-                ],
-                optimization_setup,
-            ),
-            bounds=(0, np.inf),
-            doc="size of invested technology at location l and time t",
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
+        # variables.add_variable(
+        #     model,
+        #     name="capacity_investment",
+        #     index_sets=cls.create_custom_set(
+        #         [
+        #             "set_technologies",
+        #             "set_capacity_types",
+        #             "set_location",
+        #             "set_years",
+        #         ],
+        #         optimization_setup,
+        #     ),
+        #     bounds=(0, np.inf),
+        #     doc="size of invested technology at location l and time t",
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
         # # capex of building capacity overnight
         # variables.add_variable(
         #     model,
@@ -1013,31 +1013,31 @@ class Technology(Element):
         mask_on_off = mask_on_off & mask_nonzero_cap_limit.drop_vars(
             "set_capacity_types"
         )
-        variables.add_variable(
-            model,
-            name="tech_on_var",
-            index_sets=cls.create_custom_set(
-                ["set_technologies", "set_location", "set_time_steps_operation"],
-                optimization_setup,
-            ),
-            mask=mask_on_off,
-            doc="Binary variable which equals 1 when technology is switched on at "
-            "location l and time t",
-            binary=True,
-            unit_category=None,
-        )
-        variables.add_variable(
-            model,
-            name="capacity_on_off_helper_var",
-            index_sets=cls.create_custom_set(
-                ["set_technologies", "set_location", "set_time_steps_operation"],
-                optimization_setup,
-            ),
-            bounds=(0, np.inf),
-            mask=mask_on_off,
-            doc="Helper variable substituting the product of capacity and tech_on_var",
-            unit_category={"energy_quantity": 1, "time": -1},
-        )
+        # variables.add_variable(
+        #     model,
+        #     name="tech_on_var",
+        #     index_sets=cls.create_custom_set(
+        #         ["set_technologies", "set_location", "set_time_steps_operation"],
+        #         optimization_setup,
+        #     ),
+        #     mask=mask_on_off,
+        #     doc="Binary variable which equals 1 when technology is switched on at "
+        #     "location l and time t",
+        #     binary=True,
+        #     unit_category=None,
+        # )
+        # variables.add_variable(
+        #     model,
+        #     name="capacity_on_off_helper_var",
+        #     index_sets=cls.create_custom_set(
+        #         ["set_technologies", "set_location", "set_time_steps_operation"],
+        #         optimization_setup,
+        #     ),
+        #     bounds=(0, np.inf),
+        #     mask=mask_on_off,
+        #     doc="Helper variable substituting the product of capacity and tech_on_var",
+        #     unit_category={"energy_quantity": 1, "time": -1},
+        # )
 
         # add pe.Vars of the child classes
         for subclass in cls.__subclasses__():
@@ -1057,22 +1057,22 @@ class Technology(Element):
         rules.constraint_technology_capacity_limit()
 
         # NEW: technology capacity_lower_limit (Lower Limit)
-        rules.constraint_technology_capacity_lower_limit()
+        # rules.constraint_technology_capacity_lower_limit()
 
         # minimum capacity
-        rules.constraint_technology_min_capacity_addition()
+        # rules.constraint_technology_min_capacity_addition()
 
         # maximum capacity
-        rules.constraint_technology_max_capacity_addition()
+        # rules.constraint_technology_max_capacity_addition()
 
         # construction period
-        rules.constraint_technology_construction_time()
+        # rules.constraint_technology_construction_time()
 
         # lifetime
         rules.constraint_technology_lifetime()
 
         # limit diffusion rate
-        rules.constraint_technology_diffusion_limit()
+        # rules.constraint_technology_diffusion_limit()
 
         # annual capex of having capacity
         # rules.constraint_cost_capex_yearly()
@@ -1091,12 +1091,12 @@ class Technology(Element):
 
         # min load constraints
         n_cons = len(model.constraints.items())
-        rules.constraint_technology_on_off()
+        # rules.constraint_technology_on_off()
 
         # if nothing was added we can remove the tech vars again
-        if len(model.constraints.items()) == n_cons:
-            model.variables.remove("tech_on_var")
-            model.variables.remove("capacity_on_off_helper_var")
+        # if len(model.constraints.items()) == n_cons:
+        #     model.variables.remove("tech_on_var")
+        #     model.variables.remove("capacity_on_off_helper_var")
 
         # add pe.Constraints of the child classes
         for subclass in cls.__subclasses__():
