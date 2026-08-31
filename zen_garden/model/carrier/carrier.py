@@ -951,10 +951,10 @@ class CarrierRules(GenericRule):
 
         """
         lhs = (
-            self.variables["flow_export"].sel({"set_carriers": "electricity"})
+            self.variables["flow_export"]
             * self.get_year_time_step_duration_array()
         ).sum(["set_years", "set_time_steps_operation", "set_nodes"])
-        rhs = self.parameters.min_energy_production.sel({"set_carriers": "electricity"})
+        rhs = self.parameters.min_energy_production
         constraints = lhs >= rhs
         self.constraints.add_constraint("constraint_min_energy_production", constraints)
 
