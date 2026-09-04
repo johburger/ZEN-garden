@@ -31,7 +31,7 @@ dependencies = [
     "pint",
     "tables",
     "pydantic",
-    "tsam",
+    "tsam>=4",
     "h5py",
     "filelock",
     "ordered-set",
@@ -40,7 +40,10 @@ dependencies = [
     "linopy==0.6.7",
     "requests",
     "ipykernel",
-    "netCDF4"
+    "netCDF4",
+    "PyYAML",
+    "tqdm",
+    "typing-extensions"
 ]
 
 [project.optional-dependencies]
